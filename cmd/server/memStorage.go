@@ -16,9 +16,6 @@ type MemStorage struct {
 
 // создание нового объекта MemStorage
 func NewMemStorage() *MemStorage {
-	item := MemStorage{}
-	item.Counters = map[string]int64{"": 0}
-	item.Gauges = map[string]float64{"": 0}
 	return new(MemStorage)
 }
 
