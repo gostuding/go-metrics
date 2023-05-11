@@ -1,2 +1,4 @@
+github.com/go-chi/chi/v5 v5.0.8 h1:lD+NLqFcAi1ovnVZpsnObHGW4xb4J8lNmoYVfECH1Y0=
+github.com/go-chi/chi/v5 v5.0.8/go.mod h1:DslCQbL2OYiznFReuXYUmQ2hGd1aDpCnlMNITLSKoi8=
 github.com/gostuding/go-metrics v0.0.0-20230511190833-57f456ca9b88 h1:q4YXrkWfB1OdIAx7tvHYkbxUTJWhqMkaX1lWXJPxczs=
 github.com/gostuding/go-metrics v0.0.0-20230511190833-57f456ca9b88/go.mod h1:59xBOFigZgDOYkBV0xJhAIsFeq4CQ3okadBQkYkYl8U=

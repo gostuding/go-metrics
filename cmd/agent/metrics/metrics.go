@@ -8,8 +8,8 @@ import (
 	"runtime"
 )
 
-var GaugeType int = 1
-var ConterType int = 2
+// var GaugeType int = 1
+// var ConterType int = 2
 
 type MetricsStorage struct {
 	RandomValue float64
