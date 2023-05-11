@@ -15,7 +15,7 @@ type StorageGetter interface {
 }
 
 // Интерфейс для вывод значений в виде HTML
-type HtmlGetter interface {
+type HTMLGetter interface {
 	GetMetricsHTML() string
 }
 
@@ -23,5 +23,5 @@ type Storage interface {
 	StorageSeter
 	StorageGetter
 	Stringer
-	HtmlGetter
+	HTMLGetter
 }

@@ -41,7 +41,7 @@ func GetMetric(writer http.ResponseWriter, request *http.Request, storage storag
 }
 
 // Запрос всех метрик в html
-func GetAllMetrics(writer http.ResponseWriter, request *http.Request, storage storage.HtmlGetter) {
+func GetAllMetrics(writer http.ResponseWriter, request *http.Request, storage storage.HTMLGetter) {
 	writer.WriteHeader(http.StatusOK)
 	writer.Write([]byte(storage.GetMetricsHTML()))
 }
