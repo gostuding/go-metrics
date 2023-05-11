@@ -38,9 +38,11 @@ func (ms MetricsStorage) SendMetrics() {
 		}
 		if len(query) > 0 {
 			query = fmt.Sprintf("http://localhost:8080/update/%s/%s/%v", query, name, value)
-			_, err := http.Post(query, "text/plain", nil)
+			resp, err := http.Post(query, "text/plain", nil)
 			if err != nil {
 				fmt.Printf("Send metric: '%s' error: '%v'\n", name, err)
+			} else {
+				defer resp.Body.Close()
 			}
 		}
 	}
