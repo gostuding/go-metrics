@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestMemStorage_AddMetric(t *testing.T) {
+func TestMemStorageAddMetric(t *testing.T) {
 	type args struct {
 		mType  string
 		mName  string
@@ -36,7 +36,7 @@ func TestMemStorage_AddMetric(t *testing.T) {
 	}
 }
 
-func TestMemStorage_GetMetric(t *testing.T) {
+func TestMemStorageGetMetric(t *testing.T) {
 	type fields struct {
 		Gauges   map[string]float64
 		Counters map[string]int64

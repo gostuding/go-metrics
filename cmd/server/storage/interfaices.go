@@ -5,6 +5,7 @@ type StorageSeter interface {
 	Update(string, string, string) (int, error)
 }
 
+// уже определён в системе, но всё же
 type Stringer interface {
 	String() string
 }

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"os"
 )
 
 type NetWorkAdress struct {
@@ -39,6 +41,15 @@ var UpdateTime int = 0
 var SendTime int = 0
 
 // -----------------------------------------------------------
+
+func strToInt(str string) int {
+	val, err := strconv.Atoi(str)
+	if err != nil {
+		return 0
+	}
+	return val
+}
+
 func GetFlags() {
 	flag.Var(&SendAddress, "a", "Net address like 'host:port'")
 	update := flag.Int("p", 2, "Update metricks interval")
@@ -46,4 +57,14 @@ func GetFlags() {
 	flag.Parse()
 	UpdateTime = *update
 	SendTime = *send
+
+	if address := os.Getenv("ADDRESS"); address != "" {
+		SendAddress.Set(address)
+	}
+	if upd := os.Getenv("REPORT_INTERVAL"); strToInt(upd) > 0 {
+		SendTime = strToInt(upd)
+	}
+	if upd := os.Getenv("POLL_INTERVAL"); strToInt(upd) > 0 {
+		UpdateTime = strToInt(upd)
+	}
 }

@@ -95,15 +95,23 @@ func (ms MemStorage) GetMetric(mType string, mName string) (string, int) {
 func (ms MemStorage) String() string {
 	index := 1
 	body := "==== MemoryStorage ====\n"
-	for key, value := range ms.Gauges {
-		body += fmt.Sprintf("Gauges: %d, name: '%s', value: '%f'\n", index, key, value)
+	for _, key := range getSortedxKeysFloat(ms.Gauges) {
+		body += fmt.Sprintf("Gauges: %d, name: '%s', value: '%f'\n", index, key, ms.Gauges[key])
 		index += 1
 	}
+	// for key, value := range ms.Gauges {
+	// 	body += fmt.Sprintf("Gauges: %d, name: '%s', value: '%f'\n", index, key, value)
+	// 	index += 1
+	// }
 	index = 1
-	for key, value := range ms.Counters {
-		body += fmt.Sprintf("Counter: %d, name: '%s', value: '%d'\n", index, key, value)
+	for _, key := range getSortedKeysInt(ms.Counters) {
+		body += fmt.Sprintf("Gauges: %d, name: '%s', value: '%d'\n", index, key, ms.Counters[key])
 		index += 1
 	}
+	// for key, value := range ms.Counters {
+	// 	body += fmt.Sprintf("Counter: %d, name: '%s', value: '%d'\n", index, key, value)
+	// 	index += 1
+	// }
 	body += "======================="
 	return body
 }
@@ -114,7 +122,7 @@ func (ms MemStorage) GetMetricsHTML() string {
 	body += "<body><header><h1><p>Metrics list</p></h1></header>"
 	index := 1
 	body += "<h1><p>Gauges</p></h1>"
-	for _, key := range getSortedKeysFlaoat(ms.Gauges) {
+	for _, key := range getSortedxKeysFloat(ms.Gauges) {
 		body += fmt.Sprintf("<nav><p>%d. '%s'= '%f'</p></nav>", index, key, ms.Gauges[key])
 		index += 1
 	}
@@ -142,7 +150,7 @@ func (ms *MemStorage) addCounter(name string, value int64) {
 	ms.Counters[name] += value
 }
 
-func getSortedKeysFlaoat(items map[string]float64) []string {
+func getSortedxKeysFloat(items map[string]float64) []string {
 	keys := make([]string, 0, len(items))
 	for k := range items {
 		keys = append(keys, k)
