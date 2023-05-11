@@ -17,18 +17,14 @@ type MetricsStorage struct {
 	Supplier    runtime.MemStats
 }
 
-func NewMetricStorage() *MetricsStorage {
-	return new(MetricsStorage)
-}
-
 func (ms *MetricsStorage) UpdateMetrics() {
 	runtime.ReadMemStats(&ms.Supplier)
 	ms.PollCount += 1
 	ms.RandomValue = rand.Float64()
 }
 
-func (ms MetricsStorage) SendMetrics() {
-	send := func(value any, name string) {
+func (ms MetricsStorage) SendMetrics(address fmt.Stringer) {
+	send := func(adr string, value any, name string) {
 		query := ""
 		switch value.(type) {
 		case int64, uint64:
@@ -37,20 +33,19 @@ func (ms MetricsStorage) SendMetrics() {
 			query = "gauge"
 		}
 		if len(query) > 0 {
-			query = fmt.Sprintf("http://localhost:8080/update/%s/%s/%v", query, name, value)
+			query = fmt.Sprintf("http://%s/update/%s/%s/%v", adr, query, name, value)
 			resp, err := http.Post(query, "text/plain", nil)
 			if err != nil {
 				fmt.Printf("Send metric: '%s' error: '%v'\n", name, err)
-			} else {
-				defer resp.Body.Close()
 			}
+			defer resp.Body.Close()
 		}
 	}
 
 	fields := reflect.VisibleFields(reflect.TypeOf(ms.Supplier))
 	for _, field := range fields {
-		send(reflect.ValueOf(ms.Supplier).FieldByName(field.Name).Interface(), field.Name)
+		send(address.String(), reflect.ValueOf(ms.Supplier).FieldByName(field.Name).Interface(), field.Name)
 	}
-	send(ms.PollCount, "PollCount")
-	send(ms.RandomValue, "RandomValue")
+	send(address.String(), ms.PollCount, "PollCount")
+	send(address.String(), ms.RandomValue, "RandomValue")
 }
