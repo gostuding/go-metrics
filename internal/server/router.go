@@ -15,7 +15,7 @@ type Storage interface {
 }
 
 // получние однотипных данных из адреса запроса
-func getUrlParams(r *http.Request) metricsArgs {
+func getURLParams(r *http.Request) metricsArgs {
 	return metricsArgs{mType: chi.URLParam(r, "mType"), mName: chi.URLParam(r, "mName"), mValue: chi.URLParam(r, "mValue")}
 }
 
@@ -31,10 +31,10 @@ func makeRouter(storage Storage) http.Handler {
 		GetAllMetrics(w, r, storage)
 	})
 	router.Post("/update/{mType}/{mName}/{mValue}", func(w http.ResponseWriter, r *http.Request) {
-		Update(w, r, storage, getUrlParams(r))
+		Update(w, r, storage, getURLParams(r))
 	})
 	router.Get("/value/{mType}/{mName}", func(w http.ResponseWriter, r *http.Request) {
-		GetMetric(w, r, storage, getUrlParams(r))
+		GetMetric(w, r, storage, getURLParams(r))
 	})
 
 	return router
