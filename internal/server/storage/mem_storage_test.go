@@ -21,7 +21,8 @@ func TestMemStorageAddMetric(t *testing.T) {
 		{name: "Неправильный путь", path: args{"", "item", "2"}, want: http.StatusBadRequest, wantErr: true},
 		{name: "Неправильный тип данных", path: args{"gauge", "item", "2ll"}, want: http.StatusBadRequest, wantErr: true},
 	}
-	for _, tt := range tests {
+	for _, val := range tests {
+		tt := val // переопределили переменную чтобы избежать использования ссылки на переменную цикла (есть такая особенность)
 		t.Run(tt.name, func(t *testing.T) {
 			ms := MemStorage{}
 			got, err := ms.Update(tt.path.mType, tt.path.mName, tt.path.mValue)

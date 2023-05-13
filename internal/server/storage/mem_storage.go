@@ -3,48 +3,16 @@ package storage
 import (
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"sort"
 	"strconv"
 )
 
-// type gauge map[string]float64
-// type counter map[string]int64
-
-// func (g gauge) SortedNames() []string {
-// 	keys := make([]string, len(g))
-// 	for item := range g {
-// 		keys = append(keys, item)
-// 	}
-// 	sort.Strings(keys)
-// 	return keys
-// }
-// func (c counter) SortedNames() []string {
-// 	keys := make([]string, len(c))
-// 	for item := range c {
-// 		keys = append(keys, item)
-// 	}
-// 	sort.Strings(keys)
-// 	return keys
-// }
-// func (g gauge) GetValue(name string) float64 {
-// 	return g[name]
-// }
-
-// func (c counter) GetValue(name string) int64 {
-// 	return c[name]
-// }
-
-// type SortEnable interface {
-// 	SortedNames() []string
-// }
-
 // Структура для хранения данных о метриках
 type MemStorage struct {
 	Gauges   map[string]float64
 	Counters map[string]int64
-	// Gauges   gauge
-	// Counters counter
 }
 
 func (ms *MemStorage) Update(mType string, mName string, mValue string) (int, error) {
@@ -61,15 +29,14 @@ func (ms *MemStorage) Update(mType string, mName string, mValue string) (int, er
 		}
 		ms.addCounter(mName, val)
 	} else {
-		fmt.Printf("Metric's type incorrect. Type is: %s\n", mType)
+		log.Printf("Update metric error. Metric's type incorrect. Type is: %s\n", mType)
 		return http.StatusBadRequest, errors.New("metric type incorrect. Availible types are: guage or counter")
 	}
 	return http.StatusOK, nil
 }
 
 // Получение значения метрики по типу и имени
-func (ms MemStorage) GetMetric(mType string, mName string) (string, int) {
-
+func (ms *MemStorage) GetMetric(mType string, mName string) (string, int) {
 	if mType == "gauge" {
 		for key, val := range ms.Gauges {
 			if key == mName {
@@ -91,33 +58,8 @@ func (ms MemStorage) GetMetric(mType string, mName string) (string, int) {
 	return "", http.StatusNotFound
 }
 
-// Функция для удовлетворения интерфейсу Stringer
-func (ms MemStorage) String() string {
-	index := 1
-	body := "==== MemoryStorage ====\n"
-	for _, key := range getSortedxKeysFloat(ms.Gauges) {
-		body += fmt.Sprintf("Gauges: %d, name: '%s', value: '%f'\n", index, key, ms.Gauges[key])
-		index += 1
-	}
-	// for key, value := range ms.Gauges {
-	// 	body += fmt.Sprintf("Gauges: %d, name: '%s', value: '%f'\n", index, key, value)
-	// 	index += 1
-	// }
-	index = 1
-	for _, key := range getSortedKeysInt(ms.Counters) {
-		body += fmt.Sprintf("Gauges: %d, name: '%s', value: '%d'\n", index, key, ms.Counters[key])
-		index += 1
-	}
-	// for key, value := range ms.Counters {
-	// 	body += fmt.Sprintf("Counter: %d, name: '%s', value: '%d'\n", index, key, value)
-	// 	index += 1
-	// }
-	body += "======================="
-	return body
-}
-
 // Список всех метрик в html
-func (ms MemStorage) GetMetricsHTML() string {
+func (ms *MemStorage) GetMetricsHTML() string {
 	body := "<!doctype html> <html lang='en'> <head> <meta charset='utf-8'> <title>Список метрик</title></head>"
 	body += "<body><header><h1><p>Metrics list</p></h1></header>"
 	index := 1
