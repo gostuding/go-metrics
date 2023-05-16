@@ -9,7 +9,7 @@ import (
 // Определение интерфейсов
 // -----------------------------------------------------------------------------------
 // Интерфей для установки значений в объект из строки
-type StorageSeter interface {
+type StorageSetter interface {
 	Update(string, string, string) (int, error)
 }
 
@@ -36,7 +36,7 @@ type metricsArgs struct {
 }
 
 // Обработка запроса на добавление или изменение метрики
-func Update(writer http.ResponseWriter, request *http.Request, storage StorageSeter, metric metricsArgs) {
+func Update(writer http.ResponseWriter, request *http.Request, storage StorageSetter, metric metricsArgs) {
 	status, err := storage.Update(metric.mType, metric.mName, metric.mValue)
 	writer.WriteHeader(status)
 	// логирование ошибки

@@ -5,7 +5,6 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
-	"reflect"
 	"runtime"
 )
 
@@ -15,7 +14,7 @@ type MetricsStorage struct {
 	Supplier    runtime.MemStats
 }
 
-// обновление данных
+// обновление метрик
 func (ms *MetricsStorage) UpdateMetrics() {
 	// считывание переменных их runtimr
 	runtime.ReadMemStats(&ms.Supplier)
@@ -24,7 +23,7 @@ func (ms *MetricsStorage) UpdateMetrics() {
 	ms.RandomValue = rand.Float64()
 }
 
-// отправка даннх
+// отправка метрик
 func (ms *MetricsStorage) SendMetrics(IP string, port int) {
 	send := func(client http.Client, value any, name string) error {
 		query := ""
@@ -45,20 +44,98 @@ func (ms *MetricsStorage) SendMetrics(IP string, port int) {
 		return nil
 	}
 	client := http.Client{}
-	// выборка всех переменных из пакета runtime
-	fields := reflect.VisibleFields(reflect.TypeOf(ms.Supplier))
-	for _, field := range fields {
-		if err := send(client, reflect.ValueOf(ms.Supplier).FieldByName(field.Name).Interface(), field.Name); err != nil {
-			log.Print(err)
-		}
+	if err := send(client, ms.Supplier.Alloc, "Alloc"); err != nil {
+		log.Println(err)
+	}
+	if err := send(client, ms.Supplier.BuckHashSys, "BuckHashSys"); err != nil {
+		log.Println(err)
+	}
+	if err := send(client, ms.Supplier.Frees, "Frees"); err != nil {
+		log.Println(err)
+	}
+	if err := send(client, ms.Supplier.GCCPUFraction, "GCCPUFraction"); err != nil {
+		log.Println(err)
+	}
+	if err := send(client, ms.Supplier.GCSys, "GCSys"); err != nil {
+		log.Println(err)
+	}
+	if err := send(client, ms.Supplier.HeapAlloc, "HeapAlloc"); err != nil {
+		log.Println(err)
+	}
+	if err := send(client, ms.Supplier.HeapIdle, "HeapIdle"); err != nil {
+		log.Println(err)
+	}
+	if err := send(client, ms.Supplier.HeapInuse, "HeapInuse"); err != nil {
+		log.Println(err)
+	}
+	if err := send(client, ms.Supplier.HeapObjects, "HeapObjects"); err != nil {
+		log.Println(err)
+	}
+	if err := send(client, ms.Supplier.HeapReleased, "HeapReleased"); err != nil {
+		log.Println(err)
+	}
+	if err := send(client, ms.Supplier.HeapSys, "HeapSys"); err != nil {
+		log.Println(err)
+	}
+	if err := send(client, ms.Supplier.LastGC, "LastGC"); err != nil {
+		log.Println(err)
+	}
+	if err := send(client, ms.Supplier.Lookups, "Lookups"); err != nil {
+		log.Println(err)
+	}
+	if err := send(client, ms.Supplier.MCacheInuse, "MCacheInuse"); err != nil {
+		log.Println(err)
+	}
+	if err := send(client, ms.Supplier.MCacheSys, "MCacheSys"); err != nil {
+		log.Println(err)
+	}
+	if err := send(client, ms.Supplier.MCacheSys, "MCacheSys"); err != nil {
+		log.Println(err)
+	}
+	if err := send(client, ms.Supplier.MSpanInuse, "MSpanInuse"); err != nil {
+		log.Println(err)
+	}
+	if err := send(client, ms.Supplier.MSpanSys, "MSpanSys"); err != nil {
+		log.Println(err)
+	}
+	if err := send(client, ms.Supplier.Mallocs, "Mallocs"); err != nil {
+		log.Println(err)
+	}
+	if err := send(client, ms.Supplier.NextGC, "NextGC"); err != nil {
+		log.Println(err)
+	}
+	if err := send(client, ms.Supplier.NumForcedGC, "NumForcedGC"); err != nil {
+		log.Println(err)
+	}
+	if err := send(client, ms.Supplier.NumGC, "NumGC"); err != nil {
+		log.Println(err)
+	}
+	if err := send(client, ms.Supplier.OtherSys, "OtherSys"); err != nil {
+		log.Println(err)
+	}
+	if err := send(client, ms.Supplier.PauseTotalNs, "PauseTotalNs"); err != nil {
+		log.Println(err)
+	}
+	if err := send(client, ms.Supplier.StackInuse, "StackInuse"); err != nil {
+		log.Println(err)
+	}
+	if err := send(client, ms.Supplier.StackSys, "StackSys"); err != nil {
+		log.Println(err)
+	}
+	if err := send(client, ms.Supplier.Sys, "Sys"); err != nil {
+		log.Println(err)
+	}
+	if err := send(client, ms.Supplier.TotalAlloc, "TotalAlloc"); err != nil {
+		log.Println(err)
 	}
 	// отправка дополнительных параметров
-	if err := send(client, ms.PollCount, "PollCount"); err == nil { // проверка на отправку данных для обнуления счётчика обновления метрики
-		ms.PollCount = 0 // обнуляем счётчик для корректного отображения количества на сервере
+	if err := send(client, ms.PollCount, "PollCount"); err == nil {
+		ms.PollCount = 0
 	} else {
-		log.Print(err)
+		log.Println(err)
 	}
 	if err := send(client, ms.RandomValue, "RandomValue"); err != nil {
-		log.Print(err)
+		log.Println(err)
 	}
+	log.Println("Metrics send iteration finished")
 }

@@ -5,7 +5,7 @@ import (
 	"os"
 )
 
-// проверка флага и переменной окружения
+// проверка флага a и переменной окружения ADDRESS
 func GetFlags() string {
 	ipAddress := flag.String("a", ":8080", "address and port to run server like address:port")
 	flag.Parse()

@@ -1,7 +1,6 @@
 package agent
 
 import (
-	"log"
 	"time"
 )
 
@@ -12,20 +11,17 @@ type Storager interface {
 }
 
 // бесконечный цикл отправки данных
-func StartAgent(IP string, port int, updateTime int, sendTime int, storage Storager) {
-	update := time.Now().Add(time.Duration(updateTime) * time.Second)
-	send := time.Now().Add(time.Duration(sendTime) * time.Second)
+func StartAgent(args AgentRunArgs, storage Storager) {
+	pollTicker := time.NewTicker(time.Duration(args.PollInterval) * time.Second)
+	reportTicker := time.NewTicker(time.Duration(args.ReportInterval) * time.Second)
+	defer pollTicker.Stop()
+	defer reportTicker.Stop()
 	for {
-		time.Sleep(1 * time.Second)
-		if time.Now().After(update) {
+		select {
+		case <-pollTicker.C:
 			storage.UpdateMetrics()
-			update = time.Now().Add(time.Duration(updateTime) * time.Second)
-			log.Printf("Update %v \n", time.Duration(updateTime)*time.Second)
-		}
-		if time.Now().After(send) {
-			storage.SendMetrics(IP, port)
-			send = time.Now().Add(time.Duration(sendTime) * time.Second)
-			log.Printf("Send %v\n", time.Duration(sendTime)*time.Second)
+		case <-reportTicker.C:
+			storage.SendMetrics(args.IP, args.Port)
 		}
 	}
 }

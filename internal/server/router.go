@@ -9,7 +9,7 @@ import (
 
 // интерфейс для обработки запросов
 type Storage interface {
-	StorageSeter
+	StorageSetter
 	StorageGetter
 	HTMLGetter
 }

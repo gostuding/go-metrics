@@ -65,13 +65,13 @@ func (ms *MemStorage) GetMetricsHTML() string {
 	index := 1
 	body += "<h1><p>Gauges</p></h1>"
 	for _, key := range getSortedxKeysFloat(ms.Gauges) {
-		body += fmt.Sprintf("<nav><p>%d. '%s'= '%f'</p></nav>", index, key, ms.Gauges[key])
+		body += fmt.Sprintf("<nav><p>%d. '%s'= %f</p></nav>", index, key, ms.Gauges[key])
 		index += 1
 	}
 	body += "<h1><p>Counters</p></h1>"
 	index = 1
 	for _, key := range getSortedKeysInt(ms.Counters) {
-		body += fmt.Sprintf("<nav><p>%d. '%s'= '%d'</p></nav>", index, key, ms.Counters[key])
+		body += fmt.Sprintf("<nav><p>%d. '%s'= %d</p></nav>", index, key, ms.Counters[key])
 		index += 1
 	}
 	body += "</body></html>"

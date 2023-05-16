@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -8,65 +9,82 @@ import (
 	"strings"
 )
 
-type NetworkAdress struct {
-	IP   string
-	Port int
+type AgentRunArgs struct {
+	IP             string
+	Port           int
+	PollInterval   int
+	ReportInterval int
 }
 
 // функция для удовлетворения интерфейсу flag.Value
-func (n NetworkAdress) String() string {
-	return fmt.Sprintf("%s:%d", n.IP, n.Port)
+func (n *AgentRunArgs) String() string {
+	return fmt.Sprintf("%s:%d -r %d -p %d", n.IP, n.Port, n.PollInterval, n.ReportInterval)
 }
 
 // функция для удовлетворения интерфейсу flag.Value
-func (n *NetworkAdress) Set(value string) error {
+func (n *AgentRunArgs) Set(value string) error {
 	items := strings.Split(value, ":")
-	if len(items) == 2 {
-		n.IP = items[0]
-		val, err := strconv.Atoi(items[1])
-		if err != nil {
-			return fmt.Errorf("NetworkAddress Port ('%s') convert error: %s. Use integer type", items[1], err)
-		}
-		n.Port = val
-	} else {
+	if len(items) != 2 {
 		return fmt.Errorf("NetworkAddress ('%s') incorrect. Use value like: 'IP:PORT'", value)
+	}
+	n.IP = items[0]
+	val, err := strconv.Atoi(items[1])
+	if err != nil {
+		return fmt.Errorf("NetworkAddress Port ('%s') convert error: %s. Use integer type", items[1], err)
+	}
+	n.Port = val
+	return nil
+}
+
+func (n *AgentRunArgs) Validate() error {
+	if n.Port <= 1 {
+		return errors.New("args error: Port must be greater then 0!")
+	}
+	if n.ReportInterval <= 0 {
+		return errors.New("args error: REPORT_INTERVAL must be greater then 0!")
+	}
+	if n.PollInterval <= 0 {
+		return errors.New("args error: POLL_INTERVAL and REPORT_INTERVAL must be greater then 0!")
 	}
 	return nil
 }
 
 // проверка значения переменных окружения на тип int
-func strToInt(name string, str string) int {
+func strToInt(name string, str string) (int, error) {
 	val, err := strconv.Atoi(str)
 	if err != nil {
-		panic(fmt.Sprintf("enviroment value '%s' of '%s' type error: '%s'", str, name, err))
+		return 0, errors.New(fmt.Sprintf("enviroment value '%s' of '%s' type error: '%s'", str, name, err))
 	}
-	return val
+	return val, nil
 }
 
 // получение и проверка флагов и переменных окружения
-func GetFlags() (NetworkAdress, int, int) {
-	sendAddress, updateTime, sendTime := NetworkAdress{IP: "", Port: 8080}, 0, 0
-	flag.Var(&sendAddress, "a", "Net address like 'host:port'")
-	flag.IntVar(&updateTime, "p", 2, "Poll metricks interval")
-	flag.IntVar(&sendTime, "r", 10, "Report metricks interval")
+func GetFlags() (AgentRunArgs, error) {
+	agentArgs := AgentRunArgs{"", 8080, 2, 10}
+	flag.Var(&agentArgs, "a", "Net address like 'host:port'")
+	flag.IntVar(&agentArgs.PollInterval, "p", 2, "Poll metricks interval")
+	flag.IntVar(&agentArgs.ReportInterval, "r", 10, "Report metricks interval")
 	flag.Parse()
 
 	if address := os.Getenv("ADDRESS"); address != "" {
-		err := sendAddress.Set(address)
+		err := agentArgs.Set(address)
 		if err != nil {
-			panic(fmt.Sprintf("enviroment 'ADDRESS' value error: %s", err))
+			return agentArgs, errors.New(fmt.Sprintf("enviroment 'ADDRESS' value error: %s", err))
 		}
 	}
 	if upd := os.Getenv("REPORT_INTERVAL"); upd != "" {
-		sendTime = strToInt("REPORT_INTERVAL", upd)
+		send, err := strToInt("REPORT_INTERVAL", upd)
+		if err != nil {
+			return agentArgs, err
+		}
+		agentArgs.ReportInterval = send
 	}
 	if upd := os.Getenv("POLL_INTERVAL"); upd != "" {
-		updateTime = strToInt("POLL_INTERVAL", upd)
+		update, err := strToInt("POLL_INTERVAL", upd)
+		if err != nil {
+			return agentArgs, err
+		}
+		agentArgs.PollInterval = update
 	}
-
-	if updateTime <= 0 || sendTime <= 0 {
-		panic("POLL_INTERVAL and REPORT_INTERVAL must be greater then 0!")
-	}
-
-	return sendAddress, updateTime, sendTime
+	return agentArgs, agentArgs.Validate()
 }

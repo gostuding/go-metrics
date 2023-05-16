@@ -1,13 +1,17 @@
 package main
 
 import (
+	"log"
+
 	"github.com/gostuding/go-metrics/internal/server"
 	"github.com/gostuding/go-metrics/internal/server/storage"
 )
 
-// для запуска сервера необходимо передать адрес и объект хранилища. Логика обработки скрыта в internal
 func main() {
 	address := server.GetFlags()
 	storage := &storage.MemStorage{}
-	server.RunServer(address, storage)
+	err := server.RunServer(address, storage)
+	if err != nil {
+		log.Fatalln("run server error: ", err)
+	}
 }

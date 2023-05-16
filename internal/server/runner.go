@@ -6,10 +6,11 @@ import (
 )
 
 // запуск сервера на прослушку
-func RunServer(ipAddress string, storage Storage) {
+func RunServer(ipAddress string, storage Storage) error {
 	log.Println("Run server at adress: ", ipAddress)
 	err := http.ListenAndServe(ipAddress, makeRouter(storage))
 	if err != nil {
-		log.Fatal("run server error: ", err)
+		return err
 	}
+	return nil
 }
