@@ -38,13 +38,13 @@ func (n *AgentRunArgs) Set(value string) error {
 
 func (n *AgentRunArgs) Validate() error {
 	if n.Port <= 1 {
-		return errors.New("args error: Port must be greater then 0!")
+		return errors.New("args error: Port must be greater then 0")
 	}
 	if n.ReportInterval <= 0 {
-		return errors.New("args error: REPORT_INTERVAL must be greater then 0!")
+		return errors.New("args error: REPORT_INTERVAL must be greater then 0")
 	}
 	if n.PollInterval <= 0 {
-		return errors.New("args error: POLL_INTERVAL and REPORT_INTERVAL must be greater then 0!")
+		return errors.New("args error: POLL_INTERVAL and REPORT_INTERVAL must be greater then 0")
 	}
 	return nil
 }
@@ -53,7 +53,7 @@ func (n *AgentRunArgs) Validate() error {
 func strToInt(name string, str string) (int, error) {
 	val, err := strconv.Atoi(str)
 	if err != nil {
-		return 0, errors.New(fmt.Sprintf("enviroment value '%s' of '%s' type error: '%s'", str, name, err))
+		return 0, fmt.Errorf("enviroment value '%s' of '%s' type error: '%s'", str, name, err)
 	}
 	return val, nil
 }
@@ -69,7 +69,7 @@ func GetFlags() (AgentRunArgs, error) {
 	if address := os.Getenv("ADDRESS"); address != "" {
 		err := agentArgs.Set(address)
 		if err != nil {
-			return agentArgs, errors.New(fmt.Sprintf("enviroment 'ADDRESS' value error: %s", err))
+			return agentArgs, fmt.Errorf("enviroment 'ADDRESS' value error: %s", err)
 		}
 	}
 	if upd := os.Getenv("REPORT_INTERVAL"); upd != "" {
