@@ -49,7 +49,7 @@ func (ms *MemStorage) GetMetric(mType string, mName string) (string, error) {
 			}
 		}
 	}
-	return "", errors.New(fmt.Sprintf("metrick '%s' with type '%s' not found", mName, mType))
+	return "", fmt.Errorf("metrick '%s' with type '%s' not found", mName, mType)
 }
 
 // Список всех метрик в html
