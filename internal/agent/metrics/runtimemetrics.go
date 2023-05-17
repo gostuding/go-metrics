@@ -25,117 +25,67 @@ func (ms *MetricsStorage) UpdateMetrics() {
 
 // отправка метрик
 func (ms *MetricsStorage) SendMetrics(IP string, port int) {
-	send := func(client http.Client, value any, name string) error {
-		query := ""
-		switch value.(type) {
-		case int64, uint64:
-			query = "counter"
-		case float64:
-			query = "gauge"
-		default:
-			return nil // тип переменной не подходит для отправки
-		}
-		query = fmt.Sprintf("http://%s:%d/update/%s/%s/%v", IP, port, query, name, value)
-		resp, err := client.Post(query, "text/plain", nil)
-		if err != nil {
-			return fmt.Errorf("send metric '%s' error: '%v'", name, err)
-		}
-		defer resp.Body.Close()
-		return nil
-	}
+	metrics := make(map[string]any)
+	metrics["Alloc"] = ms.Supplier.Alloc
+	metrics["BuckHashSys"] = ms.Supplier.BuckHashSys
+	metrics["Frees"] = ms.Supplier.Frees
+	metrics["GCCPUFraction"] = ms.Supplier.GCCPUFraction
+	metrics["GCSys"] = ms.Supplier.GCSys
+	metrics["HeapAlloc"] = ms.Supplier.HeapAlloc
+	metrics["HeapIdle"] = ms.Supplier.HeapIdle
+	metrics["HeapInuse"] = ms.Supplier.HeapInuse
+	metrics["HeapObjects"] = ms.Supplier.HeapObjects
+	metrics["HeapReleased"] = ms.Supplier.HeapReleased
+	metrics["HeapSys"] = ms.Supplier.HeapSys
+	metrics["LastGC"] = ms.Supplier.LastGC
+	metrics["Lookups"] = ms.Supplier.Lookups
+	metrics["MCacheInuse"] = ms.Supplier.MCacheInuse
+	metrics["MCacheSys"] = ms.Supplier.MCacheSys
+	metrics["MSpanInuse"] = ms.Supplier.MSpanInuse
+	metrics["MSpanSys"] = ms.Supplier.MSpanSys
+	metrics["Mallocs"] = ms.Supplier.Mallocs
+	metrics["NextGC"] = ms.Supplier.NextGC
+	metrics["NumForcedGC"] = ms.Supplier.NumForcedGC
+	metrics["NumGC"] = ms.Supplier.NumGC
+	metrics["OtherSys"] = ms.Supplier.OtherSys
+	metrics["PauseTotalNs"] = ms.Supplier.PauseTotalNs
+	metrics["StackInuse"] = ms.Supplier.StackInuse
+	metrics["StackSys"] = ms.Supplier.StackSys
+	metrics["Sys"] = ms.Supplier.Sys
+	metrics["TotalAlloc"] = ms.Supplier.TotalAlloc
+	metrics["RandomValue"] = ms.RandomValue
+
 	client := http.Client{}
-	if err := send(client, ms.Supplier.Alloc, "Alloc"); err != nil {
-		log.Println(err)
-	}
-	if err := send(client, ms.Supplier.BuckHashSys, "BuckHashSys"); err != nil {
-		log.Println(err)
-	}
-	if err := send(client, ms.Supplier.Frees, "Frees"); err != nil {
-		log.Println(err)
-	}
-	if err := send(client, ms.Supplier.GCCPUFraction, "GCCPUFraction"); err != nil {
-		log.Println(err)
-	}
-	if err := send(client, ms.Supplier.GCSys, "GCSys"); err != nil {
-		log.Println(err)
-	}
-	if err := send(client, ms.Supplier.HeapAlloc, "HeapAlloc"); err != nil {
-		log.Println(err)
-	}
-	if err := send(client, ms.Supplier.HeapIdle, "HeapIdle"); err != nil {
-		log.Println(err)
-	}
-	if err := send(client, ms.Supplier.HeapInuse, "HeapInuse"); err != nil {
-		log.Println(err)
-	}
-	if err := send(client, ms.Supplier.HeapObjects, "HeapObjects"); err != nil {
-		log.Println(err)
-	}
-	if err := send(client, ms.Supplier.HeapReleased, "HeapReleased"); err != nil {
-		log.Println(err)
-	}
-	if err := send(client, ms.Supplier.HeapSys, "HeapSys"); err != nil {
-		log.Println(err)
-	}
-	if err := send(client, ms.Supplier.LastGC, "LastGC"); err != nil {
-		log.Println(err)
-	}
-	if err := send(client, ms.Supplier.Lookups, "Lookups"); err != nil {
-		log.Println(err)
-	}
-	if err := send(client, ms.Supplier.MCacheInuse, "MCacheInuse"); err != nil {
-		log.Println(err)
-	}
-	if err := send(client, ms.Supplier.MCacheSys, "MCacheSys"); err != nil {
-		log.Println(err)
-	}
-	if err := send(client, ms.Supplier.MCacheSys, "MCacheSys"); err != nil {
-		log.Println(err)
-	}
-	if err := send(client, ms.Supplier.MSpanInuse, "MSpanInuse"); err != nil {
-		log.Println(err)
-	}
-	if err := send(client, ms.Supplier.MSpanSys, "MSpanSys"); err != nil {
-		log.Println(err)
-	}
-	if err := send(client, ms.Supplier.Mallocs, "Mallocs"); err != nil {
-		log.Println(err)
-	}
-	if err := send(client, ms.Supplier.NextGC, "NextGC"); err != nil {
-		log.Println(err)
-	}
-	if err := send(client, ms.Supplier.NumForcedGC, "NumForcedGC"); err != nil {
-		log.Println(err)
-	}
-	if err := send(client, ms.Supplier.NumGC, "NumGC"); err != nil {
-		log.Println(err)
-	}
-	if err := send(client, ms.Supplier.OtherSys, "OtherSys"); err != nil {
-		log.Println(err)
-	}
-	if err := send(client, ms.Supplier.PauseTotalNs, "PauseTotalNs"); err != nil {
-		log.Println(err)
-	}
-	if err := send(client, ms.Supplier.StackInuse, "StackInuse"); err != nil {
-		log.Println(err)
-	}
-	if err := send(client, ms.Supplier.StackSys, "StackSys"); err != nil {
-		log.Println(err)
-	}
-	if err := send(client, ms.Supplier.Sys, "Sys"); err != nil {
-		log.Println(err)
-	}
-	if err := send(client, ms.Supplier.TotalAlloc, "TotalAlloc"); err != nil {
-		log.Println(err)
+	for key, value := range metrics {
+		if err := sendToServer(client, IP, port, value, key); err != nil {
+			log.Println(err)
+		}
 	}
 	// отправка дополнительных параметров
-	if err := send(client, ms.PollCount, "PollCount"); err == nil {
+	if err := sendToServer(client, IP, port, ms.PollCount, "PollCount"); err == nil {
 		ms.PollCount = 0
 	} else {
 		log.Println(err)
 	}
-	if err := send(client, ms.RandomValue, "RandomValue"); err != nil {
-		log.Println(err)
-	}
 	log.Println("Metrics send iteration finished")
+}
+
+// отправка запроса к серверу
+func sendToServer(client http.Client, IP string, port int, value any, name string) error {
+	query := ""
+	switch v2 := value.(type) {
+	case uint32, int64, uint64:
+		query = "counter"
+	case float64:
+		query = "gauge"
+	default:
+		return fmt.Errorf("metric '%s' type indefined: '%v'", name, v2)
+	}
+	query = fmt.Sprintf("http://%s:%d/update/%s/%s/%v", IP, port, query, name, value)
+	resp, err := client.Post(query, "text/plain", nil)
+	if err != nil {
+		return fmt.Errorf("send metric '%s' error: '%v'", name, err)
+	}
+	defer resp.Body.Close()
+	return nil
 }

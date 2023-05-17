@@ -3,8 +3,6 @@ package storage
 import (
 	"errors"
 	"fmt"
-	"log"
-	"net/http"
 	"sort"
 	"strconv"
 )
@@ -15,47 +13,43 @@ type MemStorage struct {
 	Counters map[string]int64
 }
 
-func (ms *MemStorage) Update(mType string, mName string, mValue string) (int, error) {
-	if mType == "gauge" {
+func (ms *MemStorage) Update(mType string, mName string, mValue string) error {
+	switch mType {
+	case "gauge":
 		val, err := strconv.ParseFloat(mValue, 64)
 		if err != nil {
-			return http.StatusBadRequest, err
+			return err
 		}
 		ms.addGauge(mName, val)
-	} else if mType == "counter" {
+	case "counter":
 		val, err := strconv.ParseInt(mValue, 10, 64)
 		if err != nil {
-			return http.StatusBadRequest, err
+			return err
 		}
 		ms.addCounter(mName, val)
-	} else {
-		log.Printf("Update metric error. Metric's type incorrect. Type is: %s\n", mType)
-		return http.StatusBadRequest, errors.New("metric type incorrect. Availible types are: guage or counter")
+	default:
+		return errors.New("metric type incorrect. Availible types are: guage or counter")
 	}
-	return http.StatusOK, nil
+	return nil
 }
 
 // Получение значения метрики по типу и имени
-func (ms *MemStorage) GetMetric(mType string, mName string) (string, int) {
-	if mType == "gauge" {
+func (ms *MemStorage) GetMetric(mType string, mName string) (string, error) {
+	switch mType {
+	case "gauge":
 		for key, val := range ms.Gauges {
 			if key == mName {
-				return fmt.Sprintf("%v", val), http.StatusOK
+				return fmt.Sprintf("%v", val), nil
 			}
 		}
-		fmt.Printf("Gauge metric not found by name: %s\n", mName)
-	} else if mType == "counter" {
+	case "counter":
 		for key, val := range ms.Counters {
 			if key == mName {
-				return fmt.Sprintf("%v", val), http.StatusOK
+				return fmt.Sprintf("%v", val), nil
 			}
 		}
-		fmt.Printf("Counter metric not found by name: %s\n", mName)
-	} else {
-		fmt.Printf("Get metric's type incorrect: %s\n", mType)
-		return "", http.StatusNotFound
 	}
-	return "", http.StatusNotFound
+	return "", errors.New(fmt.Sprintf("metrick '%s' with type '%s' not found", mName, mType))
 }
 
 // Список всех метрик в html

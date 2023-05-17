@@ -36,7 +36,7 @@ func (n *AgentRunArgs) Set(value string) error {
 	return nil
 }
 
-func (n *AgentRunArgs) Validate() error {
+func (n *AgentRunArgs) validate() error {
 	if n.Port <= 1 {
 		return errors.New("args error: Port must be greater then 0")
 	}
@@ -44,7 +44,7 @@ func (n *AgentRunArgs) Validate() error {
 		return errors.New("args error: REPORT_INTERVAL must be greater then 0")
 	}
 	if n.PollInterval <= 0 {
-		return errors.New("args error: POLL_INTERVAL and REPORT_INTERVAL must be greater then 0")
+		return errors.New("args error: POLL_INTERVAL must be greater then 0")
 	}
 	return nil
 }
@@ -86,5 +86,5 @@ func GetFlags() (AgentRunArgs, error) {
 		}
 		agentArgs.PollInterval = update
 	}
-	return agentArgs, agentArgs.Validate()
+	return agentArgs, agentArgs.validate()
 }

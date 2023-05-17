@@ -70,7 +70,8 @@ func TestMemStorageGetMetric(t *testing.T) {
 		{name: "Неправильный тип", fields: fields{Gauges: gTest(), Counters: cTest()}, args: args{mType: "error", mName: "item"}, want: "", want1: http.StatusNotFound},
 		{name: "Неправильное имя", fields: fields{Gauges: gTest(), Counters: cTest()}, args: args{mType: "counter", mName: "none"}, want: "", want1: http.StatusNotFound},
 	}
-	for _, tt := range tests {
+	for _, val := range tests {
+		tt := val
 		t.Run(tt.name, func(t *testing.T) {
 			ms := MemStorage{
 				Gauges:   tt.fields.Gauges,

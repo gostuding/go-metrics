@@ -10,7 +10,7 @@ import (
 func main() {
 	agentArgs, err := agent.GetFlags()
 	if err != nil {
-		log.Fatal("run arguments incorret: ", err)
+		log.Fatalf("run arguments incorret: %v", err)
 	}
 	storage := &metrics.MetricsStorage{}
 	agent.StartAgent(agentArgs, storage)

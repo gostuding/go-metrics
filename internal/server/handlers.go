@@ -1,7 +1,6 @@
 package server
 
 import (
-	"log"
 	"net/http"
 )
 
@@ -10,12 +9,12 @@ import (
 // -----------------------------------------------------------------------------------
 // Интерфей для установки значений в объект из строки
 type StorageSetter interface {
-	Update(string, string, string) (int, error)
+	Update(string, string, string) error
 }
 
 // Интерфейс получения значения метрики
 type StorageGetter interface {
-	GetMetric(string, string) (string, int)
+	GetMetric(string, string) (string, error)
 }
 
 // Интерфейс для вывод значений в виде HTML
@@ -26,30 +25,35 @@ type HTMLGetter interface {
 // -----------------------------------------------------------------------------------
 // Определение функций, которые используют интерфейсы
 // -----------------------------------------------------------------------------------
-// дабы не раздувать количество аргументов
-// ввел структуру для передачи в функции
-// также это позволяет не завязываться на обработчик, который используется при роутинге
-type metricsArgs struct {
-	mType  string
-	mName  string
+type getMetricsArgs struct {
+	mType string
+	mName string
+}
+
+type updateMetricsArgs struct {
+	base   getMetricsArgs
 	mValue string
 }
 
 // Обработка запроса на добавление или изменение метрики
-func Update(writer http.ResponseWriter, request *http.Request, storage StorageSetter, metric metricsArgs) {
-	status, err := storage.Update(metric.mType, metric.mName, metric.mValue)
-	writer.WriteHeader(status)
-	// логирование ошибки
-	if err != nil {
-		log.Printf("update metric error: %v", err)
+func Update(writer http.ResponseWriter, request *http.Request, storage StorageSetter, metric updateMetricsArgs) {
+	if err := storage.Update(metric.base.mType, metric.base.mName, metric.mValue); err != nil {
+		writer.WriteHeader(http.StatusBadRequest)
+	} else {
+		writer.WriteHeader(http.StatusOK)
 	}
 }
 
 // Обработка запроса значения метрики
-func GetMetric(writer http.ResponseWriter, request *http.Request, storage StorageGetter, metric metricsArgs) {
-	value, status := storage.GetMetric(metric.mType, metric.mName)
-	writer.WriteHeader(status)
-	writer.Write([]byte(value))
+func GetMetric(writer http.ResponseWriter, request *http.Request, storage StorageGetter, metric getMetricsArgs) {
+	value, err := storage.GetMetric(metric.mType, metric.mName)
+	if err == nil {
+		writer.WriteHeader(http.StatusOK)
+		writer.Write([]byte(value))
+	} else {
+		writer.WriteHeader(http.StatusNotFound)
+		writer.Write([]byte(err.Error()))
+	}
 }
 
 // Запрос всех метрик в html
