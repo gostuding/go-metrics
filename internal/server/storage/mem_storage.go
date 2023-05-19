@@ -30,7 +30,7 @@ func (ms *MemStorage) Update(mType string, mName string, mValue string) error {
 		if err != nil {
 			return err
 		}
-		ms.Counters[mName] = val
+		ms.Counters[mName] += val
 	default:
 		return errors.New("metric type incorrect. Availible types are: guage or counter")
 	}
