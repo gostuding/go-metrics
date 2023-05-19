@@ -22,7 +22,7 @@ func TestMemStorageAddMetric(t *testing.T) {
 	for _, val := range tests {
 		tt := val // переопределили переменную чтобы избежать использования ссылки на переменную цикла (есть такая особенность)
 		t.Run(tt.name, func(t *testing.T) {
-			ms := MemStorage{}
+			ms := NewMemStorage()
 			err := ms.Update(tt.path.mType, tt.path.mName, tt.path.mValue)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Update() error = %v, wantErr %v", err, tt.wantErr)

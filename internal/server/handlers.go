@@ -1,6 +1,7 @@
 package server
 
 import (
+	"log"
 	"net/http"
 )
 
@@ -49,15 +50,21 @@ func GetMetric(writer http.ResponseWriter, request *http.Request, storage Storag
 	value, err := storage.GetMetric(metric.mType, metric.mName)
 	if err == nil {
 		writer.WriteHeader(http.StatusOK)
-		writer.Write([]byte(value))
+		_, err = writer.Write([]byte(value))
 	} else {
 		writer.WriteHeader(http.StatusNotFound)
-		writer.Write([]byte(err.Error()))
+		_, err = writer.Write([]byte(err.Error()))
+	}
+	if err != nil {
+		log.Printf("write data to client error: %v", err)
 	}
 }
 
 // Запрос всех метрик в html
 func GetAllMetrics(writer http.ResponseWriter, request *http.Request, storage HTMLGetter) {
 	writer.WriteHeader(http.StatusOK)
-	writer.Write([]byte(storage.GetMetricsHTML()))
+	_, err := writer.Write([]byte(storage.GetMetricsHTML()))
+	if err != nil {
+		log.Printf("write metrics data to client error: %v", err)
+	}
 }

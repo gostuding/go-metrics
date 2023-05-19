@@ -13,6 +13,10 @@ type MemStorage struct {
 	Counters map[string]int64
 }
 
+func NewMemStorage() *MemStorage {
+	return &MemStorage{Gauges: make(map[string]float64), Counters: make(map[string]int64)}
+}
+
 func (ms *MemStorage) Update(mType string, mName string, mValue string) error {
 	switch mType {
 	case "gauge":
@@ -20,13 +24,13 @@ func (ms *MemStorage) Update(mType string, mName string, mValue string) error {
 		if err != nil {
 			return err
 		}
-		ms.addGauge(mName, val)
+		ms.Gauges[mName] = val
 	case "counter":
 		val, err := strconv.ParseInt(mValue, 10, 64)
 		if err != nil {
 			return err
 		}
-		ms.addCounter(mName, val)
+		ms.Counters[mName] = val
 	default:
 		return errors.New("metric type incorrect. Availible types are: guage or counter")
 	}
@@ -58,7 +62,7 @@ func (ms *MemStorage) GetMetricsHTML() string {
 	body += "<body><header><h1><p>Metrics list</p></h1></header>"
 	index := 1
 	body += "<h1><p>Gauges</p></h1>"
-	for _, key := range getSortedxKeysFloat(ms.Gauges) {
+	for _, key := range getSortedKeysFloat(ms.Gauges) {
 		body += fmt.Sprintf("<nav><p>%d. '%s'= %f</p></nav>", index, key, ms.Gauges[key])
 		index += 1
 	}
@@ -72,21 +76,7 @@ func (ms *MemStorage) GetMetricsHTML() string {
 	return body
 }
 
-func (ms *MemStorage) addGauge(name string, value float64) {
-	if ms.Gauges == nil {
-		ms.Gauges = make(map[string]float64)
-	}
-	ms.Gauges[name] = value
-}
-
-func (ms *MemStorage) addCounter(name string, value int64) {
-	if ms.Counters == nil {
-		ms.Counters = make(map[string]int64)
-	}
-	ms.Counters[name] += value
-}
-
-func getSortedxKeysFloat(items map[string]float64) []string {
+func getSortedKeysFloat(items map[string]float64) []string {
 	keys := make([]string, 0, len(items))
 	for k := range items {
 		keys = append(keys, k)
