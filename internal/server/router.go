@@ -27,6 +27,7 @@ func makeRouter(storage Storage) http.Handler {
 	router := chi.NewRouter()
 
 	router.Use(middleware.RealIP)
+	router.Use(serverMiddleware)
 	router.Use(middleware.Logger)
 	router.Use(middleware.Recoverer)
 
