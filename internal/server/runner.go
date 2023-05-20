@@ -1,16 +1,20 @@
 package server
 
 import (
-	"log"
+	"fmt"
 	"net/http"
 )
 
 // запуск сервера на прослушку
 func RunServer(ipAddress string, storage Storage) error {
-	log.Println("Run server at adress: ", ipAddress)
-	err := http.ListenAndServe(ipAddress, makeRouter(storage))
+	err := InitLogger()
 	if err != nil {
-		return err
+		return fmt.Errorf("create logger error: %v", err)
+	}
+	Logger.Infoln("Run server at adress: ", ipAddress)
+	err = http.ListenAndServe(ipAddress, makeRouter(storage))
+	if err != nil {
+		return fmt.Errorf("run server error: %v", err)
 	}
 	return nil
 }
