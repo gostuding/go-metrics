@@ -1,7 +1,6 @@
 package server
 
 import (
-	"log"
 	"net/http"
 )
 
@@ -56,7 +55,7 @@ func GetMetric(writer http.ResponseWriter, request *http.Request, storage Storag
 		_, err = writer.Write([]byte(err.Error()))
 	}
 	if err != nil {
-		log.Printf("write data to client error: %v", err)
+		Logger.Warnf("write data to client error: %v", err)
 	}
 }
 
@@ -65,6 +64,6 @@ func GetAllMetrics(writer http.ResponseWriter, request *http.Request, storage HT
 	writer.WriteHeader(http.StatusOK)
 	_, err := writer.Write([]byte(storage.GetMetricsHTML()))
 	if err != nil {
-		log.Printf("write metrics data to client error: %v", err)
+		Logger.Warnf("write metrics data to client error: %v", err)
 	}
 }

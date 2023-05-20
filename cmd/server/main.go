@@ -1,8 +1,6 @@
 package main
 
 import (
-	"log"
-
 	"github.com/gostuding/go-metrics/internal/server"
 	"github.com/gostuding/go-metrics/internal/server/storage"
 )
@@ -12,6 +10,6 @@ func main() {
 	storage := storage.NewMemStorage()
 	err := server.RunServer(address, storage)
 	if err != nil {
-		log.Fatalln("run server error: ", err)
+		panic(err)
 	}
 }
