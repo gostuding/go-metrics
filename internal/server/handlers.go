@@ -1,6 +1,7 @@
 package server
 
 import (
+	"io"
 	"net/http"
 )
 
@@ -10,6 +11,11 @@ import (
 // Интерфей для установки значений в объект из строки
 type StorageSetter interface {
 	Update(string, string, string) error
+}
+
+// Интерфей для установки значений в объект из строки
+type StorageJSON interface {
+	UpdateJSON([]byte) ([]byte, error)
 }
 
 // Интерфейс получения значения метрики
@@ -65,5 +71,21 @@ func GetAllMetrics(writer http.ResponseWriter, request *http.Request, storage HT
 	_, err := writer.Write([]byte(storage.GetMetricsHTML()))
 	if err != nil {
 		Logger.Warnf("write metrics data to client error: %v", err)
+	}
+}
+
+// запросы в JSON формате
+func UpdateJSON(writer http.ResponseWriter, request *http.Request, storage StorageJSON) {
+	data, err := io.ReadAll(request.Body)
+	if err != nil {
+		writer.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	value, err := storage.UpdateJSON(data)
+	if err != nil {
+		writer.WriteHeader(http.StatusBadRequest)
+	} else {
+		writer.Write(value)
+		writer.WriteHeader(http.StatusOK)
 	}
 }

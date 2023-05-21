@@ -12,6 +12,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("run arguments incorret: %v", err)
 	}
-	storage := &metrics.MetricsStorage{}
+	storage := metrics.NewMemoryStorage()
 	agent.StartAgent(agentArgs, storage)
 }

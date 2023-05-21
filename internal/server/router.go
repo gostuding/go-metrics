@@ -12,6 +12,7 @@ type Storage interface {
 	StorageSetter
 	StorageGetter
 	HTMLGetter
+	StorageJSON
 }
 
 // получние однотипных данных из адреса запроса
@@ -40,6 +41,8 @@ func makeRouter(storage Storage) http.Handler {
 	router.Get("/value/{mType}/{mName}", func(w http.ResponseWriter, r *http.Request) {
 		GetMetric(w, r, storage, getParams(r))
 	})
-
+	router.Post("/update/", func(w http.ResponseWriter, r *http.Request) {
+		UpdateJSON(w, r, storage)
+	})
 	return router
 }

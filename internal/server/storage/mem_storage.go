@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"sort"
@@ -8,9 +9,18 @@ import (
 )
 
 // Структура для хранения данных о метриках
+// #TODO - сделать структуру не экспортируемой
 type MemStorage struct {
 	Gauges   map[string]float64
 	Counters map[string]int64
+}
+
+// струтктура не экспоритуемая, т.к. сейчас это не нужно
+type metric struct {
+	ID    string   `json:"id"`              // имя метрики
+	MType string   `json:"type"`            // параметр, принимающий значение gauge или counter
+	Delta *int64   `json:"delta,omitempty"` // значение метрики в случае передачи counter
+	Value *float64 `json:"value,omitempty"` // значение метрики в случае передачи gauge
 }
 
 func NewMemStorage() *MemStorage {
@@ -92,4 +102,36 @@ func getSortedKeysInt(items map[string]int64) []string {
 	}
 	sort.Strings(keys)
 	return keys
+}
+
+// обновление через json
+func (ms *MemStorage) UpdateJSON(data []byte) ([]byte, error) {
+	var metric metric
+	err := json.Unmarshal(data, &metric)
+	if err != nil {
+		return nil, fmt.Errorf("json conver error: %s", err)
+	}
+	switch metric.MType {
+	case "counter":
+		if metric.Delta != nil {
+			ms.Counters[metric.ID] += *metric.Delta
+			delta := ms.Counters[metric.ID]
+			metric.Delta = &delta
+		} else {
+			return nil, errors.New("metric's delta indefined")
+		}
+	case "gauge":
+		if metric.Value != nil {
+			ms.Gauges[metric.ID] += *metric.Value
+		} else {
+			return nil, errors.New("metric's value indefined")
+		}
+	default:
+		return nil, errors.New("metric type error, use counter like int64 or gauge like float64")
+	}
+	resp, err := json.Marshal(metric)
+	if err != nil {
+		return nil, fmt.Errorf("convert to json error: %s", err)
+	}
+	return resp, nil
 }
