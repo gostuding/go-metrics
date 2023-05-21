@@ -85,6 +85,7 @@ func UpdateJSON(writer http.ResponseWriter, request *http.Request, storage Stora
 	if err != nil {
 		writer.WriteHeader(http.StatusBadRequest)
 	} else {
+		writer.Header().Set("Content-Type", "application/json")
 		writer.Write(value)
 		writer.WriteHeader(http.StatusOK)
 	}
