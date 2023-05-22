@@ -105,29 +105,6 @@ func (ms *MetricsStorage) SendMetrics(IP string, port int) {
 }
 
 // отправка запроса к серверу
-func sendToServer(client http.Client, IP string, port int, value any, name string) error {
-	query := ""
-	switch value.(type) {
-	case uint32, int64, uint64:
-		query = "counter"
-	case float64:
-		query = "gauge"
-	default:
-		return fmt.Errorf("metric '%s' type indefined: '%T'", name, value)
-	}
-	query = fmt.Sprintf("http://%s:%d/update/%s/%s/%v", IP, port, query, name, value)
-	resp, err := client.Post(query, "text/plain", nil)
-	if err != nil {
-		return fmt.Errorf("send metric '%s' error: '%v'", name, err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("send metric '%s' statusCode error: %d", name, resp.StatusCode)
-	}
-	return nil
-}
-
-// отправка запроса к серверу
 func sendJSONToServer(IP string, port int, metric Metrics) error {
 	client := http.Client{}
 	query := fmt.Sprintf("http://%s:%d/update/", IP, port)
