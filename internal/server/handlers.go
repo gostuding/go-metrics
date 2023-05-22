@@ -109,11 +109,11 @@ func GetMetricJSON(writer http.ResponseWriter, request *http.Request, storage St
 	} else {
 		value, err := storage.GetMetricJSON(data)
 		if err != nil {
-			// if value != nil {
-			// 	writer.WriteHeader(http.StatusNotFound)
-			// } else {
-			writer.WriteHeader(http.StatusBadRequest)
-			// }
+			if value != nil {
+				writer.WriteHeader(http.StatusNotFound)
+			} else {
+				writer.WriteHeader(http.StatusBadRequest)
+			}
 			_, err = writer.Write([]byte(err.Error()))
 		} else {
 			_, err = writer.Write(value)
