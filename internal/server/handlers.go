@@ -11,16 +11,13 @@ import (
 // Интерфей для установки значений в объект из строки
 type StorageSetter interface {
 	Update(string, string, string) error
-}
-
-// Интерфей для установки значений в объект из строки
-type StorageJSON interface {
 	UpdateJSON([]byte) ([]byte, error)
 }
 
 // Интерфейс получения значения метрики
 type StorageGetter interface {
 	GetMetric(string, string) (string, error)
+	GetMetricJSON([]byte) ([]byte, error)
 }
 
 // Интерфейс для вывод значений в виде HTML
@@ -74,19 +71,52 @@ func GetAllMetrics(writer http.ResponseWriter, request *http.Request, storage HT
 	}
 }
 
-// запросы в JSON формате
-func UpdateJSON(writer http.ResponseWriter, request *http.Request, storage StorageJSON) {
+// обновление в JSON формате
+func UpdateJSON(writer http.ResponseWriter, request *http.Request, storage StorageSetter) {
 	data, err := io.ReadAll(request.Body)
 	if err != nil {
 		writer.WriteHeader(http.StatusBadRequest)
-		return
+		_, err = writer.Write([]byte(err.Error()))
+		if err != nil {
+			Logger.Warnf("write data to client error: %v", err)
+		}
+	} else {
+		value, err := storage.UpdateJSON(data)
+		if err != nil {
+			writer.WriteHeader(http.StatusBadRequest)
+			_, err = writer.Write([]byte(err.Error()))
+		} else {
+			writer.WriteHeader(http.StatusOK)
+			writer.Header().Set("Content-Type", "application/json")
+			_, err = writer.Write(value)
+		}
+		if err != nil {
+			Logger.Warnf("write data to clie`nt error: %v", err)
+		}
 	}
-	value, err := storage.UpdateJSON(data)
+}
+
+// получение метрики в JSON формате
+func GetMetricJSON(writer http.ResponseWriter, request *http.Request, storage StorageGetter) {
+	data, err := io.ReadAll(request.Body)
 	if err != nil {
 		writer.WriteHeader(http.StatusBadRequest)
+		_, err = writer.Write([]byte(err.Error()))
+		if err != nil {
+			Logger.Warnf("write data to client error: %v", err)
+		}
 	} else {
-		writer.Header().Set("Content-Type", "application/json")
-		writer.Write(value)
-		writer.WriteHeader(http.StatusOK)
+		value, err := storage.GetMetricJSON(data)
+		if err != nil {
+			writer.WriteHeader(http.StatusBadRequest)
+			_, err = writer.Write([]byte(err.Error()))
+		} else {
+			_, err = writer.Write(value)
+			writer.WriteHeader(http.StatusOK)
+			writer.Header().Set("Content-Type", "application/json")
+		}
+		if err != nil {
+			Logger.Warnf("write data to client error: %v", err)
+		}
 	}
 }

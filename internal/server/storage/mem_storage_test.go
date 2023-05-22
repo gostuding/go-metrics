@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"reflect"
 	"testing"
 )
 
@@ -67,10 +68,9 @@ func TestMemStorageGetMetric(t *testing.T) {
 	for _, val := range tests {
 		tt := val
 		t.Run(tt.name, func(t *testing.T) {
-			ms := MemStorage{
-				Gauges:   tt.fields.Gauges,
-				Counters: tt.fields.Counters,
-			}
+			ms := NewMemStorage()
+			ms.Counters = tt.fields.Counters
+			ms.Gauges = tt.fields.Gauges
 			got, err := ms.GetMetric(tt.args.mType, tt.args.mName)
 			if got != tt.want {
 				t.Errorf("function GetMetric() got = %v, want %v", got, tt.want)
@@ -79,6 +79,138 @@ func TestMemStorageGetMetric(t *testing.T) {
 				t.Errorf("function 'GetMetric()' in test '%s' return's error: %v", tt.name, err)
 			} else if !tt.wantError && err != nil {
 				t.Errorf("function 'GetMetric()' in test '%s' unexpected error: %v", tt.name, err)
+			}
+		})
+	}
+}
+
+func TestMemStorage_GetMetricJSON(t *testing.T) {
+	type fields struct {
+		Gauges   map[string]float64
+		Counters map[string]int64
+	}
+	fieldsTest := fields{Gauges: map[string]float64{"RandomValue": 0.222}, Counters: map[string]int64{"PollCount": 1}}
+	type args struct {
+		data []byte
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    []byte
+		wantErr bool
+	}{
+		{
+			name:    "Получение значения",
+			fields:  fieldsTest,
+			args:    args{[]byte(`{"id":"PollCount","type":"counter"}`)},
+			want:    []byte(`{"id":"PollCount","type":"counter","delta":1}`),
+			wantErr: false,
+		},
+		{
+			name:    "Неправильный тип значения",
+			fields:  fieldsTest,
+			args:    args{[]byte(`{"id":"PollCount","type":"counter1"}`)},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name:    "Неправильное имя значения",
+			fields:  fieldsTest,
+			args:    args{[]byte(`{"id":"PollCount1","type":"counter"}`)},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name:    "Неправильная сериализация json",
+			fields:  fieldsTest,
+			args:    args{[]byte(`{"id": PollCount1","type":"counter"}`)},
+			want:    nil,
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			ms := NewMemStorage()
+			ms.Counters = tt.fields.Counters
+			ms.Gauges = tt.fields.Gauges
+			got, err := ms.GetMetricJSON(tt.args.data)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("memStorage.GetMetricJSON() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("memStorage.GetMetricJSON() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestMemStorage_UpdateJSON(t *testing.T) {
+	type fields struct {
+		Gauges   map[string]float64
+		Counters map[string]int64
+	}
+	fieldsTest := fields{Gauges: map[string]float64{"RandomValue": 0.222}, Counters: map[string]int64{"PollCount": 1}}
+	type args struct {
+		data []byte
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    []byte
+		wantErr bool
+	}{
+		{
+			name:    "Обновление значения counter",
+			fields:  fieldsTest,
+			args:    args{[]byte(`{"id":"PollCount","type":"counter","delta":1}`)},
+			want:    []byte(`{"id":"PollCount","type":"counter","delta":2}`),
+			wantErr: false,
+		},
+		{
+			name:    "Значение delta для counter не определено",
+			fields:  fieldsTest,
+			args:    args{[]byte(`{"id":"PollCount","type":"counter","value":1}`)},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name:    "Значение value для gauge не определено",
+			fields:  fieldsTest,
+			args:    args{[]byte(`{"id":"PollCount","type":"gauge","delta":1}`)},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name:    "Тип не определён",
+			fields:  fieldsTest,
+			args:    args{[]byte(`{"id":"PollCount","delta":1,"value":0.222}`)},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name:    "Неправильный формат json",
+			fields:  fieldsTest,
+			args:    args{[]byte(`{"id":"PollCount" "delta":1,"value":0.222}`)},
+			want:    nil,
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ms := NewMemStorage()
+			ms.Counters = tt.fields.Counters
+			ms.Gauges = tt.fields.Gauges
+			got, err := ms.UpdateJSON(tt.args.data)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("memStorage.UpdateJSON() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("memStorage.UpdateJSON() = %v, want %v", got, tt.want)
 			}
 		})
 	}

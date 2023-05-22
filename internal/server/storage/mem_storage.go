@@ -135,3 +135,36 @@ func (ms *MemStorage) UpdateJSON(data []byte) ([]byte, error) {
 	}
 	return resp, nil
 }
+
+// обновление через json
+func (ms *MemStorage) GetMetricJSON(data []byte) ([]byte, error) {
+	var metric metric
+	err := json.Unmarshal(data, &metric)
+	if err != nil {
+		return nil, fmt.Errorf("json conver error: %s", err)
+	}
+	resp := make([]byte, 0)
+	err = errors.New("metric undefined")
+	switch metric.MType {
+	case "counter":
+		for key, val := range ms.Counters {
+			if key == metric.ID {
+				metric.Delta = &val
+				resp, err = json.Marshal(metric)
+			}
+		}
+	case "gauge":
+		for key, val := range ms.Gauges {
+			if key == metric.ID {
+				metric.Value = &val
+				resp, err = json.Marshal(metric)
+			}
+		}
+	default:
+		return nil, fmt.Errorf("metric type ('%s') error, use counter like int64 or gauge like float64", metric.MType)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("convert to json error: %s", err)
+	}
+	return resp, nil
+}

@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"net/http"
 	"runtime"
+	"strconv"
 
 	"github.com/dpanic/convert"
 )
@@ -33,10 +34,11 @@ type Metrics struct {
 func makeMetric(id string, value any) Metrics {
 	switch value.(type) {
 	case int, uint32, int64, uint64:
+		val, _ := strconv.Atoi(fmt.Sprint(value))
 		return Metrics{
 			ID:    id,
 			MType: "counter",
-			Delta: convert.ToInt64P(value),
+			Delta: convert.ToInt64P(val),
 		}
 	case float64:
 		return Metrics{
@@ -85,7 +87,7 @@ func (ms *MetricsStorage) UpdateMetrics() {
 		ms.MetricsSlice["PollCount"] = makeMetric("PollCount", (*ms.MetricsSlice["PollCount"].Delta + 1))
 	}
 	ms.MetricsSlice["RandomValue"] = makeMetric("RandomValue", rand.Float64())
-	fmt.Println("Update finished")
+	log.Println("Update finished")
 }
 
 // отправка метрик
