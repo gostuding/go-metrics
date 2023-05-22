@@ -111,7 +111,7 @@ func TestMemStorage_GetMetricJSON(t *testing.T) {
 			name:    "Неправильный тип значения",
 			fields:  fieldsTest,
 			args:    args{[]byte(`{"id":"PollCount","type":"counter1"}`)},
-			want:    nil,
+			want:    []byte(""),
 			wantErr: true,
 		},
 		{
