@@ -10,7 +10,7 @@ import (
 
 // Структура для хранения данных о метриках
 // #TODO - сделать структуру не экспортируемой
-type MemStorage struct {
+type memStorage struct {
 	Gauges   map[string]float64
 	Counters map[string]int64
 }
@@ -23,11 +23,11 @@ type metric struct {
 	Value *float64 `json:"value,omitempty"` // значение метрики в случае передачи gauge
 }
 
-func NewMemStorage() *MemStorage {
-	return &MemStorage{Gauges: make(map[string]float64), Counters: make(map[string]int64)}
+func NewMemStorage() *memStorage {
+	return &memStorage{Gauges: make(map[string]float64), Counters: make(map[string]int64)}
 }
 
-func (ms *MemStorage) Update(mType string, mName string, mValue string) error {
+func (ms *memStorage) Update(mType string, mName string, mValue string) error {
 	switch mType {
 	case "gauge":
 		val, err := strconv.ParseFloat(mValue, 64)
@@ -48,7 +48,7 @@ func (ms *MemStorage) Update(mType string, mName string, mValue string) error {
 }
 
 // Получение значения метрики по типу и имени
-func (ms *MemStorage) GetMetric(mType string, mName string) (string, error) {
+func (ms *memStorage) GetMetric(mType string, mName string) (string, error) {
 	switch mType {
 	case "gauge":
 		for key, val := range ms.Gauges {
@@ -67,7 +67,7 @@ func (ms *MemStorage) GetMetric(mType string, mName string) (string, error) {
 }
 
 // Список всех метрик в html
-func (ms *MemStorage) GetMetricsHTML() string {
+func (ms *memStorage) GetMetricsHTML() string {
 	body := "<!doctype html> <html lang='en'> <head> <meta charset='utf-8'> <title>Список метрик</title></head>"
 	body += "<body><header><h1><p>Metrics list</p></h1></header>"
 	index := 1
@@ -105,7 +105,7 @@ func getSortedKeysInt(items map[string]int64) []string {
 }
 
 // обновление через json
-func (ms *MemStorage) UpdateJSON(data []byte) ([]byte, error) {
+func (ms *memStorage) UpdateJSON(data []byte) ([]byte, error) {
 	var metric metric
 	err := json.Unmarshal(data, &metric)
 	if err != nil {
@@ -137,7 +137,7 @@ func (ms *MemStorage) UpdateJSON(data []byte) ([]byte, error) {
 }
 
 // обновление через json
-func (ms *MemStorage) GetMetricJSON(data []byte) ([]byte, error) {
+func (ms *memStorage) GetMetricJSON(data []byte) ([]byte, error) {
 	var metric metric
 	err := json.Unmarshal(data, &metric)
 	if err != nil {
@@ -161,7 +161,7 @@ func (ms *MemStorage) GetMetricJSON(data []byte) ([]byte, error) {
 			}
 		}
 	default:
-		return nil, fmt.Errorf("metric type ('%s') error, use counter like int64 or gauge like float64", metric.MType)
+		return []byte(""), fmt.Errorf("metric type ('%s') error, use counter like int64 or gauge like float64", metric.MType)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("convert to json error: %s", err)
