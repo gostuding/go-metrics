@@ -73,6 +73,7 @@ func GetAllMetrics(writer http.ResponseWriter, request *http.Request, storage HT
 
 // обновление в JSON формате
 func UpdateJSON(writer http.ResponseWriter, request *http.Request, storage StorageSetter) {
+	writer.Header().Set("Content-Type", "application/json")
 	data, err := io.ReadAll(request.Body)
 	if err != nil {
 		writer.WriteHeader(http.StatusBadRequest)
@@ -87,7 +88,6 @@ func UpdateJSON(writer http.ResponseWriter, request *http.Request, storage Stora
 			_, err = writer.Write([]byte(err.Error()))
 		} else {
 			writer.WriteHeader(http.StatusOK)
-			writer.Header().Set("Content-Type", "application/json")
 			_, err = writer.Write(value)
 		}
 		if err != nil {
@@ -98,6 +98,7 @@ func UpdateJSON(writer http.ResponseWriter, request *http.Request, storage Stora
 
 // получение метрики в JSON формате
 func GetMetricJSON(writer http.ResponseWriter, request *http.Request, storage StorageGetter) {
+	writer.Header().Set("Content-Type", "application/json")
 	data, err := io.ReadAll(request.Body)
 	if err != nil {
 		writer.WriteHeader(http.StatusBadRequest)
@@ -113,7 +114,6 @@ func GetMetricJSON(writer http.ResponseWriter, request *http.Request, storage St
 		} else {
 			_, err = writer.Write(value)
 			writer.WriteHeader(http.StatusOK)
-			writer.Header().Set("Content-Type", "application/json")
 		}
 		if err != nil {
 			Logger.Warnf("write data to client error: %v", err)
