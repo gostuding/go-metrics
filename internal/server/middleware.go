@@ -21,8 +21,8 @@ func (r *myRWriter) Write(b []byte) (int, error) {
 
 func (r *myRWriter) WriteHeader(statusCode int) {
 	// записываем код статуса, используя оригинальный http.ResponseWriter
-	r.ResponseWriter.WriteHeader(statusCode)
 	r.status = statusCode // захватываем код статуса
+	r.ResponseWriter.WriteHeader(statusCode)
 }
 
 func serverMiddleware(h http.Handler) http.Handler {
