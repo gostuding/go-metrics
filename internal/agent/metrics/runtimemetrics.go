@@ -92,9 +92,8 @@ func (ms *MetricsStorage) UpdateMetrics() {
 
 // отправка метрик
 func (ms *MetricsStorage) SendMetrics(IP string, port int) {
-	client := http.Client{}
 	for _, metric := range ms.MetricsSlice {
-		if err := sendJSONToServer(client, IP, port, metric); err != nil {
+		if err := sendJSONToServer(IP, port, metric); err != nil {
 			log.Println(err)
 		} else {
 			if metric.ID == "PollCount" {
@@ -129,7 +128,8 @@ func sendToServer(client http.Client, IP string, port int, value any, name strin
 }
 
 // отправка запроса к серверу
-func sendJSONToServer(client http.Client, IP string, port int, metric Metrics) error {
+func sendJSONToServer(IP string, port int, metric Metrics) error {
+	client := http.Client{}
 	query := fmt.Sprintf("http://%s:%d/update/", IP, port)
 	body, err := json.Marshal(metric)
 	if err != nil {

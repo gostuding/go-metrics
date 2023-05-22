@@ -10,12 +10,14 @@ type myRWriter struct {
 	http.ResponseWriter     // интерфейс http.ResponseWriter
 	status              int // статус ответа
 	size                int // размер ответа
+	body                []byte
 }
 
 func (r *myRWriter) Write(b []byte) (int, error) {
 	// записываем ответ, используя оригинальный http.ResponseWriter
 	size, err := r.ResponseWriter.Write(b) // запись данных через стандартный ResponseWriter
 	r.size += size                         // получаем размер записанных данных
+	r.body = b
 	return size, err
 }
 
@@ -34,7 +36,7 @@ func serverMiddleware(h http.Handler) http.Handler {
 		// логирование запроса
 		requestLog(r.RequestURI, r.Method, time.Since(start))
 		// логирование ответа
-		defer responseLog(r.RequestURI, responceWriter.status, responceWriter.size)
+		defer responseLog(r.RequestURI+string(responceWriter.body), responceWriter.status, responceWriter.size)
 	}
 	return http.HandlerFunc(wrapper)
 }
