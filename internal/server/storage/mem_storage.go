@@ -161,10 +161,10 @@ func (ms *memStorage) GetMetricJSON(data []byte) ([]byte, error) {
 			}
 		}
 	default:
-		return []byte(""), fmt.Errorf("metric type ('%s') error, use counter like int64 or gauge like float64", metric.MType)
+		return nil, fmt.Errorf("metric type ('%s') error, use counter like int64 or gauge like float64", metric.MType)
 	}
 	if err != nil {
-		return nil, fmt.Errorf("convert to json error: %s", err)
+		return []byte(""), fmt.Errorf("convert to json error: %s", err)
 	}
 	return resp, nil
 }
