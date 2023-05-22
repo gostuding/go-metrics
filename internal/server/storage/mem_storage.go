@@ -144,7 +144,7 @@ func (ms *memStorage) GetMetricJSON(data []byte) ([]byte, error) {
 		return nil, fmt.Errorf("json conver error: %s", err)
 	}
 	resp := make([]byte, 0)
-	err = errors.New("metric undefined")
+	err = fmt.Errorf("metric undefined: '%s' -> '%s'", metric.ID, metric.MType)
 	switch metric.MType {
 	case "counter":
 		for key, val := range ms.Counters {
@@ -164,7 +164,7 @@ func (ms *memStorage) GetMetricJSON(data []byte) ([]byte, error) {
 		return nil, fmt.Errorf("metric type ('%s') error, use counter like int64 or gauge like float64", metric.MType)
 	}
 	if err != nil {
-		return []byte(""), fmt.Errorf("convert to json error: %s", err)
+		return []byte(""), err
 	}
 	return resp, nil
 }
