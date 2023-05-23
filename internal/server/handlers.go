@@ -116,8 +116,8 @@ func GetMetricJSON(writer http.ResponseWriter, request *http.Request, storage St
 			}
 			_, err = writer.Write([]byte(err.Error()))
 		} else {
-			_, err = writer.Write(value)
 			writer.WriteHeader(http.StatusOK)
+			_, err = writer.Write(value)
 		}
 		if err != nil {
 			Logger.Warnf("write data to client error: %v", err)
