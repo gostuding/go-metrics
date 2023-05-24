@@ -2,7 +2,6 @@ package server
 
 import (
 	"compress/gzip"
-	"errors"
 	"io"
 	"net/http"
 	"strings"
@@ -20,11 +19,10 @@ type myRWriter struct {
 
 func (r *myRWriter) Write(b []byte) (int, error) {
 	// записываем ответ, используя оригинальный http.ResponseWriter или сжимая его
-	size, err := 0, errors.New("")
 	if r.isGzipSupport && r.Header().Get("Content-Encoding") == "gzip" {
 		r.isGzipSupport = false // для избежания зацикливания рекурсии
 		compressor := gzip.NewWriter(r)
-		size, err = compressor.Write(b)
+		size, err := compressor.Write(b)
 		if err != nil {
 			Logger.Warnf("compress responыe body error: %v \n", err)
 			return 0, err
@@ -33,11 +31,12 @@ func (r *myRWriter) Write(b []byte) (int, error) {
 			Logger.Warnf("compress close error: %v \n", err)
 			return 0, err
 		}
+		return size, err
 	} else {
-		size, err = r.ResponseWriter.Write(b) // запись данных через стандартный ResponseWriter
-		r.size += size                        // получаем размер записанных данных
+		size, err := r.ResponseWriter.Write(b) // запись данных через стандартный ResponseWriter
+		r.size += size
+		return size, err // получаем размер записанных данных
 	}
-	return size, err
 }
 
 func (r *myRWriter) WriteHeader(statusCode int) {
@@ -96,7 +95,6 @@ func loggerMiddleware(h http.Handler) http.Handler {
 				Logger.Warnf("gzip reader create error: %s", err)
 				return
 			}
-			Logger.Infoln("read data with gzip support")
 			r.Body = cr // подмена интерфейса для чтения данных запроса
 			defer cr.Close()
 		}
@@ -110,63 +108,3 @@ func loggerMiddleware(h http.Handler) http.Handler {
 	}
 	return http.HandlerFunc(wrapper)
 }
-
-// type gzipWriter struct {
-// 	response http.ResponseWriter
-// 	gzip     *gzip.Writer
-// }
-
-// func newGzipWriter(w http.ResponseWriter) *gzipWriter {
-// 	return &gzipWriter{response: w, gzip: gzip.NewWriter(w)}
-// }
-
-// func (c *gzipWriter) Header() http.Header {
-// 	return c.response.Header()
-// }
-
-// func (c *gzipWriter) Write(p []byte) (int, error) {
-// 	return c.gzip.Write(p)
-// }
-
-// func (c *gzipWriter) WriteHeader(statusCode int) {
-// 	c.response.WriteHeader(statusCode)
-// }
-
-// func (c *gzipWriter) Close() error {
-// 	return c.gzip.Close()
-// }
-
-// func gzipMiddleware(h http.Handler) http.Handler {
-// 	wrapper := func(w http.ResponseWriter, r *http.Request) {
-// 		response := w
-// 		// проверка на необходимость распаковки тела запроса
-// 		contentEncoding := r.Header.Get("Content-Encoding") // если стоит gzip, то надо распаковывать
-// 		sendsGzip := strings.Contains(contentEncoding, "gzip")
-// 		if sendsGzip {
-// 			cr, err := newGzipReader(r.Body)
-// 			if err != nil {
-// 				w.WriteHeader(http.StatusInternalServerError)
-// 				Logger.Warnf("gzip reader create error: %s", err)
-// 				return
-// 			}
-// 			Logger.Infoln("read data with gzip support")
-// 			r.Body = cr // подмена интерфейса для чтения данных запроса
-// 			defer cr.Close()
-// 		}
-// 		// подмена ResponseWriter на gzipWriter при поддержке запакованных данных
-// 		supportsGzip := strings.Contains(r.Header.Get("Accept-Encoding"), "gzip")
-// 		supportsGzip = (strings.Contains(r.Header.Get("Content-Type"), "application/json") || strings.Contains(r.Header.Get("Content-Type"), "text/html"))
-// 		if supportsGzip {
-// 			gzip := newGzipWriter(w)
-// 			response = gzip // подмена интерфейса для записи ответа
-// 			defer gzip.Close()
-// 			response.Header().Set("Content-Encoding", "gzip")
-// 			Logger.Infoln("write data by gzip")
-// 		} else {
-// 			Logger.Infoln("write data without gzip support: ", r.Header.Get("Accept-Encoding"))
-// 		}
-
-// 		h.ServeHTTP(response, r)
-// 	}
-// 	return http.HandlerFunc(wrapper)
-// }
