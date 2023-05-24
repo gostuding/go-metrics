@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -117,9 +118,9 @@ func (ms *MetricsStorage) UpdateMetrics() {
 }
 
 // отправка метрик
-func (ms *MetricsStorage) SendMetrics(IP string, port int) {
+func (ms *MetricsStorage) SendMetrics(IP string, port int, gzipCompress bool) {
 	for _, metric := range ms.MetricsSlice {
-		if err := sendJSONToServer(IP, port, metric); err != nil {
+		if err := sendJSONToServer(IP, port, metric, gzipCompress); err != nil {
 			log.Println(err)
 		} else {
 			if metric.ID == "PollCount" {
@@ -131,15 +132,33 @@ func (ms *MetricsStorage) SendMetrics(IP string, port int) {
 }
 
 // отправка запроса к серверу
-func sendJSONToServer(IP string, port int, metric Metrics) error {
-	client := http.Client{}
-	query := fmt.Sprintf("http://%s:%d/update/", IP, port)
+func sendJSONToServer(IP string, port int, metric Metrics, compress bool) error {
 	body, err := json.Marshal(metric)
 	if err != nil {
 		return fmt.Errorf("metric convert error: %s", err)
 	}
-	buf := bytes.NewBuffer(body)
-	resp, err := client.Post(query, "applications/json", buf)
+	client := http.Client{}
+	if compress {
+		var b bytes.Buffer
+		gz := gzip.NewWriter(&b)
+		_, err = gz.Write(body)
+		if err != nil {
+			return fmt.Errorf("compress error: %s", err)
+		}
+		err = gz.Close()
+		if err != nil {
+			return fmt.Errorf("compress close error: %s", err)
+		}
+		body = b.Bytes()
+	}
+	req, err := http.NewRequest("POST", fmt.Sprintf("http://%s:%d/update/", IP, port), bytes.NewReader(body))
+	if err != nil {
+		return fmt.Errorf("request create error: %s", err)
+	}
+	if compress {
+		req.Header.Add("Content-Encoding", "gzip")
+	}
+	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("send metric '%s' error: '%v'", metric.ID, err)
 	}
