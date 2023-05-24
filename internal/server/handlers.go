@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 )
@@ -64,6 +65,7 @@ func GetMetric(writer http.ResponseWriter, request *http.Request, storage Storag
 
 // Запрос всех метрик в html
 func GetAllMetrics(writer http.ResponseWriter, request *http.Request, storage HTMLGetter) {
+	writer.Header().Set("Content-Type", "text/html")
 	writer.WriteHeader(http.StatusOK)
 	_, err := writer.Write([]byte(storage.GetMetricsHTML()))
 	if err != nil {
@@ -85,7 +87,7 @@ func UpdateJSON(writer http.ResponseWriter, request *http.Request, storage Stora
 		value, err := storage.UpdateJSON(data)
 		if err != nil {
 			writer.WriteHeader(http.StatusBadRequest)
-			_, err = writer.Write([]byte(err.Error()))
+			_, err = writer.Write([]byte(fmt.Sprintf(`{"error": "%s"}`, err.Error())))
 		} else {
 			writer.WriteHeader(http.StatusOK)
 			_, err = writer.Write(value)
@@ -114,7 +116,7 @@ func GetMetricJSON(writer http.ResponseWriter, request *http.Request, storage St
 			} else {
 				writer.WriteHeader(http.StatusBadRequest)
 			}
-			_, err = writer.Write([]byte(err.Error()))
+			_, err = writer.Write([]byte(fmt.Sprintf(`{"error": "%s"}`, err.Error())))
 		} else {
 			writer.WriteHeader(http.StatusOK)
 			_, err = writer.Write(value)

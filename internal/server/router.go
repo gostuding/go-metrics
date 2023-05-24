@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi"
-	"github.com/go-chi/chi/middleware"
 )
 
 // интерфейс для обработки запросов
@@ -26,10 +25,10 @@ func getParams(r *http.Request) getMetricsArgs {
 func makeRouter(storage Storage) http.Handler {
 	router := chi.NewRouter()
 
-	router.Use(middleware.RealIP)
-	router.Use(serverMiddleware)
-	// router.Use(middleware.Logger)
-	router.Use(middleware.Recoverer)
+	// router.Use(middleware.RealIP)
+	// router.Use(gzipMiddleware)
+	router.Use(loggerMiddleware)
+	// router.Use(middleware.Recoverer)
 
 	router.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		GetAllMetrics(w, r, storage)
