@@ -14,6 +14,7 @@ type AgentRunArgs struct {
 	Port           int
 	PollInterval   int
 	ReportInterval int
+	GzipCompress   bool
 }
 
 // функция для удовлетворения интерфейсу flag.Value
@@ -60,10 +61,11 @@ func strToInt(name string, str string) (int, error) {
 
 // получение и проверка флагов и переменных окружения
 func GetFlags() (AgentRunArgs, error) {
-	agentArgs := AgentRunArgs{"", 8080, 2, 10}
+	agentArgs := AgentRunArgs{"", 8080, 2, 10, false}
 	flag.Var(&agentArgs, "a", "Net address like 'host:port'")
 	flag.IntVar(&agentArgs.PollInterval, "p", 2, "Poll metricks interval")
 	flag.IntVar(&agentArgs.ReportInterval, "r", 10, "Report metricks interval")
+	flag.BoolVar(&agentArgs.GzipCompress, "gzip", false, "Use gzip compress in requests")
 	flag.Parse()
 
 	if address := os.Getenv("ADDRESS"); address != "" {

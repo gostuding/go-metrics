@@ -7,7 +7,7 @@ import (
 // интерфейс для отправки и обновления данных
 type Storager interface {
 	UpdateMetrics()
-	SendMetrics(string, int)
+	SendMetrics(string, int, bool)
 }
 
 // бесконечный цикл отправки данных
@@ -21,7 +21,7 @@ func StartAgent(args AgentRunArgs, storage Storager) {
 		case <-pollTicker.C:
 			storage.UpdateMetrics()
 		case <-reportTicker.C:
-			storage.SendMetrics(args.IP, args.Port)
+			storage.SendMetrics(args.IP, args.Port, args.GzipCompress)
 		}
 	}
 }

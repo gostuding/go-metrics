@@ -100,7 +100,6 @@ func loggerMiddleware(h http.Handler) http.Handler {
 			r.Body = cr // подмена интерфейса для чтения данных запроса
 			defer cr.Close()
 		}
-
 		//-----------------------------------------
 		//выполнение запроса с нашим ResponseWriter
 		h.ServeHTTP(responceWriter, r) // внедряем реализацию http.ResponseWriter
