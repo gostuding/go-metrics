@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"os"
 	"sort"
 	"strconv"
 )
@@ -11,8 +13,10 @@ import (
 // Структура для хранения данных о метриках
 // #TODO - сделать структуру не экспортируемой
 type memStorage struct {
-	Gauges   map[string]float64
-	Counters map[string]int64
+	Gauges   map[string]float64 `json:"gauges"`
+	Counters map[string]int64   `json:"counters"`
+	Restore  bool               `json:"-"`
+	SavePath string             `json:"-"`
 }
 
 // струтктура не экспоритуемая, т.к. сейчас это не нужно
@@ -23,8 +27,9 @@ type metric struct {
 	Value *float64 `json:"value,omitempty"` // значение метрики в случае передачи gauge
 }
 
-func NewMemStorage() *memStorage {
-	return &memStorage{Gauges: make(map[string]float64), Counters: make(map[string]int64)}
+func NewMemStorage(restore bool, filePath string) (*memStorage, error) {
+	storage := memStorage{Gauges: make(map[string]float64), Counters: make(map[string]int64), Restore: restore, SavePath: filePath}
+	return &storage, storage.restore()
 }
 
 func (ms *memStorage) Update(mType string, mName string, mValue string) error {
@@ -167,4 +172,41 @@ func (ms *memStorage) GetMetricJSON(data []byte) ([]byte, error) {
 		return []byte(""), err
 	}
 	return resp, nil
+}
+
+// загрузка хранилища из файла
+func (ms *memStorage) restore() error {
+	if !ms.Restore {
+		return nil
+	}
+	file, err := os.OpenFile(ms.SavePath, os.O_RDONLY|os.O_CREATE, 0644)
+	if err != nil {
+		return err
+	}
+	decoder := json.NewDecoder(file)
+	defer file.Close()
+	err = decoder.Decode(ms)
+	if err != nil && err != io.EOF {
+		return err
+	}
+	return nil
+}
+
+func (ms *memStorage) Save() error {
+	file, err := os.OpenFile(ms.SavePath, os.O_WRONLY|os.O_TRUNC, 0644)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	// encoder := json.NewEncoder(file)
+	// err = encoder.Encode(ms)
+	data, err := json.MarshalIndent(ms, "", "    ")
+	if err != nil {
+		return err
+	}
+	_, err = file.Write(data)
+	if err != nil {
+		return err
+	}
+	return nil
 }

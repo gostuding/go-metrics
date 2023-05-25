@@ -13,6 +13,7 @@ import (
 type StorageSetter interface {
 	Update(string, string, string) error
 	UpdateJSON([]byte) ([]byte, error)
+	Save() error
 }
 
 // Интерфейс получения значения метрики
@@ -45,6 +46,7 @@ func Update(writer http.ResponseWriter, request *http.Request, storage StorageSe
 		writer.WriteHeader(http.StatusBadRequest)
 	} else {
 		writer.WriteHeader(http.StatusOK)
+		saveStorage(storage)
 	}
 }
 
@@ -90,6 +92,7 @@ func UpdateJSON(writer http.ResponseWriter, request *http.Request, storage Stora
 			_, err = writer.Write([]byte(fmt.Sprintf(`{"error": "%s"}`, err.Error())))
 		} else {
 			writer.WriteHeader(http.StatusOK)
+			saveStorage(storage)
 			_, err = writer.Write(value)
 		}
 		if err != nil {
@@ -123,6 +126,16 @@ func GetMetricJSON(writer http.ResponseWriter, request *http.Request, storage St
 		}
 		if err != nil {
 			Logger.Warnf("write data to client error: %v", err)
+		}
+	}
+}
+
+// сохранение хранилища
+func saveStorage(storage StorageSetter) {
+	if currentOptions.StoreInterval == 0 {
+		err := storage.Save()
+		if err != nil {
+			Logger.Warnf("save storage error: %v\n", err)
 		}
 	}
 }

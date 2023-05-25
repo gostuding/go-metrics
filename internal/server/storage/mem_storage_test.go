@@ -3,6 +3,8 @@ package storage
 import (
 	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestMemStorageAddMetric(t *testing.T) {
@@ -23,8 +25,9 @@ func TestMemStorageAddMetric(t *testing.T) {
 	for _, val := range tests {
 		tt := val // переопределили переменную чтобы избежать использования ссылки на переменную цикла (есть такая особенность)
 		t.Run(tt.name, func(t *testing.T) {
-			ms := NewMemStorage()
-			err := ms.Update(tt.path.mType, tt.path.mName, tt.path.mValue)
+			ms, err := NewMemStorage(false, "")
+			assert.NoError(t, err, "error making new memStorage")
+			err = ms.Update(tt.path.mType, tt.path.mName, tt.path.mValue)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Update() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -68,7 +71,8 @@ func TestMemStorageGetMetric(t *testing.T) {
 	for _, val := range tests {
 		tt := val
 		t.Run(tt.name, func(t *testing.T) {
-			ms := NewMemStorage()
+			ms, err := NewMemStorage(false, "")
+			assert.NoError(t, err, "error making new memStorage")
 			ms.Counters = tt.fields.Counters
 			ms.Gauges = tt.fields.Gauges
 			got, err := ms.GetMetric(tt.args.mType, tt.args.mName)
@@ -132,7 +136,8 @@ func TestMemStorage_GetMetricJSON(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			ms := NewMemStorage()
+			ms, err := NewMemStorage(false, "")
+			assert.NoError(t, err, "error making new memStorage")
 			ms.Counters = tt.fields.Counters
 			ms.Gauges = tt.fields.Gauges
 			got, err := ms.GetMetricJSON(tt.args.data)
@@ -201,7 +206,8 @@ func TestMemStorage_UpdateJSON(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ms := NewMemStorage()
+			ms, err := NewMemStorage(false, "")
+			assert.NoError(t, err, "error making new memStorage")
 			ms.Counters = tt.fields.Counters
 			ms.Gauges = tt.fields.Gauges
 			got, err := ms.UpdateJSON(tt.args.data)
