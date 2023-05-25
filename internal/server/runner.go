@@ -22,10 +22,10 @@ func RunServer(options *ServerOptions, storage Storage) error {
 		return fmt.Errorf("server options error")
 	}
 	currentOptions = *options
-	Logger.Infoln("Run server at adress: ", options.IpAddress)
+	Logger.Infoln("Run server at adress: ", options.IPAddress)
 	go saveStorageInterval(storage)
 	go saveStorageBeforeFinish(storage)
-	err = http.ListenAndServe(options.IpAddress, makeRouter(storage))
+	err = http.ListenAndServe(options.IPAddress, makeRouter(storage))
 	if err != nil {
 		return fmt.Errorf("run server error: %v", err)
 	}
@@ -63,7 +63,7 @@ func saveStorageBeforeFinish(storage Storage) {
 		syscall.SIGINT,
 		syscall.SIGTERM,
 		syscall.SIGQUIT)
-	exit_chan := make(chan int)
+	exitChan := make(chan int)
 	go func() {
 		for {
 			s := <-signalChanel
@@ -75,12 +75,12 @@ func saveStorageBeforeFinish(storage Storage) {
 				} else {
 					Logger.Warnln("save storage error", err)
 				}
-				exit_chan <- 0
+				exitChan <- 0
 			default:
 				Logger.Warnln("undefined system signal")
-				exit_chan <- 1
+				exitChan <- 1
 			}
 		}
 	}()
-	os.Exit(<-exit_chan)
+	os.Exit(<-exitChan)
 }

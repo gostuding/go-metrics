@@ -9,7 +9,7 @@ import (
 )
 
 type ServerOptions struct {
-	IpAddress     string
+	IPAddress     string
 	StoreInterval int
 	FileStorePath string
 	Restore       bool
@@ -17,14 +17,14 @@ type ServerOptions struct {
 
 func GetFlags() (*ServerOptions, error) {
 	var options ServerOptions
-	flag.StringVar(&options.IpAddress, "a", ":8080", "address and port to run server like address:port")
+	flag.StringVar(&options.IPAddress, "a", ":8080", "address and port to run server like address:port")
 	flag.IntVar(&options.StoreInterval, "i", 300, "store interval in seconds")
 	flag.StringVar(&options.FileStorePath, "f", "/tmp/metrics-db.json", "file path for save the storage")
 	flag.BoolVar(&options.Restore, "r", true, "restore storage on start server")
 	flag.Parse()
 	//-------------------------------------------------------------------------
 	if val := os.Getenv("ADDRESS"); val != "" {
-		options.IpAddress = val
+		options.IPAddress = val
 	}
 	if val := os.Getenv("STORE_INTERVAL"); val != "" {
 		interval, err := strconv.Atoi(val)
