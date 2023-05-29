@@ -31,7 +31,7 @@ func (n *AgentRunArgs) Set(value string) error {
 	n.IP = items[0]
 	val, err := strconv.Atoi(items[1])
 	if err != nil {
-		return fmt.Errorf("NetworkAddress Port ('%s') convert error: %s. Use integer type", items[1], err)
+		return fmt.Errorf("NetworkAddress Port ('%s') convert error: %w. Use integer type", items[1], err)
 	}
 	n.Port = val
 	return nil
@@ -54,7 +54,7 @@ func (n *AgentRunArgs) validate() error {
 func strToInt(name string, str string) (int, error) {
 	val, err := strconv.Atoi(str)
 	if err != nil {
-		return 0, fmt.Errorf("enviroment value '%s' of '%s' type error: '%s'", str, name, err)
+		return 0, fmt.Errorf("enviroment value '%s' of '%s' type error: '%w'", str, name, err)
 	}
 	return val, nil
 }
@@ -71,7 +71,7 @@ func GetFlags() (AgentRunArgs, error) {
 	if address := os.Getenv("ADDRESS"); address != "" {
 		err := agentArgs.Set(address)
 		if err != nil {
-			return agentArgs, fmt.Errorf("enviroment 'ADDRESS' value error: %s", err)
+			return agentArgs, fmt.Errorf("enviroment 'ADDRESS' value error: %w", err)
 		}
 	}
 	if upd := os.Getenv("REPORT_INTERVAL"); upd != "" {

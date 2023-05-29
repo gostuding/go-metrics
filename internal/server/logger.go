@@ -21,7 +21,6 @@ func requestLog(URI string, method string, duration time.Duration) {
 	)
 }
 
-// TODO аналогично предыдущей функции
 func responseLog(URI string, status int, size int) {
 	Logger.Infow(
 		"Server logger",

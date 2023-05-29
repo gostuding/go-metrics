@@ -11,7 +11,6 @@ import (
 )
 
 // Структура для хранения данных о метриках
-// #TODO - сделать структуру не экспортируемой
 type memStorage struct {
 	Gauges   map[string]float64 `json:"gauges"`
 	Counters map[string]int64   `json:"counters"`
@@ -37,13 +36,13 @@ func (ms *memStorage) Update(mType string, mName string, mValue string) error {
 	case "gauge":
 		val, err := strconv.ParseFloat(mValue, 64)
 		if err != nil {
-			return err
+			return fmt.Errorf("gauge value convert error: %w", err)
 		}
 		ms.Gauges[mName] = val
 	case "counter":
 		val, err := strconv.ParseInt(mValue, 10, 64)
 		if err != nil {
-			return err
+			return fmt.Errorf("counter value convert error: %w", err)
 		}
 		ms.Counters[mName] += val
 	default:
