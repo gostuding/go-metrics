@@ -78,7 +78,7 @@ func (c *gzipReader) Close() error {
 }
 
 func loggerMiddleware(h http.Handler) http.Handler {
-	wrapper := func(w http.ResponseWriter, r *http.Request) {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		responceWriter := &myRWriter{
 			ResponseWriter:   w,
@@ -105,6 +105,6 @@ func loggerMiddleware(h http.Handler) http.Handler {
 		requestLog(r.RequestURI, r.Method, time.Since(start))
 		// логирование ответа
 		defer responseLog(r.RequestURI, responceWriter.status, responceWriter.size)
-	}
-	return http.HandlerFunc(wrapper)
+	})
+	// return http.HandlerFunc(wrapper)
 }

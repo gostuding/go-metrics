@@ -108,7 +108,7 @@ func (ms *metricsStorage) UpdateMetrics() {
 		ms.MetricsSlice[name] = *metric
 		if metric.MType == "counter" {
 			gaugeName := fmt.Sprintf("%sGauge", name)
-			gauge, err := makeMetric(gaugeName, float64(*metric.Delta))
+			gauge, err := makeMetric(name, float64(*metric.Delta))
 			if err != nil {
 				log.Println("make gauge value error: ", err)
 				continue
@@ -124,10 +124,10 @@ func (ms *metricsStorage) SendMetrics(IP string, port int, gzipCompress bool) {
 	for _, metric := range ms.MetricsSlice {
 		if err := sendJSONToServer(IP, port, metric, gzipCompress); err != nil {
 			log.Println(err)
-		} else {
-			if metric.ID == "PollCount" {
-				ms.MetricsSlice["PollCount"] = metrics{ID: "PollCount", MType: "counter"}
-			}
+			continue
+		}
+		if metric.ID == "PollCount" && metric.MType == "counter" {
+			ms.MetricsSlice["PollCount"] = metrics{ID: "PollCount", MType: "counter"}
 		}
 	}
 	log.Println("Metrics send iteration finished")

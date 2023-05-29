@@ -1,8 +1,8 @@
 package server
 
 import (
-	"errors"
 	"flag"
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -36,6 +36,7 @@ func GetFlags() (*ServerOptions, error) {
 	if val := os.Getenv("FILE_STORAGE_PATH"); val != "" {
 		options.FileStorePath = val
 	}
+
 	val := strings.ToLower(os.Getenv("RESTORE"))
 	switch val {
 	case "true":
@@ -44,7 +45,7 @@ func GetFlags() (*ServerOptions, error) {
 		options.Restore = false
 	default:
 		if val != "" {
-			return nil, errors.New("enviroment RESTORE error. Use 'true' or 'false' value")
+			return nil, fmt.Errorf("enviroment RESTORE error. Use 'true' or 'false' value instead of '%s'", val)
 		}
 	}
 	//-------------------------------------------------------------------------

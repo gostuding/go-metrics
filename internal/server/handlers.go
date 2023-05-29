@@ -58,10 +58,9 @@ func GetMetric(writer http.ResponseWriter, request *http.Request, storage Storag
 		_, err = writer.Write([]byte(value))
 	} else {
 		writer.WriteHeader(http.StatusNotFound)
-		_, err = writer.Write([]byte(err.Error()))
 	}
 	if err != nil {
-		Logger.Warnf("write data to client error: %v", err)
+		Logger.Warnf("write data to client error: %w", err)
 	}
 }
 
@@ -71,7 +70,7 @@ func GetAllMetrics(writer http.ResponseWriter, request *http.Request, storage HT
 	writer.WriteHeader(http.StatusOK)
 	_, err := writer.Write([]byte(storage.GetMetricsHTML()))
 	if err != nil {
-		Logger.Warnf("write metrics data to client error: %v", err)
+		Logger.Warnf("write metrics data to client error: %w", err)
 	}
 }
 
@@ -81,22 +80,19 @@ func UpdateJSON(writer http.ResponseWriter, request *http.Request, storage Stora
 	data, err := io.ReadAll(request.Body)
 	if err != nil {
 		writer.WriteHeader(http.StatusBadRequest)
-		_, err = writer.Write([]byte(err.Error()))
-		if err != nil {
-			Logger.Warnf("write data to client error: %v", err)
-		}
+		Logger.Warnf("read request body error: %w", err)
 	} else {
 		value, err := storage.UpdateJSON(data)
 		if err != nil {
 			writer.WriteHeader(http.StatusBadRequest)
-			_, err = writer.Write([]byte(fmt.Sprintf(`{"error": "%s"}`, err.Error())))
+			Logger.Warnf("update metric error: %w", err)
 		} else {
 			writer.WriteHeader(http.StatusOK)
 			saveStorage(storage)
 			_, err = writer.Write(value)
-		}
-		if err != nil {
-			Logger.Warnf("write data to clie`nt error: %v", err)
+			if err != nil {
+				Logger.Warnf("write data to clie`nt error: %w", err)
+			}
 		}
 	}
 }
@@ -107,10 +103,7 @@ func GetMetricJSON(writer http.ResponseWriter, request *http.Request, storage St
 	data, err := io.ReadAll(request.Body)
 	if err != nil {
 		writer.WriteHeader(http.StatusBadRequest)
-		_, err = writer.Write([]byte(err.Error()))
-		if err != nil {
-			Logger.Warnf("write data to client error: %v", err)
-		}
+		Logger.Warnf("read request body error: %w", err)
 	} else {
 		value, err := storage.GetMetricJSON(data)
 		if err != nil {
@@ -125,7 +118,7 @@ func GetMetricJSON(writer http.ResponseWriter, request *http.Request, storage St
 			_, err = writer.Write(value)
 		}
 		if err != nil {
-			Logger.Warnf("write data to client error: %v", err)
+			Logger.Warnf("write data to client error: %w", err)
 		}
 	}
 }
@@ -135,7 +128,7 @@ func saveStorage(storage StorageSetter) {
 	if currentOptions.StoreInterval == 0 {
 		err := storage.Save()
 		if err != nil {
-			Logger.Warnf("save storage error: %v\n", err)
+			Logger.Warnf("save storage error: %w", err)
 		}
 	}
 }
