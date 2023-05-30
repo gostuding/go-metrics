@@ -9,11 +9,8 @@ import (
 	"time"
 )
 
-var currentOptions ServerOptions
-var done = make(chan bool)
-
 // запуск сервера на прослушку
-func RunServer(options *ServerOptions, storage Storage) error {
+func RunServer(options *Config, storage Storage) error {
 	err := InitLogger()
 	if err != nil {
 		return fmt.Errorf("create logger error: %v", err)
@@ -21,66 +18,40 @@ func RunServer(options *ServerOptions, storage Storage) error {
 	if options == nil {
 		return fmt.Errorf("server options error")
 	}
-	currentOptions = *options
 	Logger.Infoln("Run server at adress: ", options.IPAddress)
-	go saveStorageInterval(storage)
+	go saveStorageInterval(options.StoreInterval, storage)
 	go saveStorageBeforeFinish(storage)
-	err = http.ListenAndServe(options.IPAddress, makeRouter(storage))
-	if err != nil {
-		return fmt.Errorf("run server error: %v", err)
-	}
-	done <- true
-	return nil
+	return http.ListenAndServe(options.IPAddress, makeRouter(storage))
 }
 
-func saveStorageInterval(storage Storage) {
-	if currentOptions.StoreInterval < 1 {
+func saveStorageInterval(interval int, storage Storage) {
+	if interval < 1 {
+		Logger.Infoln("save storage runtime mode", interval)
 		return
 	}
-	ticker := time.NewTicker(time.Duration(currentOptions.StoreInterval) * time.Second)
-	Logger.Infof("save storage interval: %d sec.", currentOptions.StoreInterval)
+	ticker := time.NewTicker(time.Duration(interval) * time.Second)
+	Logger.Infof("save storage interval: %d sec.", interval)
 	defer ticker.Stop()
 	for {
-		select {
-		case <-done:
-			Logger.Info("stop save storage interval")
-			return
-		case <-ticker.C:
-			err := storage.Save()
-			if err != nil {
-				Logger.Warnf("save storage error: %v\n", err)
-			} else {
-				Logger.Info("save storage by interval")
-			}
+		<-ticker.C
+		err := storage.Save()
+		if err != nil {
+			Logger.Warnf("save storage error: %w", err)
+		} else {
+			Logger.Info("save storage by interval")
 		}
 	}
 }
 
 func saveStorageBeforeFinish(storage Storage) {
 	signalChanel := make(chan os.Signal, 1)
-	signal.Notify(signalChanel,
-		syscall.SIGHUP,
-		syscall.SIGINT,
-		syscall.SIGTERM,
-		syscall.SIGQUIT)
-	exitChan := make(chan int)
-	go func() {
-		for {
-			s := <-signalChanel
-			switch s {
-			case syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT:
-				err := storage.Save()
-				if err == nil {
-					Logger.Info("save storage before finish")
-				} else {
-					Logger.Warnln("save storage error", err)
-				}
-				exitChan <- 0
-			default:
-				Logger.Warnln("undefined system signal")
-				exitChan <- 1
-			}
-		}
-	}()
-	os.Exit(<-exitChan)
+	signal.Notify(signalChanel, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	<-signalChanel
+	err := storage.Save()
+	if err == nil {
+		Logger.Info("save storage before finish")
+	} else {
+		Logger.Warnln("save storage in finish error:", err)
+	}
+	os.Exit(0)
 }

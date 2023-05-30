@@ -8,15 +8,15 @@ import (
 	"strings"
 )
 
-type ServerOptions struct {
+type Config struct {
 	IPAddress     string
 	StoreInterval int
 	FileStorePath string
 	Restore       bool
 }
 
-func GetFlags() (*ServerOptions, error) {
-	var options ServerOptions
+func GetFlags() (*Config, error) {
+	var options Config
 	flag.StringVar(&options.IPAddress, "a", ":8080", "address and port to run server like address:port")
 	flag.IntVar(&options.StoreInterval, "i", 300, "store interval in seconds")
 	flag.StringVar(&options.FileStorePath, "f", "/tmp/metrics-db.json", "file path for save the storage")

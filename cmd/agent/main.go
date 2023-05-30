@@ -1,8 +1,6 @@
 package main
 
 import (
-	"log"
-
 	"github.com/gostuding/go-metrics/internal/agent"
 	"github.com/gostuding/go-metrics/internal/agent/metrics"
 )
@@ -10,8 +8,11 @@ import (
 func main() {
 	agentArgs, err := agent.GetFlags()
 	if err != nil {
-		log.Fatalf("run arguments incorret: %v", err)
+		panic(err)
 	}
-	storage := metrics.NewMemoryStorage()
+	storage, err := metrics.NewMemoryStorage()
+	if err != nil {
+		panic(err)
+	}
 	agent.StartAgent(agentArgs, storage)
 }

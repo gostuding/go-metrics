@@ -5,20 +5,29 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
-	"log"
 	"math/rand"
 	"net/http"
 	"runtime"
 	"strconv"
-)
 
-func NewMemoryStorage() *metricsStorage {
-	return &metricsStorage{MetricsSlice: make(map[string]metrics)}
-}
+	"go.uber.org/zap"
+)
 
 type metricsStorage struct {
 	Supplier     runtime.MemStats
 	MetricsSlice map[string]metrics
+	Logger       *zap.SugaredLogger
+}
+
+func NewMemoryStorage() (*metricsStorage, error) {
+	logger, err := zap.NewDevelopment()
+	if err != nil {
+		return nil, fmt.Errorf("create logger error: %w", err)
+	}
+	return &metricsStorage{
+		MetricsSlice: make(map[string]metrics),
+		Logger:       logger.Sugar(),
+	}, nil
 }
 
 type metrics struct {
@@ -95,14 +104,12 @@ func makeMap(r *runtime.MemStats, pollCount *int64) map[string]any {
 
 // обновление метрик
 func (ms *metricsStorage) UpdateMetrics() {
-	// считывание переменных их runtimr
-	// var runtimeMetrics runtime.MemStats
 	var rStats runtime.MemStats
 	runtime.ReadMemStats(&rStats)
 	for name, value := range makeMap(&rStats, ms.MetricsSlice["PollCount"].Delta) {
 		metric, err := makeMetric(name, value)
 		if err != nil {
-			log.Println(err)
+			ms.Logger.Warn(err)
 			continue
 		}
 		ms.MetricsSlice[name] = *metric
@@ -110,27 +117,27 @@ func (ms *metricsStorage) UpdateMetrics() {
 			gaugeName := fmt.Sprintf("%sGauge", name)
 			gauge, err := makeMetric(name, float64(*metric.Delta))
 			if err != nil {
-				log.Println("make gauge value error: ", err)
+				ms.Logger.Warnf("make gauge value error: %w", err)
 				continue
 			}
 			ms.MetricsSlice[gaugeName] = *gauge
 		}
 	}
-	log.Println("Update finished")
+	ms.Logger.Debugln("Update finished")
 }
 
 // отправка метрик
 func (ms *metricsStorage) SendMetrics(IP string, port int, gzipCompress bool) {
 	for _, metric := range ms.MetricsSlice {
 		if err := sendJSONToServer(IP, port, metric, gzipCompress); err != nil {
-			log.Println(err)
+			ms.Logger.Warn(err)
 			continue
 		}
 		if metric.ID == "PollCount" && metric.MType == "counter" {
 			ms.MetricsSlice["PollCount"] = metrics{ID: "PollCount", MType: "counter"}
 		}
 	}
-	log.Println("Metrics send iteration finished")
+	ms.Logger.Debugln("Metrics send iteration finished")
 }
 
 // отправка запроса к серверу
@@ -145,24 +152,24 @@ func sendJSONToServer(IP string, port int, metric metrics, compress bool) error 
 		gz := gzip.NewWriter(&b)
 		_, err = gz.Write(body)
 		if err != nil {
-			return fmt.Errorf("compress error: %s", err)
+			return fmt.Errorf("compress error: %w", err)
 		}
 		err = gz.Close()
 		if err != nil {
-			return fmt.Errorf("compress close error: %s", err)
+			return fmt.Errorf("compressor close error: %w", err)
 		}
 		body = b.Bytes()
 	}
 	req, err := http.NewRequest("POST", fmt.Sprintf("http://%s:%d/update/", IP, port), bytes.NewReader(body))
 	if err != nil {
-		return fmt.Errorf("request create error: %s", err)
+		return fmt.Errorf("request create error: %w", err)
 	}
 	if compress {
 		req.Header.Add("Content-Encoding", "gzip")
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		return fmt.Errorf("send metric '%s' error: '%v'", metric.ID, err)
+		return fmt.Errorf("send metric '%s' error: '%w'", metric.ID, err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {

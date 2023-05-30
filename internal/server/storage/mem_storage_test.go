@@ -25,7 +25,7 @@ func TestMemStorageAddMetric(t *testing.T) {
 	for _, val := range tests {
 		tt := val // переопределили переменную чтобы избежать использования ссылки на переменную цикла (есть такая особенность)
 		t.Run(tt.name, func(t *testing.T) {
-			ms, err := NewMemStorage(false, "")
+			ms, err := NewMemStorage(false, "", 300)
 			assert.NoError(t, err, "error making new memStorage")
 			err = ms.Update(tt.path.mType, tt.path.mName, tt.path.mValue)
 			if (err != nil) != tt.wantErr {
@@ -71,7 +71,7 @@ func TestMemStorageGetMetric(t *testing.T) {
 	for _, val := range tests {
 		tt := val
 		t.Run(tt.name, func(t *testing.T) {
-			ms, err := NewMemStorage(false, "")
+			ms, err := NewMemStorage(false, "", 300)
 			assert.NoError(t, err, "error making new memStorage")
 			ms.Counters = tt.fields.Counters
 			ms.Gauges = tt.fields.Gauges
@@ -136,7 +136,7 @@ func TestMemStorage_GetMetricJSON(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			ms, err := NewMemStorage(false, "")
+			ms, err := NewMemStorage(false, "", 300)
 			assert.NoError(t, err, "error making new memStorage")
 			ms.Counters = tt.fields.Counters
 			ms.Gauges = tt.fields.Gauges
@@ -206,7 +206,7 @@ func TestMemStorage_UpdateJSON(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ms, err := NewMemStorage(false, "")
+			ms, err := NewMemStorage(false, "", 300)
 			assert.NoError(t, err, "error making new memStorage")
 			ms.Counters = tt.fields.Counters
 			ms.Gauges = tt.fields.Gauges

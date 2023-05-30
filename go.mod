@@ -3,7 +3,6 @@ module github.com/gostuding/go-metrics
 go 1.20
 
 require (
-	github.com/dpanic/convert v0.0.0-20230106215720-77f0b3e1f52d
 	github.com/go-chi/chi v1.5.4
 	github.com/stretchr/testify v1.8.3
 	go.uber.org/zap v1.24.0

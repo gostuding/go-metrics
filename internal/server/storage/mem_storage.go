@@ -12,10 +12,11 @@ import (
 
 // Структура для хранения данных о метриках
 type memStorage struct {
-	Gauges   map[string]float64 `json:"gauges"`
-	Counters map[string]int64   `json:"counters"`
-	Restore  bool               `json:"-"`
-	SavePath string             `json:"-"`
+	Gauges       map[string]float64 `json:"gauges"`
+	Counters     map[string]int64   `json:"counters"`
+	Restore      bool               `json:"-"`
+	SavePath     string             `json:"-"`
+	SaveInterval int                `json:"-"`
 }
 
 // струтктура не экспоритуемая, т.к. сейчас это не нужно
@@ -26,8 +27,14 @@ type metric struct {
 	Value *float64 `json:"value,omitempty"` // значение метрики в случае передачи gauge
 }
 
-func NewMemStorage(restore bool, filePath string) (*memStorage, error) {
-	storage := memStorage{Gauges: make(map[string]float64), Counters: make(map[string]int64), Restore: restore, SavePath: filePath}
+func NewMemStorage(restore bool, filePath string, saveInterval int) (*memStorage, error) {
+	storage := memStorage{
+		Gauges:       make(map[string]float64),
+		Counters:     make(map[string]int64),
+		Restore:      restore,
+		SavePath:     filePath,
+		SaveInterval: saveInterval,
+	}
 	return &storage, storage.restore()
 }
 
@@ -48,6 +55,9 @@ func (ms *memStorage) Update(mType string, mName string, mValue string) error {
 	default:
 		return errors.New("metric type incorrect. Availible types are: guage or counter")
 	}
+	if ms.SaveInterval == 0 {
+		ms.Save()
+	}
 	return nil
 }
 
@@ -67,7 +77,7 @@ func (ms *memStorage) GetMetric(mType string, mName string) (string, error) {
 			}
 		}
 	}
-	return "", fmt.Errorf("metrick '%s' with type '%s' not found", mName, mType)
+	return "", fmt.Errorf("metric '%s' with type '%s' not found", mName, mType)
 }
 
 // Список всех метрик в html
@@ -113,7 +123,7 @@ func (ms *memStorage) UpdateJSON(data []byte) ([]byte, error) {
 	var metric metric
 	err := json.Unmarshal(data, &metric)
 	if err != nil {
-		return nil, fmt.Errorf("json conver error: %s", err)
+		return nil, fmt.Errorf("json conver error: %w", err)
 	}
 	switch metric.MType {
 	case "counter":
@@ -135,7 +145,12 @@ func (ms *memStorage) UpdateJSON(data []byte) ([]byte, error) {
 	}
 	resp, err := json.Marshal(metric)
 	if err != nil {
-		return nil, fmt.Errorf("convert to json error: %s", err)
+		return nil, fmt.Errorf("convert to json error: %w", err)
+	}
+	if ms.SaveInterval == 0 {
+		if err := ms.Save(); err != nil {
+			return nil, fmt.Errorf("save metric error: %w", err)
+		}
 	}
 	return resp, nil
 }
@@ -148,7 +163,7 @@ func (ms *memStorage) GetMetricJSON(data []byte) ([]byte, error) {
 		return nil, fmt.Errorf("json conver error: %s", err)
 	}
 	resp := make([]byte, 0)
-	err = fmt.Errorf("metric undefined: '%s' -> '%s'", metric.ID, metric.MType)
+	err = fmt.Errorf("metric not found. id: '%s', type: '%s'", metric.ID, metric.MType)
 	switch metric.MType {
 	case "counter":
 		for key, val := range ms.Counters {
@@ -197,8 +212,6 @@ func (ms *memStorage) Save() error {
 		return err
 	}
 	defer file.Close()
-	// encoder := json.NewEncoder(file)
-	// err = encoder.Encode(ms)
 	data, err := json.MarshalIndent(ms, "", "    ")
 	if err != nil {
 		return err

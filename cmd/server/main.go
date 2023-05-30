@@ -6,16 +6,16 @@ import (
 )
 
 func main() {
-	options, err := server.GetFlags()
+	cfg, err := server.GetFlags()
 	if err != nil {
 		panic(err)
 	}
-	storage, err := storage.NewMemStorage(options.Restore, options.FileStorePath)
+	storage, err := storage.NewMemStorage(cfg.Restore, cfg.FileStorePath, cfg.StoreInterval)
 	if err != nil {
 		panic(err)
 	}
 
-	err = server.RunServer(options, storage)
+	err = server.RunServer(cfg, storage)
 	if err != nil {
 		panic(err)
 	}

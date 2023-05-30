@@ -9,46 +9,69 @@ import (
 )
 
 // структура для подмены интерфейса http.ResponseWriter
-type myRWriter struct {
+type myLogWriter struct {
 	http.ResponseWriter     // интерфейс http.ResponseWriter
 	status              int // статус ответа
 	size                int // размер ответа
-	isGzipSupport       bool
-	gzResponseWriter    io.Writer
 }
 
-func (r *myRWriter) Write(b []byte) (int, error) {
-	// записываем ответ, используя оригинальный http.ResponseWriter или сжимая его
-	if r.isGzipSupport && r.Header().Get("Content-Encoding") == "gzip" {
-		r.isGzipSupport = false // для избежания зацикливания рекурсии
-		compressor := gzip.NewWriter(r)
-		size, err := compressor.Write(b)
-		if err != nil {
-			Logger.Warnf("compress responыe body error: %v \n", err)
-			return 0, err
-		}
-		if err = compressor.Close(); err != nil {
-			Logger.Warnf("compress close error: %v \n", err)
-			return 0, err
-		}
-		return size, err
-	} else {
-		size, err := r.ResponseWriter.Write(b) // запись данных через стандартный ResponseWriter
-		r.size += size
-		return size, err // получаем размер записанных данных
-	}
+func newLogWriter(w http.ResponseWriter) *myLogWriter {
+	return &myLogWriter{ResponseWriter: w, status: 0, size: 0}
 }
 
-func (r *myRWriter) WriteHeader(statusCode int) {
-	contentType := r.Header().Get("Content-Type") == "application/json" || r.Header().Get("Content-Type") == "text/html"
-	if statusCode < 300 && r.isGzipSupport && contentType { // проверяем здесь, т.к. после этого заголовок уже не изменить
-		r.Header().Set("Content-Encoding", "gzip")
-	}
+func (r *myLogWriter) Write(b []byte) (int, error) {
+	size, err := r.ResponseWriter.Write(b) // запись данных через стандартный ResponseWriter
+	r.size += size
+	return size, err // получаем размер записанных данных
+}
+
+func (r *myLogWriter) WriteHeader(statusCode int) {
 	r.status = statusCode // запоминаем код статуса
 	r.ResponseWriter.WriteHeader(statusCode)
 }
 
-func (r *myRWriter) Header() http.Header {
+func (r *myLogWriter) Header() http.Header {
+	return r.ResponseWriter.Header()
+}
+
+// структура для создания middleware gzip
+type myGzipWriter struct {
+	http.ResponseWriter // интерфейс http.ResponseWriter
+	isWriting           bool
+}
+
+func newGzipWriter(r http.ResponseWriter) *myGzipWriter {
+	return &myGzipWriter{ResponseWriter: r, isWriting: false}
+}
+
+func (r *myGzipWriter) Write(b []byte) (int, error) {
+	if !r.isWriting && r.Header().Get("Content-Encoding") == "gzip" {
+		r.isWriting = true
+		compressor := gzip.NewWriter(r)
+		size, err := compressor.Write(b)
+		if err != nil {
+			Logger.Warnf("compress respons body error: %w \n", err)
+			return 0, err
+		}
+		if err = compressor.Close(); err != nil {
+			Logger.Warnf("compress close error: %w \n", err)
+			return 0, err
+		}
+		r.isWriting = false
+		return size, err
+	}
+	return r.ResponseWriter.Write(b)
+}
+
+func (r *myGzipWriter) WriteHeader(statusCode int) {
+	contentType := r.Header().Get("Content-Type") == "application/json" || r.Header().Get("Content-Type") == "text/html"
+	if statusCode == 200 && contentType { // проверяем здесь, т.к. после этого заголовок уже не изменить
+		r.Header().Set("Content-Encoding", "gzip")
+	}
+	r.ResponseWriter.WriteHeader(statusCode)
+}
+
+func (r *myGzipWriter) Header() http.Header {
 	return r.ResponseWriter.Header()
 }
 
@@ -77,34 +100,52 @@ func (c *gzipReader) Close() error {
 	return c.gzip.Close()
 }
 
-func loggerMiddleware(h http.Handler) http.Handler {
+//----------------------------------------------------------------------
+
+func gzipMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		start := time.Now()
-		responceWriter := &myRWriter{
-			ResponseWriter:   w,
-			status:           0,
-			size:             0,
-			isGzipSupport:    strings.Contains(r.Header.Get("Accept-Encoding"), "gzip"),
-			gzResponseWriter: gzip.NewWriter(w),
-		}
 		//------------------------------------------
 		if strings.Contains(r.Header.Get("Content-Encoding"), "gzip") { // если стоит gzip, то надо распаковывать
 			cr, err := newGzipReader(r.Body)
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
-				Logger.Warnf("gzip reader create error: %s", err)
+				Logger.Warnf("gzip reader create error: %w", err)
 				return
 			}
 			r.Body = cr // подмена интерфейса для чтения данных запроса
 			defer cr.Close()
 		}
 		//-----------------------------------------
-		//выполнение запроса с нашим ResponseWriter
-		h.ServeHTTP(responceWriter, r) // внедряем реализацию http.ResponseWriter
-		// логирование запроса
-		requestLog(r.RequestURI, r.Method, time.Since(start))
-		// логирование ответа
-		defer responseLog(r.RequestURI, responceWriter.status, responceWriter.size)
+		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+			//выполнение запроса с нашим ResponseWriter
+			h.ServeHTTP(newGzipWriter(w), r) // внедряем реализацию http.ResponseWriter
+		} else {
+			h.ServeHTTP(w, r) // выполняем без изменения
+		}
 	})
-	// return http.HandlerFunc(wrapper)
+}
+
+func loggerMiddleware(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		rWriter := newLogWriter(w)
+		//выполнение запроса с нашим ResponseWriter
+		h.ServeHTTP(rWriter, r) // внедряем реализацию http.ResponseWriter
+		// логирование запроса
+		Logger.Infow(
+			"Server logger",
+			"type", "request",
+			"uri", r.RequestURI,
+			"method", r.Method,
+			"duration", time.Since(start),
+		)
+		// логирование ответа
+		defer Logger.Infow(
+			"Server logger",
+			"type", "responce",
+			"uri", r.RequestURI,
+			"status", rWriter.status,
+			"size", rWriter.size,
+		)
+	})
 }
