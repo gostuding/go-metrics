@@ -1,94 +1,179 @@
 package metrics
 
 import (
+	"bytes"
+	"compress/gzip"
+	"encoding/json"
 	"fmt"
-	"log"
 	"math/rand"
 	"net/http"
 	"runtime"
+	"strconv"
+
+	"go.uber.org/zap"
 )
 
-type MetricsStorage struct {
-	RandomValue float64
-	PollCount   int64
-	Supplier    runtime.MemStats
+type metricsStorage struct {
+	Supplier     runtime.MemStats
+	MetricsSlice map[string]metrics
+	Logger       *zap.SugaredLogger
+}
+
+func NewMemoryStorage() (*metricsStorage, error) {
+	logger, err := zap.NewDevelopment()
+	if err != nil {
+		return nil, fmt.Errorf("create logger error: %w", err)
+	}
+	return &metricsStorage{
+		MetricsSlice: make(map[string]metrics),
+		Logger:       logger.Sugar(),
+	}, nil
+}
+
+type metrics struct {
+	ID    string   `json:"id"`              // имя метрики
+	MType string   `json:"type"`            // параметр, принимающий значение gauge или counter
+	Delta *int64   `json:"delta,omitempty"` // значение метрики в случае передачи counter
+	Value *float64 `json:"value,omitempty"` // значение метрики в случае передачи gauge
+}
+
+func makeMetric(id string, value any) (*metrics, error) {
+	switch value.(type) {
+	case int, uint32, int64, uint64:
+		val, err := strconv.ParseInt(fmt.Sprint(value), 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("convert '%s' to int64 error: %w", id, err)
+		}
+		return &metrics{
+			ID:    id,
+			MType: "counter",
+			Delta: &val,
+		}, nil
+	case float64:
+		val, err := strconv.ParseFloat(fmt.Sprint(value), 64)
+		if err != nil {
+			return nil, fmt.Errorf("convert '%s' to float64 error: %w", id, err)
+		}
+		return &metrics{
+			ID:    id,
+			MType: "gauge",
+			Value: &val,
+		}, nil
+	default:
+		return nil, fmt.Errorf("convert error. metric '%s' type undefined", id)
+	}
+}
+
+func makeMap(r *runtime.MemStats, pollCount *int64) map[string]any {
+	mass := make(map[string]any)
+	mass["Alloc"] = r.Alloc
+	mass["BuckHashSys"] = r.BuckHashSys
+	mass["Frees"] = r.Frees
+	mass["GCCPUFraction"] = r.GCCPUFraction
+	mass["GCSys"] = r.GCSys
+	mass["HeapAlloc"] = r.HeapAlloc
+	mass["HeapIdle"] = r.HeapIdle
+	mass["HeapInuse"] = r.HeapInuse
+	mass["HeapObjects"] = r.HeapObjects
+	mass["HeapReleased"] = r.HeapReleased
+	mass["HeapSys"] = r.HeapSys
+	mass["LastGC"] = r.LastGC
+	mass["Lookups"] = r.Lookups
+	mass["MCacheInuse"] = r.MCacheInuse
+	mass["MCacheSys"] = r.MCacheSys
+	mass["MSpanInuse"] = r.MSpanInuse
+	mass["MSpanSys"] = r.MSpanSys
+	mass["Mallocs"] = r.Mallocs
+	mass["NextGC"] = r.NextGC
+	mass["NumForcedGC"] = r.NumForcedGC
+	mass["NumGC"] = r.NumGC
+	mass["OtherSys"] = r.OtherSys
+	mass["PauseTotalNs"] = r.PauseTotalNs
+	mass["StackInuse"] = r.StackInuse
+	mass["StackSys"] = r.StackSys
+	mass["TotalAlloc"] = r.TotalAlloc
+	mass["Sys"] = r.Sys
+	mass["RandomValue"] = rand.Float64()
+	if pollCount == nil {
+		mass["PollCount"] = 1
+	} else {
+		mass["PollCount"] = *pollCount + 1
+	}
+	return mass
 }
 
 // обновление метрик
-func (ms *MetricsStorage) UpdateMetrics() {
-	// считывание переменных их runtimr
-	runtime.ReadMemStats(&ms.Supplier)
-	// определение дополнительных метрик
-	ms.PollCount += 1
-	ms.RandomValue = rand.Float64()
+func (ms *metricsStorage) UpdateMetrics() {
+	var rStats runtime.MemStats
+	runtime.ReadMemStats(&rStats)
+	for name, value := range makeMap(&rStats, ms.MetricsSlice["PollCount"].Delta) {
+		metric, err := makeMetric(name, value)
+		if err != nil {
+			ms.Logger.Warn(err)
+			continue
+		}
+		ms.MetricsSlice[name] = *metric
+		if metric.MType == "counter" {
+			gaugeName := fmt.Sprintf("%sGauge", name)
+			gauge, err := makeMetric(name, float64(*metric.Delta))
+			if err != nil {
+				ms.Logger.Warnf("make gauge value error: %w", err)
+				continue
+			}
+			ms.MetricsSlice[gaugeName] = *gauge
+		}
+	}
+	ms.Logger.Debugln("Update finished")
 }
 
 // отправка метрик
-func (ms *MetricsStorage) SendMetrics(IP string, port int) {
-	metrics := make(map[string]any)
-	metrics["Alloc"] = ms.Supplier.Alloc
-	metrics["BuckHashSys"] = ms.Supplier.BuckHashSys
-	metrics["Frees"] = ms.Supplier.Frees
-	metrics["GCCPUFraction"] = ms.Supplier.GCCPUFraction
-	metrics["GCSys"] = ms.Supplier.GCSys
-	metrics["HeapAlloc"] = ms.Supplier.HeapAlloc
-	metrics["HeapIdle"] = ms.Supplier.HeapIdle
-	metrics["HeapInuse"] = ms.Supplier.HeapInuse
-	metrics["HeapObjects"] = ms.Supplier.HeapObjects
-	metrics["HeapReleased"] = ms.Supplier.HeapReleased
-	metrics["HeapSys"] = ms.Supplier.HeapSys
-	metrics["LastGC"] = ms.Supplier.LastGC
-	metrics["Lookups"] = ms.Supplier.Lookups
-	metrics["MCacheInuse"] = ms.Supplier.MCacheInuse
-	metrics["MCacheSys"] = ms.Supplier.MCacheSys
-	metrics["MSpanInuse"] = ms.Supplier.MSpanInuse
-	metrics["MSpanSys"] = ms.Supplier.MSpanSys
-	metrics["Mallocs"] = ms.Supplier.Mallocs
-	metrics["NextGC"] = ms.Supplier.NextGC
-	metrics["NumForcedGC"] = ms.Supplier.NumForcedGC
-	metrics["NumGC"] = ms.Supplier.NumGC
-	metrics["OtherSys"] = ms.Supplier.OtherSys
-	metrics["PauseTotalNs"] = ms.Supplier.PauseTotalNs
-	metrics["StackInuse"] = ms.Supplier.StackInuse
-	metrics["StackSys"] = ms.Supplier.StackSys
-	metrics["Sys"] = ms.Supplier.Sys
-	metrics["TotalAlloc"] = ms.Supplier.TotalAlloc
-	metrics["RandomValue"] = ms.RandomValue
-
-	client := http.Client{}
-	for key, value := range metrics {
-		if err := sendToServer(client, IP, port, value, key); err != nil {
-			log.Println(err)
+func (ms *metricsStorage) SendMetrics(IP string, port int, gzipCompress bool) {
+	for _, metric := range ms.MetricsSlice {
+		if err := sendJSONToServer(IP, port, metric, gzipCompress); err != nil {
+			ms.Logger.Warn(err)
+			continue
+		}
+		if metric.ID == "PollCount" && metric.MType == "counter" {
+			ms.MetricsSlice["PollCount"] = metrics{ID: "PollCount", MType: "counter"}
 		}
 	}
-	// отправка дополнительных параметров
-	if err := sendToServer(client, IP, port, ms.PollCount, "PollCount"); err == nil {
-		ms.PollCount = 0
-	} else {
-		log.Println(err)
-	}
-	log.Println("Metrics send iteration finished")
+	ms.Logger.Debugln("Metrics send iteration finished")
 }
 
 // отправка запроса к серверу
-func sendToServer(client http.Client, IP string, port int, value any, name string) error {
-	query := ""
-	switch value.(type) {
-	case uint32, int64, uint64:
-		query = "counter"
-	case float64:
-		query = "gauge"
-	default:
-		return fmt.Errorf("metric '%s' type indefined: '%T'", name, value)
-	}
-	query = fmt.Sprintf("http://%s:%d/update/%s/%s/%v", IP, port, query, name, value)
-	resp, err := client.Post(query, "text/plain", nil)
+func sendJSONToServer(IP string, port int, metric metrics, compress bool) error {
+	body, err := json.Marshal(metric)
 	if err != nil {
-		return fmt.Errorf("send metric '%s' error: '%v'", name, err)
+		return fmt.Errorf("metric convert error: %s", err)
+	}
+	client := http.Client{}
+	if compress {
+		var b bytes.Buffer
+		gz := gzip.NewWriter(&b)
+		_, err = gz.Write(body)
+		if err != nil {
+			return fmt.Errorf("compress error: %w", err)
+		}
+		err = gz.Close()
+		if err != nil {
+			return fmt.Errorf("compressor close error: %w", err)
+		}
+		body = b.Bytes()
+	}
+	req, err := http.NewRequest("POST", fmt.Sprintf("http://%s:%d/update/", IP, port), bytes.NewReader(body))
+	if err != nil {
+		return fmt.Errorf("request create error: %w", err)
+	}
+	if compress {
+		req.Header.Add("Content-Encoding", "gzip")
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("send metric '%s' error: '%w'", metric.ID, err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("send metric '%s' statusCode error: %d", name, resp.StatusCode)
+		return fmt.Errorf("send metric '%v' statusCode error: %d", metric.ID, resp.StatusCode)
 	}
 	return nil
 }

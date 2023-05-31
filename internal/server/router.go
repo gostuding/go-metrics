@@ -27,7 +27,8 @@ func makeRouter(storage Storage) http.Handler {
 	router := chi.NewRouter()
 
 	router.Use(middleware.RealIP)
-	router.Use(middleware.Logger)
+	router.Use(gzipMiddleware)
+	router.Use(loggerMiddleware)
 	router.Use(middleware.Recoverer)
 
 	router.Get("/", func(w http.ResponseWriter, r *http.Request) {
@@ -39,6 +40,11 @@ func makeRouter(storage Storage) http.Handler {
 	router.Get("/value/{mType}/{mName}", func(w http.ResponseWriter, r *http.Request) {
 		GetMetric(w, r, storage, getParams(r))
 	})
-
+	router.Post("/update/", func(w http.ResponseWriter, r *http.Request) {
+		UpdateJSON(w, r, storage)
+	})
+	router.Post("/value/", func(w http.ResponseWriter, r *http.Request) {
+		GetMetricJSON(w, r, storage)
+	})
 	return router
 }
