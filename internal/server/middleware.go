@@ -3,9 +3,12 @@ package server
 import (
 	"compress/gzip"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 // структура для подмены интерфейса http.ResponseWriter
@@ -38,10 +41,11 @@ func (r *myLogWriter) Header() http.Header {
 type myGzipWriter struct {
 	http.ResponseWriter // интерфейс http.ResponseWriter
 	isWriting           bool
+	logger              *zap.SugaredLogger
 }
 
-func newGzipWriter(r http.ResponseWriter) *myGzipWriter {
-	return &myGzipWriter{ResponseWriter: r, isWriting: false}
+func newGzipWriter(r http.ResponseWriter, logger *zap.SugaredLogger) *myGzipWriter {
+	return &myGzipWriter{ResponseWriter: r, isWriting: false, logger: logger}
 }
 
 func (r *myGzipWriter) Write(b []byte) (int, error) {
@@ -50,11 +54,11 @@ func (r *myGzipWriter) Write(b []byte) (int, error) {
 		compressor := gzip.NewWriter(r)
 		size, err := compressor.Write(b)
 		if err != nil {
-			Logger.Warnf("compress respons body error: %w \n", err)
+			r.logger.Warnf("compress respons body error: %w \n", err)
 			return 0, err
 		}
 		if err = compressor.Close(); err != nil {
-			Logger.Warnf("compress close error: %w \n", err)
+			r.logger.Warnf("compress close error: %w \n", err)
 			return 0, err
 		}
 		r.isWriting = false
@@ -105,11 +109,19 @@ func (c *gzipReader) Close() error {
 func gzipMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		//------------------------------------------
+		logger, err := InitLogger()
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			log.Printf("create middleware gzip reader logger error: %v", err) //
+			return
+		}
+		//------------------------------------------
 		if strings.Contains(r.Header.Get("Content-Encoding"), "gzip") { // если стоит gzip, то надо распаковывать
+
 			cr, err := newGzipReader(r.Body)
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
-				Logger.Warnf("gzip reader create error: %w", err)
+				logger.Warnf("gzip reader create error: %w", err)
 				return
 			}
 			r.Body = cr // подмена интерфейса для чтения данных запроса
@@ -118,7 +130,7 @@ func gzipMiddleware(h http.Handler) http.Handler {
 		//-----------------------------------------
 		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
 			//выполнение запроса с нашим ResponseWriter
-			h.ServeHTTP(newGzipWriter(w), r) // внедряем реализацию http.ResponseWriter
+			h.ServeHTTP(newGzipWriter(w, logger), r) // внедряем реализацию http.ResponseWriter
 		} else {
 			h.ServeHTTP(w, r) // выполняем без изменения
 		}
@@ -132,20 +144,26 @@ func loggerMiddleware(h http.Handler) http.Handler {
 		//выполнение запроса с нашим ResponseWriter
 		h.ServeHTTP(rWriter, r) // внедряем реализацию http.ResponseWriter
 		// логирование запроса
-		Logger.Infow(
-			"Server logger",
-			"type", "request",
-			"uri", r.RequestURI,
-			"method", r.Method,
-			"duration", time.Since(start),
-		)
-		// логирование ответа
-		defer Logger.Infow(
-			"Server logger",
-			"type", "responce",
-			"uri", r.RequestURI,
-			"status", rWriter.status,
-			"size", rWriter.size,
-		)
+		logger, err := InitLogger()
+		if err == nil {
+			logger.Infow(
+				"Server logger",
+				"type", "request",
+				"uri", r.RequestURI,
+				"method", r.Method,
+				"duration", time.Since(start),
+			)
+			// логирование ответа
+			defer logger.Infow(
+				"Server logger",
+				"type", "responce",
+				"uri", r.RequestURI,
+				"status", rWriter.status,
+				"size", rWriter.size,
+			)
+		} else {
+			log.Printf("create middleware request logger error: %v", err)
+		}
+
 	})
 }

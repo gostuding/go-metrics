@@ -157,7 +157,10 @@ func TestMemStorage_UpdateJSON(t *testing.T) {
 		Gauges   map[string]float64
 		Counters map[string]int64
 	}
-	fieldsTest := fields{Gauges: map[string]float64{"RandomValue": 0.222}, Counters: map[string]int64{"PollCount": 1}}
+	fieldsTest := fields{
+		Gauges:   map[string]float64{"RandomValue": 0.222},
+		Counters: map[string]int64{"PollCount": 1},
+	}
 	type args struct {
 		data []byte
 	}

@@ -5,6 +5,7 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
+	"go.uber.org/zap"
 )
 
 // интерфейс для обработки запросов
@@ -23,28 +24,25 @@ func getParams(r *http.Request) getMetricsArgs {
 }
 
 // формирование доступных адресов
-func makeRouter(storage Storage) http.Handler {
+func makeRouter(storage Storage, logger *zap.SugaredLogger) http.Handler {
 	router := chi.NewRouter()
 
-	router.Use(middleware.RealIP)
-	router.Use(gzipMiddleware)
-	router.Use(loggerMiddleware)
-	router.Use(middleware.Recoverer)
+	router.Use(middleware.RealIP, gzipMiddleware, loggerMiddleware, middleware.Recoverer)
 
 	router.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		GetAllMetrics(w, r, storage)
+		GetAllMetrics(w, r, storage, logger)
 	})
 	router.Post("/update/{mType}/{mName}/{mValue}", func(w http.ResponseWriter, r *http.Request) {
-		Update(w, r, storage, updateParams(r))
+		Update(w, r, storage, updateParams(r), logger)
 	})
 	router.Get("/value/{mType}/{mName}", func(w http.ResponseWriter, r *http.Request) {
-		GetMetric(w, r, storage, getParams(r))
+		GetMetric(w, r, storage, getParams(r), logger)
 	})
 	router.Post("/update/", func(w http.ResponseWriter, r *http.Request) {
-		UpdateJSON(w, r, storage)
+		UpdateJSON(w, r, storage, logger)
 	})
 	router.Post("/value/", func(w http.ResponseWriter, r *http.Request) {
-		GetMetricJSON(w, r, storage)
+		GetMetricJSON(w, r, storage, logger)
 	})
 	return router
 }

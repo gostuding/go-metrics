@@ -3,6 +3,8 @@ package server
 import (
 	"io"
 	"net/http"
+
+	"go.uber.org/zap"
 )
 
 // -----------------------------------------------------------------------------------
@@ -40,69 +42,69 @@ type updateMetricsArgs struct {
 }
 
 // Обработка запроса на добавление или изменение метрики
-func Update(writer http.ResponseWriter, request *http.Request, storage StorageSetter, metric updateMetricsArgs) {
+func Update(writer http.ResponseWriter, request *http.Request, storage StorageSetter, metric updateMetricsArgs, logger *zap.SugaredLogger) {
 	if err := storage.Update(metric.base.mType, metric.base.mName, metric.mValue); err != nil {
 		writer.WriteHeader(http.StatusBadRequest)
-		Logger.Warnf("update metric error: %w", err)
+		logger.Warnf("update metric error: %w", err)
 		return
 	}
 	writer.WriteHeader(http.StatusOK)
 }
 
 // Обработка запроса значения метрики
-func GetMetric(writer http.ResponseWriter, request *http.Request, storage StorageGetter, metric getMetricsArgs) {
+func GetMetric(writer http.ResponseWriter, request *http.Request, storage StorageGetter, metric getMetricsArgs, logger *zap.SugaredLogger) {
 	value, err := storage.GetMetric(metric.mType, metric.mName)
 	if err != nil {
 		writer.WriteHeader(http.StatusNotFound)
-		Logger.Warn(err)
+		logger.Warn(err)
 	} else {
 		writer.WriteHeader(http.StatusOK)
 		_, err = writer.Write([]byte(value))
 		if err != nil {
-			Logger.Warnf("write data to client error: %w", err)
+			logger.Warnf("write data to client error: %w", err)
 		}
 	}
 }
 
 // Запрос всех метрик в html
-func GetAllMetrics(writer http.ResponseWriter, request *http.Request, storage HTMLGetter) {
+func GetAllMetrics(writer http.ResponseWriter, request *http.Request, storage HTMLGetter, logger *zap.SugaredLogger) {
 	writer.Header().Set("Content-Type", "text/html")
 	writer.WriteHeader(http.StatusOK)
 	_, err := writer.Write([]byte(storage.GetMetricsHTML()))
 	if err != nil {
-		Logger.Warnf("write metrics data to client error: %w", err)
+		logger.Warnf("write metrics data to client error: %w", err)
 	}
 }
 
 // обновление в JSON формате
-func UpdateJSON(writer http.ResponseWriter, request *http.Request, storage StorageSetter) {
+func UpdateJSON(writer http.ResponseWriter, request *http.Request, storage StorageSetter, logger *zap.SugaredLogger) {
 	writer.Header().Set("Content-Type", "application/json")
 	data, err := io.ReadAll(request.Body)
 	if err != nil {
 		writer.WriteHeader(http.StatusBadRequest)
-		Logger.Warnf("read request body error: %w", err)
+		logger.Warnf("read request body error: %w", err)
 	} else {
 		value, err := storage.UpdateJSON(data)
 		if err != nil {
 			writer.WriteHeader(http.StatusBadRequest)
-			Logger.Warnf("update metric error: %w", err)
+			logger.Warnf("update metric error: %w", err)
 		} else {
 			writer.WriteHeader(http.StatusOK)
 			_, err = writer.Write(value)
 			if err != nil {
-				Logger.Warnf("write data to clie`nt error: %w", err)
+				logger.Warnf("write data to clie`nt error: %w", err)
 			}
 		}
 	}
 }
 
 // получение метрики в JSON формате
-func GetMetricJSON(writer http.ResponseWriter, request *http.Request, storage StorageGetter) {
+func GetMetricJSON(writer http.ResponseWriter, request *http.Request, storage StorageGetter, logger *zap.SugaredLogger) {
 	writer.Header().Set("Content-Type", "application/json")
 	data, err := io.ReadAll(request.Body)
 	if err != nil {
 		writer.WriteHeader(http.StatusBadRequest)
-		Logger.Warnf("get metric json, read request body error: %w", err)
+		logger.Warnf("get metric json, read request body error: %w", err)
 		return
 	}
 	value, err := storage.GetMetricJSON(data)
@@ -110,7 +112,7 @@ func GetMetricJSON(writer http.ResponseWriter, request *http.Request, storage St
 		writer.WriteHeader(http.StatusOK)
 		_, err = writer.Write(value)
 		if err != nil {
-			Logger.Warnf("get metric json, write data to client error: %w", err)
+			logger.Warnf("get metric json, write data to client error: %w", err)
 		}
 	} else {
 		if value != nil {
@@ -118,6 +120,6 @@ func GetMetricJSON(writer http.ResponseWriter, request *http.Request, storage St
 		} else {
 			writer.WriteHeader(http.StatusBadRequest)
 		}
-		Logger.Warnf("get metric json error: %w", err)
+		logger.Warnf("get metric json error: %w", err)
 	}
 }
