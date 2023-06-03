@@ -160,7 +160,7 @@ func (ms *memStorage) GetMetricJSON(data []byte) ([]byte, error) {
 	var metric metric
 	err := json.Unmarshal(data, &metric)
 	if err != nil {
-		return nil, fmt.Errorf("json conver error: %s", err)
+		return nil, fmt.Errorf("json conver error: %w", err)
 	}
 	resp := make([]byte, 0)
 	err = fmt.Errorf("metric not found. id: '%s', type: '%s'", metric.ID, metric.MType)
