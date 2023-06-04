@@ -1,18 +1,16 @@
 package server
 
 import (
+	"fmt"
+
 	"go.uber.org/zap"
 )
 
-// определение объекта для логирования. До инициализации - не выводит сообщений
-var Logger *zap.SugaredLogger = zap.NewNop().Sugar()
-
 // инициализация логера и определение его типа как Sugar
-func InitLogger() error {
+func InitLogger() (*zap.SugaredLogger, error) {
 	logger, err := zap.NewDevelopment()
 	if err != nil {
-		return err
+		return nil, fmt.Errorf("logger init error: %w", err)
 	}
-	Logger = logger.Sugar()
-	return nil
+	return logger.Sugar(), nil
 }
