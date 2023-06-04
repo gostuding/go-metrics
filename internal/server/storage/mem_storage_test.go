@@ -208,6 +208,7 @@ func TestMemStorage_UpdateJSON(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			ms, err := NewMemStorage(false, "", 300)
 			assert.NoError(t, err, "error making new memStorage")

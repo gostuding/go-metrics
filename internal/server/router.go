@@ -27,7 +27,7 @@ func getParams(r *http.Request) getMetricsArgs {
 func makeRouter(storage Storage, logger *zap.SugaredLogger) http.Handler {
 	router := chi.NewRouter()
 
-	router.Use(middleware.RealIP, gzipMiddleware, loggerMiddleware, middleware.Recoverer)
+	router.Use(middleware.RealIP, gzipMiddleware(logger), loggerMiddleware(logger), middleware.Recoverer)
 
 	router.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		GetAllMetrics(w, r, storage, logger)
