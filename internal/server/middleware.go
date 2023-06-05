@@ -3,7 +3,6 @@ package server
 import (
 	"compress/gzip"
 	"io"
-	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -106,46 +105,40 @@ func (c *gzipReader) Close() error {
 
 //----------------------------------------------------------------------
 
-func gzipMiddleware(h http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		//------------------------------------------
-		logger, err := InitLogger()
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			log.Printf("create middleware gzip reader logger error: %v", err) //
-			return
-		}
-		//------------------------------------------
-		if strings.Contains(r.Header.Get("Content-Encoding"), "gzip") { // если стоит gzip, то надо распаковывать
-
-			cr, err := newGzipReader(r.Body)
-			if err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				logger.Warnf("gzip reader create error: %w", err)
-				return
+func gzipMiddleware(logger *zap.SugaredLogger) func(h http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		fn := func(w http.ResponseWriter, r *http.Request) {
+			//------------------------------------------
+			if strings.Contains(r.Header.Get("Content-Encoding"), "gzip") { // если стоит gzip, то надо распаковывать
+				cr, err := newGzipReader(r.Body)
+				if err != nil {
+					w.WriteHeader(http.StatusInternalServerError)
+					logger.Warnf("gzip reader create error: %w", err)
+					return
+				}
+				r.Body = cr // подмена интерфейса для чтения данных запроса
+				defer cr.Close()
 			}
-			r.Body = cr // подмена интерфейса для чтения данных запроса
-			defer cr.Close()
+			//-----------------------------------------
+			if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+				//выполнение запроса с нашим ResponseWriter
+				next.ServeHTTP(newGzipWriter(w, logger), r) // внедряем реализацию http.ResponseWriter
+			} else {
+				next.ServeHTTP(w, r) // выполняем без изменения
+			}
 		}
-		//-----------------------------------------
-		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
-			//выполнение запроса с нашим ResponseWriter
-			h.ServeHTTP(newGzipWriter(w, logger), r) // внедряем реализацию http.ResponseWriter
-		} else {
-			h.ServeHTTP(w, r) // выполняем без изменения
-		}
-	})
+		return http.HandlerFunc(fn)
+	}
 }
 
-func loggerMiddleware(h http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func loggerMiddleware(logger *zap.SugaredLogger) func(h http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
 		start := time.Now()
-		rWriter := newLogWriter(w)
-		//выполнение запроса с нашим ResponseWriter
-		h.ServeHTTP(rWriter, r) // внедряем реализацию http.ResponseWriter
-		// логирование запроса
-		logger, err := InitLogger()
-		if err == nil {
+		fn := func(w http.ResponseWriter, r *http.Request) {
+			rWriter := newLogWriter(w)
+			//выполнение запроса с нашим ResponseWriter
+			next.ServeHTTP(rWriter, r) // внедряем реализацию http.ResponseWriter
+			// логирование запроса
 			logger.Infow(
 				"Server logger",
 				"type", "request",
@@ -161,9 +154,7 @@ func loggerMiddleware(h http.Handler) http.Handler {
 				"status", rWriter.status,
 				"size", rWriter.size,
 			)
-		} else {
-			log.Printf("create middleware request logger error: %v", err)
 		}
-
-	})
+		return http.HandlerFunc(fn)
+	}
 }

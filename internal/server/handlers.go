@@ -83,17 +83,17 @@ func UpdateJSON(writer http.ResponseWriter, request *http.Request, storage Stora
 	if err != nil {
 		writer.WriteHeader(http.StatusBadRequest)
 		logger.Warnf("read request body error: %w", err)
+		return
+	}
+	value, err := storage.UpdateJSON(data)
+	if err != nil {
+		writer.WriteHeader(http.StatusBadRequest)
+		logger.Warnf("update metric error: %w", err)
 	} else {
-		value, err := storage.UpdateJSON(data)
+		writer.WriteHeader(http.StatusOK)
+		_, err = writer.Write(value)
 		if err != nil {
-			writer.WriteHeader(http.StatusBadRequest)
-			logger.Warnf("update metric error: %w", err)
-		} else {
-			writer.WriteHeader(http.StatusOK)
-			_, err = writer.Write(value)
-			if err != nil {
-				logger.Warnf("write data to clie`nt error: %w", err)
-			}
+			logger.Warnf("write data to clie`nt error: %w", err)
 		}
 	}
 }
