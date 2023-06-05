@@ -133,10 +133,10 @@ func gzipMiddleware(logger *zap.SugaredLogger) func(h http.Handler) http.Handler
 
 func loggerMiddleware(logger *zap.SugaredLogger) func(h http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
-		start := time.Now()
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			rWriter := newLogWriter(w)
 			//выполнение запроса с нашим ResponseWriter
+			start := time.Now()
 			next.ServeHTTP(rWriter, r) // внедряем реализацию http.ResponseWriter
 			// логирование запроса
 			logger.Infow(
