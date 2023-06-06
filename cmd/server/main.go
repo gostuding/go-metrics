@@ -14,14 +14,14 @@ func main() {
 	}
 	logger, err := server.InitLogger()
 	if err != nil {
-		panic(err)
+		log.Fatalln(err)
 	}
 	storage, err := storage.NewMemStorage(cfg.Restore, cfg.FileStorePath, cfg.StoreInterval)
 	if err != nil {
-		panic(err)
+		log.Fatalln(err)
 	}
 	err = server.RunServer(cfg, storage, logger)
 	if err != nil {
-		panic(err)
+		log.Fatalln(err)
 	}
 }

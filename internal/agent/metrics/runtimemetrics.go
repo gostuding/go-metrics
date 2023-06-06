@@ -19,15 +19,11 @@ type metricsStorage struct {
 	Logger       *zap.SugaredLogger
 }
 
-func NewMemoryStorage() (*metricsStorage, error) {
-	logger, err := zap.NewDevelopment()
-	if err != nil {
-		return nil, fmt.Errorf("create logger error: %w", err)
-	}
+func NewMemoryStorage(logger *zap.Logger) *metricsStorage {
 	return &metricsStorage{
 		MetricsSlice: make(map[string]metrics),
 		Logger:       logger.Sugar(),
-	}, nil
+	}
 }
 
 type metrics struct {

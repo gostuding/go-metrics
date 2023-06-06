@@ -59,6 +59,17 @@ func strToInt(name string, str string) (int, error) {
 	return val, nil
 }
 
+func envToInt(envName string, def int) (int, error) {
+	if value := os.Getenv(envName); value != "" {
+		send, err := strToInt(envName, value)
+		if err != nil {
+			return def, err
+		}
+		def = send
+	}
+	return def, nil
+}
+
 // получение и проверка флагов и переменных окружения
 func GetFlags() (Config, error) {
 	agentArgs := Config{"", 8080, 2, 10, false}
@@ -74,19 +85,16 @@ func GetFlags() (Config, error) {
 			return agentArgs, fmt.Errorf("enviroment 'ADDRESS' value error: %w", err)
 		}
 	}
-	if report := os.Getenv("REPORT_INTERVAL"); report != "" {
-		send, err := strToInt("REPORT_INTERVAL", report)
-		if err != nil {
-			return agentArgs, err
-		}
-		agentArgs.ReportInterval = send
+
+	var err error
+	agentArgs.ReportInterval, err = envToInt("REPORT_INTERVAL", agentArgs.ReportInterval)
+	if err != nil {
+		return agentArgs, err
 	}
-	if poll := os.Getenv("POLL_INTERVAL"); poll != "" {
-		update, err := strToInt("POLL_INTERVAL", poll)
-		if err != nil {
-			return agentArgs, err
-		}
-		agentArgs.PollInterval = update
+	agentArgs.PollInterval, err = envToInt("POLL_INTERVAL", agentArgs.ReportInterval)
+	if err != nil {
+		return agentArgs, err
 	}
+
 	return agentArgs, agentArgs.validate()
 }
