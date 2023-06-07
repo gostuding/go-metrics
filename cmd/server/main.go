@@ -16,7 +16,7 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	storage, err := storage.NewMemStorage(cfg.Restore, cfg.FileStorePath, cfg.StoreInterval)
+	storage, err := storage.NewMemStorage(cfg.Restore, cfg.FileStorePath, cfg.StoreInterval, cfg.ConnectDBString)
 	if err != nil {
 		log.Fatalln(err)
 	}

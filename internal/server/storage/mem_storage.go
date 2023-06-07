@@ -1,6 +1,8 @@
 package storage
 
 import (
+	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -8,15 +10,19 @@ import (
 	"os"
 	"sort"
 	"strconv"
+	"time"
+
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 // Структура для хранения данных о метриках
 type memStorage struct {
-	Gauges       map[string]float64 `json:"gauges"`
-	Counters     map[string]int64   `json:"counters"`
-	Restore      bool               `json:"-"`
-	SavePath     string             `json:"-"`
-	SaveInterval int                `json:"-"`
+	Gauges          map[string]float64 `json:"gauges"`
+	Counters        map[string]int64   `json:"counters"`
+	Restore         bool               `json:"-"`
+	SavePath        string             `json:"-"`
+	SaveInterval    int                `json:"-"`
+	ConnectDBString string             `json:"-"`
 }
 
 // струтктура не экспоритуемая, т.к. сейчас это не нужно
@@ -27,13 +33,14 @@ type metric struct {
 	Value *float64 `json:"value,omitempty"` // значение метрики в случае передачи gauge
 }
 
-func NewMemStorage(restore bool, filePath string, saveInterval int) (*memStorage, error) {
+func NewMemStorage(restore bool, filePath string, saveInterval int, DBconnect string) (*memStorage, error) {
 	storage := memStorage{
-		Gauges:       make(map[string]float64),
-		Counters:     make(map[string]int64),
-		Restore:      restore,
-		SavePath:     filePath,
-		SaveInterval: saveInterval,
+		Gauges:          make(map[string]float64),
+		Counters:        make(map[string]int64),
+		Restore:         restore,
+		SavePath:        filePath,
+		SaveInterval:    saveInterval,
+		ConnectDBString: DBconnect,
 	}
 	return &storage, storage.restore()
 }
@@ -100,24 +107,6 @@ func (ms *memStorage) GetMetricsHTML() string {
 	return body
 }
 
-func getSortedKeysFloat(items map[string]float64) []string {
-	keys := make([]string, 0, len(items))
-	for k := range items {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	return keys
-}
-
-func getSortedKeysInt(items map[string]int64) []string {
-	keys := make([]string, 0, len(items))
-	for k := range items {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	return keys
-}
-
 // обновление через json
 func (ms *memStorage) UpdateJSON(data []byte) ([]byte, error) {
 	var metric metric
@@ -155,7 +144,7 @@ func (ms *memStorage) UpdateJSON(data []byte) ([]byte, error) {
 	return resp, nil
 }
 
-// обновление через json
+// запрос метрик через json
 func (ms *memStorage) GetMetricJSON(data []byte) ([]byte, error) {
 	var metric metric
 	err := json.Unmarshal(data, &metric)
@@ -188,11 +177,47 @@ func (ms *memStorage) GetMetricJSON(data []byte) ([]byte, error) {
 	return resp, nil
 }
 
-// загрузка хранилища из файла
-func (ms *memStorage) restore() error {
-	if !ms.Restore {
-		return nil
+// проверка подключения к БД
+func (ms *memStorage) PingDB(ctx context.Context) error {
+	if ms.ConnectDBString == "" {
+		return fmt.Errorf("connect DB string undefined")
 	}
+	db, err := sql.Open("pgx", ms.ConnectDBString)
+	if err != nil {
+		return fmt.Errorf("database connect error: %w", err)
+	}
+	defer db.Close()
+	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
+	defer cancel()
+	if err = db.PingContext(ctx); err != nil {
+		return fmt.Errorf("check database ping error: %w", err)
+	}
+	return nil
+}
+
+// -------------------------------------------------------------------------------------------------
+// внутренние функции хранилища
+// -------------------------------------------------------------------------------------------------
+func getSortedKeysFloat(items map[string]float64) []string {
+	keys := make([]string, 0, len(items))
+	for k := range items {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+func getSortedKeysInt(items map[string]int64) []string {
+	keys := make([]string, 0, len(items))
+	for k := range items {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+// загрузка хранилища из файла
+func (ms *memStorage) fromFileRestore() error {
 	file, err := os.OpenFile(ms.SavePath, os.O_RDONLY|os.O_CREATE, 0644)
 	if err != nil {
 		return err
@@ -204,6 +229,24 @@ func (ms *memStorage) restore() error {
 		return err
 	}
 	return nil
+}
+
+// загрузка хранилища из БД
+func (ms *memStorage) fromDBRestore() error {
+	// проверка подключения к БД
+	// для iter10 опускаем внутренности, т.к. нужно возвращать ошибки подключения
+	return nil
+}
+
+// восстановление данных из хранилища
+func (ms *memStorage) restore() error {
+	if !ms.Restore {
+		return nil
+	}
+	if ms.ConnectDBString == "" {
+		return ms.fromFileRestore()
+	}
+	return ms.fromDBRestore()
 }
 
 func (ms *memStorage) Save() error {

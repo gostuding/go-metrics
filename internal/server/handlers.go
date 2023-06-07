@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"io"
 	"net/http"
 
@@ -21,6 +22,11 @@ type StorageSetter interface {
 type StorageGetter interface {
 	GetMetric(string, string) (string, error)
 	GetMetricJSON([]byte) ([]byte, error)
+}
+
+// интерфейс для работы с БД
+type StorageDB interface {
+	PingDB(context.Context) error
 }
 
 // Интерфейс для вывод значений в виде HTML
@@ -122,4 +128,16 @@ func GetMetricJSON(writer http.ResponseWriter, request *http.Request, storage St
 		}
 		logger.Warnf("get metric json error: %w", err)
 	}
+}
+
+// проверка подключения к БД
+func Ping(writer http.ResponseWriter, request *http.Request, storage StorageDB, logger *zap.SugaredLogger) {
+	writer.Header().Set("Content-Type", "")
+	err := storage.PingDB(request.Context())
+	if err != nil {
+		writer.WriteHeader(http.StatusInternalServerError)
+		logger.Warnln(err)
+		return
+	}
+	writer.WriteHeader(http.StatusOK)
 }
