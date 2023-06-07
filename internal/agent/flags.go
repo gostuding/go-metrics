@@ -9,20 +9,21 @@ import (
 	"strings"
 )
 
-type AgentRunArgs struct {
+type Config struct {
 	IP             string
 	Port           int
 	PollInterval   int
 	ReportInterval int
+	GzipCompress   bool
 }
 
 // функция для удовлетворения интерфейсу flag.Value
-func (n *AgentRunArgs) String() string {
+func (n *Config) String() string {
 	return fmt.Sprintf("%s:%d -r %d -p %d", n.IP, n.Port, n.PollInterval, n.ReportInterval)
 }
 
 // функция для удовлетворения интерфейсу flag.Value
-func (n *AgentRunArgs) Set(value string) error {
+func (n *Config) Set(value string) error {
 	items := strings.Split(value, ":")
 	if len(items) != 2 {
 		return fmt.Errorf("NetworkAddress ('%s') incorrect. Use value like: 'IP:PORT'", value)
@@ -30,13 +31,13 @@ func (n *AgentRunArgs) Set(value string) error {
 	n.IP = items[0]
 	val, err := strconv.Atoi(items[1])
 	if err != nil {
-		return fmt.Errorf("NetworkAddress Port ('%s') convert error: %s. Use integer type", items[1], err)
+		return fmt.Errorf("NetworkAddress Port ('%s') convert error: %w. Use integer type", items[1], err)
 	}
 	n.Port = val
 	return nil
 }
 
-func (n *AgentRunArgs) validate() error {
+func (n *Config) validate() error {
 	if n.Port <= 1 {
 		return errors.New("args error: Port must be greater then 0")
 	}
@@ -53,38 +54,47 @@ func (n *AgentRunArgs) validate() error {
 func strToInt(name string, str string) (int, error) {
 	val, err := strconv.Atoi(str)
 	if err != nil {
-		return 0, fmt.Errorf("enviroment value '%s' of '%s' type error: '%s'", str, name, err)
+		return 0, fmt.Errorf("enviroment value '%s' of '%s' type error: '%w'", str, name, err)
 	}
 	return val, nil
 }
 
+func envToInt(envName string, def int) (int, error) {
+	if value := os.Getenv(envName); value != "" {
+		send, err := strToInt(envName, value)
+		if err != nil {
+			return def, err
+		}
+		def = send
+	}
+	return def, nil
+}
+
 // получение и проверка флагов и переменных окружения
-func GetFlags() (AgentRunArgs, error) {
-	agentArgs := AgentRunArgs{"", 8080, 2, 10}
+func GetFlags() (Config, error) {
+	agentArgs := Config{"", 8080, 2, 10, false}
 	flag.Var(&agentArgs, "a", "Net address like 'host:port'")
 	flag.IntVar(&agentArgs.PollInterval, "p", 2, "Poll metricks interval")
 	flag.IntVar(&agentArgs.ReportInterval, "r", 10, "Report metricks interval")
+	flag.BoolVar(&agentArgs.GzipCompress, "gzip", false, "Use gzip compress in requests")
 	flag.Parse()
 
 	if address := os.Getenv("ADDRESS"); address != "" {
 		err := agentArgs.Set(address)
 		if err != nil {
-			return agentArgs, fmt.Errorf("enviroment 'ADDRESS' value error: %s", err)
+			return agentArgs, fmt.Errorf("enviroment 'ADDRESS' value error: %w", err)
 		}
 	}
-	if upd := os.Getenv("REPORT_INTERVAL"); upd != "" {
-		send, err := strToInt("REPORT_INTERVAL", upd)
-		if err != nil {
-			return agentArgs, err
-		}
-		agentArgs.ReportInterval = send
+
+	var err error
+	agentArgs.ReportInterval, err = envToInt("REPORT_INTERVAL", agentArgs.ReportInterval)
+	if err != nil {
+		return agentArgs, err
 	}
-	if upd := os.Getenv("POLL_INTERVAL"); upd != "" {
-		update, err := strToInt("POLL_INTERVAL", upd)
-		if err != nil {
-			return agentArgs, err
-		}
-		agentArgs.PollInterval = update
+	agentArgs.PollInterval, err = envToInt("POLL_INTERVAL", agentArgs.ReportInterval)
+	if err != nil {
+		return agentArgs, err
 	}
+
 	return agentArgs, agentArgs.validate()
 }

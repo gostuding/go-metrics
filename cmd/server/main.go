@@ -8,10 +8,20 @@ import (
 )
 
 func main() {
-	address := server.GetFlags()
-	storage := storage.NewMemStorage()
-	err := server.RunServer(address, storage)
+	cfg, err := server.GetFlags()
 	if err != nil {
-		log.Fatalln("run server error: ", err)
+		log.Fatalln(err)
+	}
+	logger, err := server.InitLogger()
+	if err != nil {
+		log.Fatalln(err)
+	}
+	storage, err := storage.NewMemStorage(cfg.Restore, cfg.FileStorePath, cfg.StoreInterval)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	err = server.RunServer(cfg, storage, logger)
+	if err != nil {
+		log.Fatalln(err)
 	}
 }
