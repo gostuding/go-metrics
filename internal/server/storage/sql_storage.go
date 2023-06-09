@@ -39,6 +39,11 @@ func (ms *sqlStorage) getCounter(ctx context.Context, name string, connect *sql.
 	if err != nil {
 		return nil, fmt.Errorf("select value error: %v", err)
 	}
+
+	if rows.Err() != nil {
+		return nil, fmt.Errorf("get counter metric rows error: %v", err)
+	}
+
 	if !rows.Next() {
 		value := int64(0)
 		return &value, fmt.Errorf("counter value (%s) is absent", name)
@@ -72,6 +77,10 @@ func (ms *sqlStorage) getGauge(ctx context.Context, name string, connect *sql.DB
 	if err != nil {
 		return nil, fmt.Errorf("select value error: %v", err)
 	}
+	if rows.Err() != nil {
+		return nil, fmt.Errorf("get gauge metric rows error: %v", err)
+	}
+
 	if !rows.Next() {
 		value := float64(0.0)
 		return &value, fmt.Errorf("gauge value (%s) is absent", name)
@@ -157,6 +166,9 @@ func (ms *sqlStorage) getAllMetricOfType(ctx context.Context, table string) (*[]
 	if err != nil {
 		return &values, fmt.Errorf("get all metrics query error: %v", err)
 	}
+	if rows.Err() != nil {
+		return &values, fmt.Errorf("get all metrics rows error: %v", err)
+	}
 
 	if table == "gauges" {
 		for rows.Next() {
@@ -183,7 +195,7 @@ func (ms *sqlStorage) getAllMetricOfType(ctx context.Context, table string) (*[]
 	return &values, nil
 }
 
-func NewSqlStorage(DBconnect string, logger *zap.SugaredLogger) (*sqlStorage, error) {
+func NewSQLStorage(DBconnect string, logger *zap.SugaredLogger) (*sqlStorage, error) {
 	storage := sqlStorage{
 		ConnectDBString: DBconnect,
 		Logger:          logger,
@@ -318,9 +330,6 @@ func (ms *sqlStorage) GetMetricJSON(ctx context.Context, data []byte) ([]byte, e
 		return nil, fmt.Errorf("json conver error: %v", err)
 	}
 
-	resp := make([]byte, 0)
-	err = errors.New("")
-
 	switch metric.MType {
 	case "counter":
 		value, err := ms.getCounter(ctx, metric.ID, nil)
@@ -328,23 +337,26 @@ func (ms *sqlStorage) GetMetricJSON(ctx context.Context, data []byte) ([]byte, e
 			return nil, err
 		}
 		metric.Delta = value
-		resp, err = json.Marshal(metric)
+		resp, err := json.Marshal(metric)
+		if err != nil {
+			return []byte(""), err
+		}
+		return resp, nil
 	case "gauge":
 		value, err := ms.getGauge(ctx, metric.ID, nil)
 		if err != nil {
 			return nil, err
 		}
 		metric.Value = value
-		resp, err = json.Marshal(metric)
+		resp, err := json.Marshal(metric)
+		if err != nil {
+			return []byte(""), err
+		}
+		return resp, nil
 	default:
 		return nil, fmt.Errorf("metric type ('%s') error, use counter like int64 or gauge like float64", metric.MType)
 	}
 
-	if err != nil {
-		return []byte(""), err
-	}
-
-	return resp, nil
 }
 
 func (ms *sqlStorage) Save() error {

@@ -59,6 +59,9 @@ func isTableExist(ctx context.Context, name string, sql *sql.DB) error {
 	defer cansel()
 	query := "Select * from INFORMATION_SCHEMA.TABLES where TABLE_NAME = $1;"
 	rows, err := sql.QueryContext(context, query, name)
+	if rows.Err() != nil {
+		return fmt.Errorf("get table info error in rowa: %v", err)
+	}
 	if err != nil {
 		return fmt.Errorf("get table info error: %s, ERROR: %v", name, err)
 	} else if !rows.Next() {
