@@ -45,7 +45,7 @@ func NewMemStorage(restore bool, filePath string, saveInterval int, DBconnect st
 	return &storage, storage.restore()
 }
 
-func (ms *memStorage) Update(mType string, mName string, mValue string) error {
+func (ms *memStorage) Update(ctx context.Context, mType string, mName string, mValue string) error {
 	switch mType {
 	case "gauge":
 		val, err := strconv.ParseFloat(mValue, 64)
@@ -69,7 +69,7 @@ func (ms *memStorage) Update(mType string, mName string, mValue string) error {
 }
 
 // Получение значения метрики по типу и имени
-func (ms *memStorage) GetMetric(mType string, mName string) (string, error) {
+func (ms *memStorage) GetMetric(ctx context.Context, mType string, mName string) (string, error) {
 	switch mType {
 	case "gauge":
 		for key, val := range ms.Gauges {
@@ -88,7 +88,7 @@ func (ms *memStorage) GetMetric(mType string, mName string) (string, error) {
 }
 
 // Список всех метрик в html
-func (ms *memStorage) GetMetricsHTML() string {
+func (ms *memStorage) GetMetricsHTML(ctx context.Context) string {
 	body := "<!doctype html> <html lang='en'> <head> <meta charset='utf-8'> <title>Список метрик</title></head>"
 	body += "<body><header><h1><p>Metrics list</p></h1></header>"
 	index := 1
@@ -108,7 +108,7 @@ func (ms *memStorage) GetMetricsHTML() string {
 }
 
 // обновление через json
-func (ms *memStorage) UpdateJSON(data []byte) ([]byte, error) {
+func (ms *memStorage) UpdateJSON(ctx context.Context, data []byte) ([]byte, error) {
 	var metric metric
 	err := json.Unmarshal(data, &metric)
 	if err != nil {
@@ -125,7 +125,7 @@ func (ms *memStorage) UpdateJSON(data []byte) ([]byte, error) {
 		}
 	case "gauge":
 		if metric.Value != nil {
-			ms.Gauges[metric.ID] += *metric.Value
+			ms.Gauges[metric.ID] = *metric.Value
 		} else {
 			return nil, errors.New("metric's value indefined")
 		}
@@ -145,7 +145,7 @@ func (ms *memStorage) UpdateJSON(data []byte) ([]byte, error) {
 }
 
 // запрос метрик через json
-func (ms *memStorage) GetMetricJSON(data []byte) ([]byte, error) {
+func (ms *memStorage) GetMetricJSON(ctx context.Context, data []byte) ([]byte, error) {
 	var metric metric
 	err := json.Unmarshal(data, &metric)
 	if err != nil {

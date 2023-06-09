@@ -13,15 +13,15 @@ import (
 // -----------------------------------------------------------------------------------
 // Интерфей для установки значений в объект из строки
 type StorageSetter interface {
-	Update(string, string, string) error
-	UpdateJSON([]byte) ([]byte, error)
+	Update(context.Context, string, string, string) error
+	UpdateJSON(context.Context, []byte) ([]byte, error)
 	Save() error
 }
 
 // Интерфейс получения значения метрики
 type StorageGetter interface {
-	GetMetric(string, string) (string, error)
-	GetMetricJSON([]byte) ([]byte, error)
+	GetMetric(context.Context, string, string) (string, error)
+	GetMetricJSON(context.Context, []byte) ([]byte, error)
 }
 
 // интерфейс для работы с БД
@@ -31,7 +31,7 @@ type StorageDB interface {
 
 // Интерфейс для вывод значений в виде HTML
 type HTMLGetter interface {
-	GetMetricsHTML() string
+	GetMetricsHTML(context.Context) string
 }
 
 // -----------------------------------------------------------------------------------
@@ -49,7 +49,7 @@ type updateMetricsArgs struct {
 
 // Обработка запроса на добавление или изменение метрики
 func Update(writer http.ResponseWriter, request *http.Request, storage StorageSetter, metric updateMetricsArgs, logger *zap.SugaredLogger) {
-	if err := storage.Update(metric.base.mType, metric.base.mName, metric.mValue); err != nil {
+	if err := storage.Update(request.Context(), metric.base.mType, metric.base.mName, metric.mValue); err != nil {
 		writer.WriteHeader(http.StatusBadRequest)
 		logger.Warnf("update metric error: %w", err)
 		return
@@ -59,16 +59,16 @@ func Update(writer http.ResponseWriter, request *http.Request, storage StorageSe
 
 // Обработка запроса значения метрики
 func GetMetric(writer http.ResponseWriter, request *http.Request, storage StorageGetter, metric getMetricsArgs, logger *zap.SugaredLogger) {
-	value, err := storage.GetMetric(metric.mType, metric.mName)
+	value, err := storage.GetMetric(request.Context(), metric.mType, metric.mName)
 	if err != nil {
 		writer.WriteHeader(http.StatusNotFound)
 		logger.Warn(err)
-	} else {
-		writer.WriteHeader(http.StatusOK)
-		_, err = writer.Write([]byte(value))
-		if err != nil {
-			logger.Warnf("write data to client error: %w", err)
-		}
+		return
+	}
+	writer.WriteHeader(http.StatusOK)
+	_, err = writer.Write([]byte(value))
+	if err != nil {
+		logger.Warnf("write data to client error: %w", err)
 	}
 }
 
@@ -76,7 +76,7 @@ func GetMetric(writer http.ResponseWriter, request *http.Request, storage Storag
 func GetAllMetrics(writer http.ResponseWriter, request *http.Request, storage HTMLGetter, logger *zap.SugaredLogger) {
 	writer.Header().Set("Content-Type", "text/html")
 	writer.WriteHeader(http.StatusOK)
-	_, err := writer.Write([]byte(storage.GetMetricsHTML()))
+	_, err := writer.Write([]byte(storage.GetMetricsHTML(request.Context())))
 	if err != nil {
 		logger.Warnf("write metrics data to client error: %w", err)
 	}
@@ -91,7 +91,7 @@ func UpdateJSON(writer http.ResponseWriter, request *http.Request, storage Stora
 		logger.Warnf("read request body error: %w", err)
 		return
 	}
-	value, err := storage.UpdateJSON(data)
+	value, err := storage.UpdateJSON(request.Context(), data)
 	if err != nil {
 		writer.WriteHeader(http.StatusBadRequest)
 		logger.Warnf("update metric error: %w", err)
@@ -113,7 +113,7 @@ func GetMetricJSON(writer http.ResponseWriter, request *http.Request, storage St
 		logger.Warnf("get metric json, read request body error: %w", err)
 		return
 	}
-	value, err := storage.GetMetricJSON(data)
+	value, err := storage.GetMetricJSON(request.Context(), data)
 	if err == nil {
 		writer.WriteHeader(http.StatusOK)
 		_, err = writer.Write(value)
