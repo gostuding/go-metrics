@@ -94,3 +94,138 @@ func checkDatabaseStructure(connectionString string, logger *zap.SugaredLogger) 
 	logger.Debug("database ctructure checked")
 	return nil
 }
+
+//----------------------------------------------------------------------------------------------------
+// функции для работы с хранилищем
+//----------------------------------------------------------------------------------------------------
+
+type SQLQueryInterface interface {
+	QueryContext(context.Context, string, ...any) (*sql.Rows, error)
+	ExecContext(context.Context, string, ...any) (sql.Result, error)
+	QueryRowContext(context.Context, string, ...any) *sql.Row
+}
+
+func (ms *sqlStorage) getCounter(ctx context.Context, name string, connect SQLQueryInterface) (*int64, error) {
+	rows, err := connect.QueryContext(ctx, "Select value from counters where name=$1;", name)
+	if err != nil {
+		return nil, fmt.Errorf("select value error: %v", err)
+	}
+
+	if rows.Err() != nil {
+		return nil, fmt.Errorf("get counter metric rows error: %v", err)
+	}
+	defer rows.Close()
+
+	if !rows.Next() {
+		value := int64(0)
+		return &value, fmt.Errorf("counter value (%s) is absent", name)
+	}
+	var value int64
+	err = rows.Scan(&value)
+	if err != nil {
+		return nil, fmt.Errorf("scan counter value (%s) error: %v", name, err)
+	}
+	return &value, nil
+}
+
+func (ms *sqlStorage) getGauge(ctx context.Context, name string, connect SQLQueryInterface) (*float64, error) {
+	rows, err := connect.QueryContext(ctx, "Select value from gauges where name=$1;", name)
+	if err != nil {
+		return nil, fmt.Errorf("select value error: %v", err)
+	}
+	if rows.Err() != nil {
+		return nil, fmt.Errorf("get gauge metric rows error: %v", err)
+	}
+
+	if !rows.Next() {
+		value := float64(0.0)
+		return &value, fmt.Errorf("gauge value (%s) is absent", name)
+	}
+
+	var value float64
+	err = rows.Scan(&value)
+	if err != nil {
+		return nil, fmt.Errorf("scan gauge value (%s) error: %v", name, err)
+	}
+	return &value, nil
+}
+
+func (ms *sqlStorage) updateCounter(ctx context.Context, name string, value int64, connect SQLQueryInterface) (*int64, error) {
+	val, err := ms.getCounter(ctx, name, connect)
+
+	if err == nil {
+		value += *val
+		ms.Logger.Debugf("update counter '%s' = '%d'", name, value)
+		_, err = connect.ExecContext(ctx, "Update counters set value=$2 where name=$1;", name, value)
+		return &value, err
+	} else if val != nil {
+		row := connect.QueryRowContext(ctx, "Select max(id) from counters;")
+		maxID := 1
+		if row.Err() == nil {
+			if err := row.Scan(&maxID); err == nil {
+				maxID += 1
+			}
+		}
+		ms.Logger.Debugf("new counter '%s' = '%d'", name, value)
+		_, err = connect.ExecContext(ctx, "Insert into counters (id, name, value) values($3, $1, $2);", name, value, maxID)
+		return &value, err
+	}
+	return nil, err
+}
+
+func (ms *sqlStorage) updateGauge(ctx context.Context, name string, value float64, connect SQLQueryInterface) (*float64, error) {
+	val, err := ms.getGauge(ctx, name, connect)
+
+	if err == nil {
+		ms.Logger.Debugf("update gauge '%s' = '%v'", name, value)
+		_, err = connect.ExecContext(ctx, "Update gauges set value=$2 where name=$1;", name, value)
+		return &value, err
+	} else if val != nil {
+		row := connect.QueryRowContext(ctx, "Select max(id) from gauges;")
+		maxID := 1
+		if row.Err() == nil {
+			if err := row.Scan(&maxID); err == nil {
+				maxID += 1
+			}
+		}
+		ms.Logger.Debugf("new gauge '%s' = '%d'", name, value)
+		_, err = connect.ExecContext(ctx, "Insert into gauges (id, name, value) values($3, $1, $2);", name, value, maxID)
+		return &value, err
+	}
+	return nil, err
+}
+
+func (ms *sqlStorage) getAllMetricOfType(ctx context.Context, table string, connect SQLQueryInterface) (*[]string, error) {
+	values := make([]string, 0)
+	rows, err := connect.QueryContext(ctx, fmt.Sprintf("Select name, value from %s order by name;", table))
+	if err != nil {
+		return &values, fmt.Errorf("get all metrics query error: %v", err)
+	}
+	if rows.Err() != nil {
+		return &values, fmt.Errorf("get all metrics rows error: %v", err)
+	}
+	defer rows.Close()
+	if table == "gauges" {
+		for rows.Next() {
+			var name string
+			var value float64
+			err = rows.Scan(&name, &value)
+			if err != nil {
+				return &values, err
+			}
+			values = append(values, fmt.Sprintf("'%s' = %v", name, value))
+		}
+		return &values, nil
+	}
+
+	for rows.Next() {
+		var name string
+		var value int64
+		err = rows.Scan(&name, &value)
+		if err != nil {
+			return &values, err
+		}
+		values = append(values, fmt.Sprintf("'%s' = %d", name, value))
+	}
+	return &values, nil
+}

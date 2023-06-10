@@ -173,3 +173,61 @@ func sendJSONToServer(IP string, port int, metric metrics, compress bool) error 
 	}
 	return nil
 }
+
+// отправка метрик списком
+func (ms *metricsStorage) SendMetricsSlice(IP string, port int, gzipCompress bool) {
+	mSlice := make([]metrics, 0)
+	for _, item := range ms.MetricsSlice {
+		mSlice = append(mSlice, item)
+	}
+	body, err := json.Marshal(mSlice)
+	if err != nil {
+		ms.Logger.Warnf("metrics slice conver error: %w", err)
+		return
+	}
+	client := http.Client{}
+	if gzipCompress {
+		var b bytes.Buffer
+		gz := gzip.NewWriter(&b)
+		_, err = gz.Write(body)
+		if err != nil {
+			ms.Logger.Warnf("compress metrics json error: %w", err)
+			return
+		}
+		err = gz.Close()
+		if err != nil {
+			ms.Logger.Warnf("compressor close error: %w", err)
+			return
+		}
+		body = b.Bytes()
+	}
+
+	req, err := http.NewRequest("POST", fmt.Sprintf("http://%s:%d/updates/", IP, port), bytes.NewReader(body))
+	if err != nil {
+		ms.Logger.Warnf("request create error: %w", err)
+		return
+	}
+	if gzipCompress {
+		req.Header.Add("Content-Encoding", "gzip")
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		ms.Logger.Warnf("send metrics slice error: '%w'", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		ms.Logger.Warnf("send metrics slice statusCode error: %d", resp.StatusCode)
+		return
+	}
+
+	for _, metric := range ms.MetricsSlice {
+		if metric.ID == "PollCount" && metric.MType == "counter" {
+			delta := int64(0)
+			ms.MetricsSlice["PollCount"] = metrics{ID: "PollCount", MType: "counter", Delta: &delta}
+		}
+	}
+	ms.Logger.Debugln("Metrics send iteration finished")
+}

@@ -88,7 +88,7 @@ func (ms *memStorage) GetMetric(ctx context.Context, mType string, mName string)
 }
 
 // Список всех метрик в html
-func (ms *memStorage) GetMetricsHTML(ctx context.Context) string {
+func (ms *memStorage) GetMetricsHTML(ctx context.Context) (string, error) {
 	body := "<!doctype html> <html lang='en'> <head> <meta charset='utf-8'> <title>Список метрик</title></head>"
 	body += "<body><header><h1><p>Metrics list</p></h1></header>"
 	index := 1
@@ -104,7 +104,29 @@ func (ms *memStorage) GetMetricsHTML(ctx context.Context) string {
 		index += 1
 	}
 	body += "</body></html>"
-	return body
+	return body, nil
+}
+
+func (ms *memStorage) updataOneMetric(m metric) (*metric, error) {
+	switch m.MType {
+	case "counter":
+		if m.Delta != nil {
+			ms.Counters[m.ID] += *m.Delta
+			delta := ms.Counters[m.ID]
+			m.Delta = &delta
+		} else {
+			return nil, errors.New("metric's delta indefined")
+		}
+	case "gauge":
+		if m.Value != nil {
+			ms.Gauges[m.ID] = *m.Value
+		} else {
+			return nil, errors.New("metric's value indefined")
+		}
+	default:
+		return nil, errors.New("metric type error, use counter like int64 or gauge like float64")
+	}
+	return &m, nil
 }
 
 // обновление через json
@@ -114,25 +136,11 @@ func (ms *memStorage) UpdateJSON(ctx context.Context, data []byte) ([]byte, erro
 	if err != nil {
 		return nil, fmt.Errorf("json conver error: %w", err)
 	}
-	switch metric.MType {
-	case "counter":
-		if metric.Delta != nil {
-			ms.Counters[metric.ID] += *metric.Delta
-			delta := ms.Counters[metric.ID]
-			metric.Delta = &delta
-		} else {
-			return nil, errors.New("metric's delta indefined")
-		}
-	case "gauge":
-		if metric.Value != nil {
-			ms.Gauges[metric.ID] = *metric.Value
-		} else {
-			return nil, errors.New("metric's value indefined")
-		}
-	default:
-		return nil, errors.New("metric type error, use counter like int64 or gauge like float64")
+	item, err := ms.updataOneMetric(metric)
+	if err != nil {
+		return nil, err
 	}
-	resp, err := json.Marshal(metric)
+	resp, err := json.Marshal(item)
 	if err != nil {
 		return nil, fmt.Errorf("convert to json error: %w", err)
 	}
@@ -193,6 +201,43 @@ func (ms *memStorage) PingDB(ctx context.Context) error {
 		return fmt.Errorf("check database ping error: %w", err)
 	}
 	return nil
+}
+
+// очистка хранилища
+func (ms *memStorage) Clear(ctx context.Context) error {
+	for k := range ms.Counters {
+		delete(ms.Counters, k)
+	}
+	for k := range ms.Gauges {
+		delete(ms.Gauges, k)
+	}
+	ms.Gauges = make(map[string]float64)
+	ms.Counters = make(map[string]int64)
+	return ms.Save()
+}
+
+// обновление через json slice
+func (ms *memStorage) UpdateJSONSlice(ctx context.Context, data []byte) ([]byte, error) {
+	var metrics []metric
+	err := json.Unmarshal(data, &metrics)
+	if err != nil {
+		return nil, fmt.Errorf("json conver error: %w", err)
+	}
+	resp := ""
+	for index, value := range metrics {
+		_, err := ms.updataOneMetric(value)
+		if err != nil {
+			resp += fmt.Sprintf("%d. '%s' update ERROR: %v\n", index+1, value.ID, err)
+		} else {
+			resp += fmt.Sprintf("%d. '%s' update SUCCESS \n", index+1, value.ID)
+		}
+	}
+	if ms.SaveInterval == 0 {
+		if err := ms.Save(); err != nil {
+			return nil, fmt.Errorf("save metric error: %w", err)
+		}
+	}
+	return []byte(resp), nil
 }
 
 // -------------------------------------------------------------------------------------------------
