@@ -181,23 +181,29 @@ func (ms *sqlStorage) GetMetricJSON(ctx context.Context, data []byte) ([]byte, e
 	case "counter":
 		value, err := ms.getCounter(ctx, metric.ID, db)
 		if err != nil {
+			if value != nil {
+				return []byte(""), err
+			}
 			return nil, err
 		}
 		metric.Delta = value
 		resp, err := json.Marshal(metric)
 		if err != nil {
-			return []byte(""), err
+			return nil, err
 		}
 		return resp, nil
 	case "gauge":
 		value, err := ms.getGauge(ctx, metric.ID, db)
 		if err != nil {
+			if value != nil {
+				return []byte(""), err
+			}
 			return nil, err
 		}
 		metric.Value = value
 		resp, err := json.Marshal(metric)
 		if err != nil {
-			return []byte(""), err
+			return nil, err
 		}
 		return resp, nil
 	default:
@@ -245,13 +251,6 @@ func (ms *sqlStorage) Clear(ctx context.Context) error {
 		return fmt.Errorf("clear counters table error: %v", err)
 	}
 	return nil
-}
-
-type sliceMetricUpdate struct {
-	m      metric
-	action int
-	newID  int
-	query  string
 }
 
 // обновление через json slice

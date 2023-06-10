@@ -16,6 +16,7 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
+
 	if cfg.ConnectDBString != "" {
 		storage, err := storage.NewSQLStorage(cfg.ConnectDBString, logger)
 		if err != nil {
