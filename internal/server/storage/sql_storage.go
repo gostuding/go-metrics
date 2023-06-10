@@ -290,19 +290,23 @@ func (ms *sqlStorage) UpdateJSONSlice(ctx context.Context, data []byte) ([]byte,
 	}
 	defer cip.Close()
 
+	resp := ""
 	for _, value := range metrics {
 		switch value.MType {
 		case "gauge":
 			if value.Value != nil {
 				val, err := ms.getGauge(ctx, value.ID, db)
 				if err == nil {
-					_, err = gup.Exec(&value.Value, value.ID)
+					_, err = gup.Exec(*value.Value, value.ID)
+					resp += "gauge update\n"
 				} else if val != nil {
-					_, err = gip.Exec(&value.Value, value.ID)
+					_, err = gip.Exec(*value.Value, value.ID)
+					resp += "gauge insert\n"
 				}
 				if err != nil {
 					return nil, fmt.Errorf("gauge transaction error: %v", err)
 				}
+				resp += fmt.Sprintf("gauge value ('%s') is %f\n", value.ID, *value.Value)
 			}
 		case "counter":
 			if value.Delta != nil {
@@ -310,13 +314,18 @@ func (ms *sqlStorage) UpdateJSONSlice(ctx context.Context, data []byte) ([]byte,
 				if err == nil {
 					delta := *value.Delta
 					delta += *val
+					value.Delta = &delta
 					_, err = cup.Exec(delta, value.ID)
+					resp += fmt.Sprintf("counter update ('%s') is %d\n", value.ID, *value.Delta)
 				} else if val != nil {
-					_, err = cip.Exec(&value.Delta, value.ID)
+					_, err = cip.Exec(*value.Delta, value.ID)
+					resp += fmt.Sprintf("counter insert ('%s') is %d\n", value.ID, *value.Delta)
 				}
 				if err != nil {
 					return nil, fmt.Errorf("counter transaction error: %v", err)
 				}
+
+				resp += fmt.Sprintf("counter value ('%s') is %d\n", value.ID, *value.Delta)
 			}
 		}
 	}
@@ -325,5 +334,5 @@ func (ms *sqlStorage) UpdateJSONSlice(ctx context.Context, data []byte) ([]byte,
 	if err != nil {
 		return nil, fmt.Errorf("transaction commit error: %v", err)
 	}
-	return []byte(""), nil
+	return []byte(resp), nil
 }

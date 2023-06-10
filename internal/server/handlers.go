@@ -177,14 +177,18 @@ func UpdateJSONSLice(writer http.ResponseWriter, request *http.Request, storage 
 		logger.Warnf("read request body error: %w", err)
 		return
 	}
+
+	logger.Debugln("update metrics by json list", string(data))
+
 	value, err := storage.UpdateJSONSlice(request.Context(), data)
 	if err != nil {
 		writer.WriteHeader(http.StatusBadRequest)
 		logger.Warnf("update metrics list error: %w", err)
 		return
 	}
+
 	writer.WriteHeader(http.StatusOK)
-	logger.Debug("update metrics by json list success")
+	logger.Debugln("update metrics by json list success", string(value))
 	_, err = writer.Write(value)
 	if err != nil {
 		logger.Warnf("write data to client error: %w", err)
