@@ -107,7 +107,7 @@ func (ms *memStorage) GetMetricsHTML(ctx context.Context) (string, error) {
 	return body, nil
 }
 
-func (ms *memStorage) updataOneMetric(m metric) (*metric, error) {
+func (ms *memStorage) updateOneMetric(m metric) (*metric, error) {
 	switch m.MType {
 	case "counter":
 		if m.Delta != nil {
@@ -136,7 +136,7 @@ func (ms *memStorage) UpdateJSON(ctx context.Context, data []byte) ([]byte, erro
 	if err != nil {
 		return nil, fmt.Errorf("json conver error: %w", err)
 	}
-	item, err := ms.updataOneMetric(metric)
+	item, err := ms.updateOneMetric(metric)
 	if err != nil {
 		return nil, err
 	}
@@ -225,7 +225,7 @@ func (ms *memStorage) UpdateJSONSlice(ctx context.Context, data []byte) ([]byte,
 	}
 	resp := ""
 	for index, value := range metrics {
-		_, err := ms.updataOneMetric(value)
+		_, err := ms.updateOneMetric(value)
 		if err != nil {
 			resp += fmt.Sprintf("%d. '%s' update ERROR: %v\n", index+1, value.ID, err)
 		} else {
@@ -279,7 +279,45 @@ func (ms *memStorage) fromFileRestore() error {
 // загрузка хранилища из БД
 func (ms *memStorage) fromDBRestore() error {
 	// проверка подключения к БД
-	// для iter10 опускаем внутренности, т.к. нужно возвращать ошибки подключения
+	db, err := sql.Open("pgx", ms.ConnectDBString)
+	if err != nil {
+		return fmt.Errorf("database connect error: %v", err)
+	}
+
+	rows, err := db.Query("Select name, value from counters;")
+	if err != nil {
+		return fmt.Errorf("select counters error: %v", err)
+	}
+	if rows.Err() != nil {
+		return fmt.Errorf("select counters error: %v", rows.Err())
+	}
+	for rows.Next() {
+		var name string
+		var value int64
+		err := rows.Scan(&name, &value)
+		if err != nil {
+			return fmt.Errorf("scan counters values error: %v", err)
+		}
+		ms.Counters[name] = value
+	}
+
+	rows, err = db.Query("Select name, value from gauges;")
+	if err != nil {
+		return fmt.Errorf("select gauges error: %v", err)
+	}
+	if rows.Err() != nil {
+		return fmt.Errorf("select gauges error: %v", rows.Err())
+	}
+	for rows.Next() {
+		var name string
+		var value float64
+		err := rows.Scan(&name, &value)
+		if err != nil {
+			return fmt.Errorf("scan gauges values error: %v", err)
+		}
+		ms.Gauges[name] = value
+	}
+
 	return nil
 }
 
@@ -291,10 +329,14 @@ func (ms *memStorage) restore() error {
 	if ms.ConnectDBString == "" {
 		return ms.fromFileRestore()
 	}
+	err := checkDatabaseStructure(ms.ConnectDBString)
+	if err != nil {
+		return fmt.Errorf("check database structure error: %v", err)
+	}
 	return ms.fromDBRestore()
 }
 
-func (ms *memStorage) Save() error {
+func (ms *memStorage) saveInFile() error {
 	file, err := os.OpenFile(ms.SavePath, os.O_WRONLY|os.O_TRUNC, 0644)
 	if err != nil {
 		return err
@@ -309,4 +351,52 @@ func (ms *memStorage) Save() error {
 		return err
 	}
 	return nil
+}
+
+func (ms *memStorage) saveInDatabase() error {
+	db, err := sql.Open("pgx", ms.ConnectDBString)
+	if err != nil {
+		return fmt.Errorf("database connect error: %v", err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	transaction, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("transaction create error: %v", err)
+	}
+	defer transaction.Rollback()
+
+	_, err = transaction.ExecContext(ctx, "Delete from gauges")
+	if err != nil {
+		return fmt.Errorf("clear gauges table error: %v", err)
+	}
+	_, err = transaction.ExecContext(ctx, "Delete from counters")
+	if err != nil {
+		return fmt.Errorf("clear counters table error: %v", err)
+	}
+	for key, value := range ms.Gauges {
+		_, err = transaction.ExecContext(ctx, "Insert into gauges (name, value) values($1, $2);", key, value)
+		if err != nil {
+			return fmt.Errorf("save gauge ('%s') value (%f) error: %v", key, value, err)
+		}
+	}
+	for key, value := range ms.Counters {
+		_, err = transaction.ExecContext(ctx, "Insert into counters (name, value) values($1, $2);", key, value)
+		if err != nil {
+			return fmt.Errorf("save gauge ('%s') value (%d) error: %v", key, value, err)
+		}
+	}
+	err = transaction.Commit()
+	if err != nil {
+		return fmt.Errorf("transaction error: %v", err)
+	}
+	return nil
+}
+
+func (ms *memStorage) Save() error {
+	if ms.ConnectDBString == "" {
+		return ms.saveInFile()
+	}
+	return ms.saveInDatabase()
 }

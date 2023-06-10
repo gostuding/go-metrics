@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"strings"
 	"time"
-
-	"go.uber.org/zap"
 )
 
 type sqlColumns map[string]any
@@ -70,7 +68,7 @@ func isTableExist(ctx context.Context, name string, sql *sql.DB) error {
 	return err
 }
 
-func checkDatabaseStructure(connectionString string, logger *zap.SugaredLogger) error {
+func checkDatabaseStructure(connectionString string) error {
 	db, err := sql.Open("pgx", connectionString)
 	if err != nil {
 		return fmt.Errorf("connect database error: %w", err)
@@ -83,7 +81,6 @@ func checkDatabaseStructure(connectionString string, logger *zap.SugaredLogger) 
 		return fmt.Errorf("check database ping error: %w", err)
 	}
 	for key, table := range *sqlTablesMaps() {
-		logger.Debugf("Check table: %s", key)
 		if isTableExist(ctx, key, db) != nil {
 			err := createTable(ctx, key, table, db)
 			if err != nil {
@@ -91,7 +88,6 @@ func checkDatabaseStructure(connectionString string, logger *zap.SugaredLogger) 
 			}
 		}
 	}
-	logger.Debug("database ctructure checked")
 	return nil
 }
 
@@ -120,6 +116,7 @@ func (ms *sqlStorage) getCounter(ctx context.Context, name string, connect SQLQu
 		value := int64(0)
 		return &value, fmt.Errorf("counter value (%s) is absent", name)
 	}
+	defer rows.Close()
 	var value int64
 	err = rows.Scan(&value)
 	if err != nil {
@@ -141,6 +138,7 @@ func (ms *sqlStorage) getGauge(ctx context.Context, name string, connect SQLQuer
 		value := float64(0.0)
 		return &value, fmt.Errorf("gauge value (%s) is absent", name)
 	}
+	defer rows.Close()
 
 	var value float64
 	err = rows.Scan(&value)
@@ -155,19 +153,10 @@ func (ms *sqlStorage) updateCounter(ctx context.Context, name string, value int6
 
 	if err == nil {
 		value += *val
-		ms.Logger.Debugf("update counter '%s' = '%d'", name, value)
 		_, err = connect.ExecContext(ctx, "Update counters set value=$2 where name=$1;", name, value)
 		return &value, err
 	} else if val != nil {
-		row := connect.QueryRowContext(ctx, "Select max(id) from counters;")
-		maxID := 1
-		if row.Err() == nil {
-			if err := row.Scan(&maxID); err == nil {
-				maxID += 1
-			}
-		}
-		ms.Logger.Debugf("new counter '%s' = '%d'", name, value)
-		_, err = connect.ExecContext(ctx, "Insert into counters (id, name, value) values($3, $1, $2);", name, value, maxID)
+		_, err = connect.ExecContext(ctx, "Insert into counters (name, value) values($1, $2);", name, value)
 		return &value, err
 	}
 	return nil, err
@@ -177,19 +166,10 @@ func (ms *sqlStorage) updateGauge(ctx context.Context, name string, value float6
 	val, err := ms.getGauge(ctx, name, connect)
 
 	if err == nil {
-		ms.Logger.Debugf("update gauge '%s' = '%v'", name, value)
 		_, err = connect.ExecContext(ctx, "Update gauges set value=$2 where name=$1;", name, value)
 		return &value, err
 	} else if val != nil {
-		row := connect.QueryRowContext(ctx, "Select max(id) from gauges;")
-		maxID := 1
-		if row.Err() == nil {
-			if err := row.Scan(&maxID); err == nil {
-				maxID += 1
-			}
-		}
-		ms.Logger.Debugf("new gauge '%s' = '%d'", name, value)
-		_, err = connect.ExecContext(ctx, "Insert into gauges (id, name, value) values($3, $1, $2);", name, value, maxID)
+		_, err = connect.ExecContext(ctx, "Insert into gauges (id, name, value) values($1, $2);", name, value)
 		return &value, err
 	}
 	return nil, err

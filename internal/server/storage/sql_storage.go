@@ -22,7 +22,7 @@ func NewSQLStorage(DBconnect string, logger *zap.SugaredLogger) (*sqlStorage, er
 		ConnectDBString: DBconnect,
 		Logger:          logger,
 	}
-	return &storage, checkDatabaseStructure(DBconnect, logger)
+	return &storage, checkDatabaseStructure(DBconnect)
 }
 
 func (ms *sqlStorage) Update(ctx context.Context, mType string, mName string, mValue string) error {
@@ -262,77 +262,19 @@ func (ms *sqlStorage) UpdateJSONSlice(ctx context.Context, data []byte) ([]byte,
 	}
 	defer db.Close()
 
-	transaction, err := db.Begin()
-	if err != nil {
-		return nil, fmt.Errorf("create database transaction error: %v", err)
-	}
-	defer transaction.Rollback()
-
-	gup, err := transaction.PrepareContext(ctx, "Update gauges set value=$1 where name=$2")
-	if err != nil {
-		return nil, fmt.Errorf("prepare query mk error: %v", err)
-	}
-	defer gup.Close()
-	gip, err := transaction.PrepareContext(ctx, "Insert into gauges (value, name) values($1, $2)")
-	if err != nil {
-		return nil, fmt.Errorf("prepare query mk error: %v", err)
-	}
-	defer gip.Close()
-
-	cup, err := transaction.PrepareContext(ctx, "Update counters set value=$1 where name=$2")
-	if err != nil {
-		return nil, fmt.Errorf("prepare query mk error: %v", err)
-	}
-	defer cup.Close()
-	cip, err := transaction.PrepareContext(ctx, "Insert into counters (value, name) values($1, $2)")
-	if err != nil {
-		return nil, fmt.Errorf("prepare query mk error: %v", err)
-	}
-	defer cip.Close()
-
-	resp := ""
-	for _, value := range metrics {
-		switch value.MType {
-		case "gauge":
-			if value.Value != nil {
-				val, err := ms.getGauge(ctx, value.ID, db)
-				if err == nil {
-					_, err = gup.Exec(*value.Value, value.ID)
-					resp += "gauge update\n"
-				} else if val != nil {
-					_, err = gip.Exec(*value.Value, value.ID)
-					resp += "gauge insert\n"
-				}
-				if err != nil {
-					return nil, fmt.Errorf("gauge transaction error: %v", err)
-				}
-				resp += fmt.Sprintf("gauge value ('%s') is %f\n", value.ID, *value.Value)
-			}
+	for _, item := range metrics {
+		switch item.MType {
 		case "counter":
-			if value.Delta != nil {
-				val, err := ms.getCounter(ctx, value.ID, db)
-				if err == nil {
-					delta := *value.Delta
-					delta += *val
-					value.Delta = &delta
-					_, err = cup.Exec(delta, value.ID)
-					resp += fmt.Sprintf("counter update ('%s') is %d\n", value.ID, *value.Delta)
-				} else if val != nil {
-					_, err = cip.Exec(*value.Delta, value.ID)
-					resp += fmt.Sprintf("counter insert ('%s') is %d\n", value.ID, *value.Delta)
-				}
-				if err != nil {
-					return nil, fmt.Errorf("counter transaction error: %v", err)
-				}
-
-				resp += fmt.Sprintf("counter value ('%s') is %d\n", value.ID, *value.Delta)
+			_, err = ms.updateCounter(ctx, item.ID, *item.Delta, db)
+			if err != nil {
+				return nil, err
+			}
+		case "gauge":
+			_, err = ms.updateGauge(ctx, item.ID, *item.Value, db)
+			if err != nil {
+				return nil, err
 			}
 		}
 	}
-
-	err = transaction.Commit()
-	if err != nil {
-		return nil, fmt.Errorf("transaction commit error: %v", err)
-	}
-	return []byte(resp), nil
+	return nil, nil
 }

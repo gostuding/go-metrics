@@ -17,10 +17,8 @@ func RunServer(options *Config, storage Storage, logger *zap.SugaredLogger) erro
 		return fmt.Errorf("server options error")
 	}
 	logger.Infoln("Run server at adress: ", options.IPAddress)
-	if options.ConnectDBString == "" {
-		go saveStorageInterval(options.StoreInterval, storage, logger)
-		go saveStorageBeforeFinish(storage, logger)
-	}
+	go saveStorageInterval(options.StoreInterval, storage, logger)
+	go saveStorageBeforeFinish(storage, logger)
 	return http.ListenAndServe(options.IPAddress, makeRouter(storage, logger))
 }
 
