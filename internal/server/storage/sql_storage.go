@@ -12,11 +12,6 @@ import (
 	"go.uber.org/zap"
 )
 
-var (
-	update int = 1
-	insert int = 2
-)
-
 type sqlStorage struct {
 	ConnectDBString string             `json:"-"`
 	Logger          *zap.SugaredLogger `json:"-"`
@@ -301,9 +296,9 @@ func (ms *sqlStorage) UpdateJSONSlice(ctx context.Context, data []byte) ([]byte,
 			if value.Value != nil {
 				val, err := ms.getGauge(ctx, value.ID, db)
 				if err == nil {
-					_, err = gup.Exec(value.Value, value.ID)
+					_, err = gup.Exec(&value.Value, value.ID)
 				} else if val != nil {
-					_, err = gip.Exec(value.Value, value.ID)
+					_, err = gip.Exec(&value.Value, value.ID)
 				}
 				if err != nil {
 					return nil, fmt.Errorf("gauge transaction error: %v", err)
@@ -317,7 +312,7 @@ func (ms *sqlStorage) UpdateJSONSlice(ctx context.Context, data []byte) ([]byte,
 					delta += *val
 					_, err = cup.Exec(delta, value.ID)
 				} else if val != nil {
-					_, err = cip.Exec(value.Delta, value.ID)
+					_, err = cip.Exec(&value.Delta, value.ID)
 				}
 				if err != nil {
 					return nil, fmt.Errorf("counter transaction error: %v", err)
