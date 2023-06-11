@@ -101,7 +101,7 @@ type SQLQueryInterface interface {
 	QueryRowContext(context.Context, string, ...any) *sql.Row
 }
 
-func (ms *SqlStorage) getCounter(ctx context.Context, name string) (*int64, error) {
+func (ms *SQLStorage) getCounter(ctx context.Context, name string) (*int64, error) {
 	rows, err := ms.con.QueryContext(ctx, "Select value from counters where name=$1;", name)
 	if err != nil {
 		return nil, fmt.Errorf("select value error: %w", err)
@@ -125,7 +125,7 @@ func (ms *SqlStorage) getCounter(ctx context.Context, name string) (*int64, erro
 	return &value, nil
 }
 
-func (ms *SqlStorage) getGauge(ctx context.Context, name string) (*float64, error) {
+func (ms *SQLStorage) getGauge(ctx context.Context, name string) (*float64, error) {
 	rows, err := ms.con.QueryContext(ctx, "Select value from gauges where name=$1;", name)
 	if err != nil {
 		return nil, fmt.Errorf("select value error: %w", err)
@@ -148,7 +148,7 @@ func (ms *SqlStorage) getGauge(ctx context.Context, name string) (*float64, erro
 	return &value, nil
 }
 
-func (ms *SqlStorage) updateCounter(ctx context.Context, name string, value int64, connect SQLQueryInterface) (*int64, error) {
+func (ms *SQLStorage) updateCounter(ctx context.Context, name string, value int64, connect SQLQueryInterface) (*int64, error) {
 	val, err := ms.getCounter(ctx, name)
 
 	if err == nil {
@@ -162,7 +162,7 @@ func (ms *SqlStorage) updateCounter(ctx context.Context, name string, value int6
 	return nil, err
 }
 
-func (ms *SqlStorage) updateGauge(ctx context.Context, name string, value float64, connect SQLQueryInterface) (*float64, error) {
+func (ms *SQLStorage) updateGauge(ctx context.Context, name string, value float64, connect SQLQueryInterface) (*float64, error) {
 	val, err := ms.getGauge(ctx, name)
 
 	if err == nil {
@@ -175,7 +175,7 @@ func (ms *SqlStorage) updateGauge(ctx context.Context, name string, value float6
 	return nil, err
 }
 
-func (ms *SqlStorage) getAllMetricOfType(ctx context.Context, table string) (*[]string, error) {
+func (ms *SQLStorage) getAllMetricOfType(ctx context.Context, table string) (*[]string, error) {
 	values := make([]string, 0)
 	rows, err := ms.con.QueryContext(ctx, fmt.Sprintf("Select name, value from %s order by name;", table))
 	if err != nil {

@@ -13,7 +13,7 @@ import (
 	"go.uber.org/zap"
 )
 
-type newStorage func(string, *zap.SugaredLogger) (*storage.SqlStorage, error)
+type newStorage func(string, *zap.SugaredLogger) (*storage.SQLStorage, error)
 
 func checkError(err error, t *int) bool {
 	var pgErr *pgconn.PgError
@@ -26,7 +26,7 @@ func checkError(err error, t *int) bool {
 	return true
 }
 
-func connectRepeater(f newStorage, con string, logger *zap.SugaredLogger) (*storage.SqlStorage, error) {
+func connectRepeater(f newStorage, con string, logger *zap.SugaredLogger) (*storage.SQLStorage, error) {
 	strg, err := f(con, logger)
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()

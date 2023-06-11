@@ -74,13 +74,13 @@ func (ms *memStorage) GetMetric(ctx context.Context, mType string, mName string)
 	case "gauge":
 		for key, val := range ms.Gauges {
 			if key == mName {
-				return fmt.Sprintf("%v", val), nil
+				return fmt.Sprintf("%f", val), nil
 			}
 		}
 	case "counter":
 		for key, val := range ms.Counters {
 			if key == mName {
-				return fmt.Sprintf("%v", val), nil
+				return fmt.Sprintf("%d", val), nil
 			}
 		}
 	}
