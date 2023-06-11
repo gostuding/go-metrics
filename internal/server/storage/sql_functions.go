@@ -171,7 +171,7 @@ func (ms *sqlStorage) updateGauge(ctx context.Context, name string, value float6
 		_, err = connect.ExecContext(ctx, "Update gauges set value=$2 where name=$1;", name, value)
 		return &value, err
 	} else if val != nil {
-		_, err = connect.ExecContext(ctx, "Insert into gauges (id, name, value) values($1, $2);", name, value)
+		_, err = connect.ExecContext(ctx, "Insert into gauges (name, value) values($1, $2);", name, value)
 		return &value, err
 	}
 	return nil, err
@@ -179,7 +179,8 @@ func (ms *sqlStorage) updateGauge(ctx context.Context, name string, value float6
 
 func (ms *sqlStorage) getAllMetricOfType(ctx context.Context, table string, connect SQLQueryInterface) (*[]string, error) {
 	values := make([]string, 0)
-	rows, err := connect.QueryContext(ctx, fmt.Sprintf("Select name, value from %s order by name;", table))
+	rows, err := ms.con.QueryContext(ctx, fmt.Sprintf("Select name, value from %s order by name;", table))
+	// rows, err := connect.QueryContext(ctx, fmt.Sprintf("Select name, value from %s order by name;", table))
 	if err != nil {
 		return &values, fmt.Errorf("get all metrics query error: %v", err)
 	}
