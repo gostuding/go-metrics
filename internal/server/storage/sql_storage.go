@@ -13,12 +13,18 @@ import (
 )
 
 type sqlStorage struct {
-	ConnectDBString string             `json:"-"`
-	Logger          *zap.SugaredLogger `json:"-"`
+	ConnectDBString string
+	con             *sql.DB
+	Logger          *zap.SugaredLogger
 }
 
 func NewSQLStorage(DBconnect string, logger *zap.SugaredLogger) (*sqlStorage, error) {
+	db, err := sql.Open("pgx", DBconnect)
+	if err != nil {
+		return nil, fmt.Errorf("connect database error: %v", err)
+	}
 	storage := sqlStorage{
+		con:             db,
 		ConnectDBString: DBconnect,
 		Logger:          logger,
 	}

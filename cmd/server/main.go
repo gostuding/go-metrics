@@ -17,12 +17,24 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	storage, err := storage.NewMemStorage(cfg.Restore, cfg.FileStorePath, cfg.StoreInterval, cfg.ConnectDBString)
-	if err != nil {
-		log.Fatalln(err)
+	if cfg.ConnectDBString != "" {
+		storage, err := storage.NewSQLStorage(cfg.ConnectDBString, logger)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		err = server.RunServer(cfg, storage, logger)
+		if err != nil {
+			log.Fatalln(err)
+		}
+	} else {
+		storage, err := storage.NewMemStorage(cfg.Restore, cfg.FileStorePath, cfg.StoreInterval, cfg.ConnectDBString)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		err = server.RunServer(cfg, storage, logger)
+		if err != nil {
+			log.Fatalln(err)
+		}
 	}
-	err = server.RunServer(cfg, storage, logger)
-	if err != nil {
-		log.Fatalln(err)
-	}
+
 }

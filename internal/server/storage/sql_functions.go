@@ -102,7 +102,8 @@ type SQLQueryInterface interface {
 }
 
 func (ms *sqlStorage) getCounter(ctx context.Context, name string, connect SQLQueryInterface) (*int64, error) {
-	rows, err := connect.QueryContext(ctx, "Select value from counters where name=$1;", name)
+	// rows, err := connect.QueryContext(ctx, "Select value from counters where name=$1;", name)
+	rows, err := ms.con.QueryContext(ctx, "Select value from counters where name=$1;", name)
 	if err != nil {
 		return nil, fmt.Errorf("select value error: %v", err)
 	}
@@ -126,7 +127,8 @@ func (ms *sqlStorage) getCounter(ctx context.Context, name string, connect SQLQu
 }
 
 func (ms *sqlStorage) getGauge(ctx context.Context, name string, connect SQLQueryInterface) (*float64, error) {
-	rows, err := connect.QueryContext(ctx, "Select value from gauges where name=$1;", name)
+	// rows, err := connect.QueryContext(ctx, "Select value from gauges where name=$1;", name)
+	rows, err := ms.con.QueryContext(ctx, "Select value from gauges where name=$1;", name)
 	if err != nil {
 		return nil, fmt.Errorf("select value error: %v", err)
 	}
