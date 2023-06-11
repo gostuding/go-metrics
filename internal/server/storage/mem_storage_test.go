@@ -2,7 +2,6 @@ package storage
 
 import (
 	"context"
-	"fmt"
 	"reflect"
 	"testing"
 
@@ -66,7 +65,7 @@ func TestMemStorageGetMetric(t *testing.T) {
 		want      string
 		wantError bool
 	}{
-		{name: "Получение Gauges ", fields: fields{Gauges: gTest(), Counters: cTest()}, args: args{mType: "gauge", mName: "item"}, want: fmt.Sprintf("%f", 0.34), wantError: false},
+		{name: "Получение Gauges ", fields: fields{Gauges: gTest(), Counters: cTest()}, args: args{mType: "gauge", mName: "item"}, want: "0.34", wantError: false},
 		{name: "Неправильный тип", fields: fields{Gauges: gTest(), Counters: cTest()}, args: args{mType: "error", mName: "item"}, want: "", wantError: true},
 		{name: "Неправильное имя", fields: fields{Gauges: gTest(), Counters: cTest()}, args: args{mType: "counter", mName: "none"}, want: "", wantError: true},
 	}

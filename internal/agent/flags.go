@@ -83,7 +83,7 @@ func GetFlags() (Config, error) {
 	flag.Var(&agentArgs, "a", "Net address like 'host:port'")
 	flag.IntVar(&agentArgs.PollInterval, "p", 2, "Poll metricks interval")
 	flag.IntVar(&agentArgs.ReportInterval, "r", 10, "Report metricks interval")
-	flag.IntVar(&agentArgs.ReportSliceInterval, "rs", 3, "Report metricks by slice interval")
+	flag.IntVar(&agentArgs.ReportSliceInterval, "rs", 25, "Report metricks by slice interval")
 	flag.BoolVar(&agentArgs.GzipCompress, "gzip", true, "Use gzip compress in requests")
 	flag.Parse()
 
