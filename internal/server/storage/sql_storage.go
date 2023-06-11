@@ -12,18 +12,18 @@ import (
 	"go.uber.org/zap"
 )
 
-type sqlStorage struct {
+type SqlStorage struct {
 	ConnectDBString string
 	con             *sql.DB
 	Logger          *zap.SugaredLogger
 }
 
-func NewSQLStorage(DBconnect string, logger *zap.SugaredLogger) (*sqlStorage, error) {
+func NewSQLStorage(DBconnect string, logger *zap.SugaredLogger) (*SqlStorage, error) {
 	db, err := sql.Open("pgx", DBconnect)
 	if err != nil {
-		return nil, fmt.Errorf("connect database error: %v", err)
+		return nil, fmt.Errorf("connect database crate error: %w", err)
 	}
-	storage := sqlStorage{
+	storage := SqlStorage{
 		con:             db,
 		ConnectDBString: DBconnect,
 		Logger:          logger,
@@ -31,48 +31,35 @@ func NewSQLStorage(DBconnect string, logger *zap.SugaredLogger) (*sqlStorage, er
 	return &storage, checkDatabaseStructure(DBconnect)
 }
 
-func (ms *sqlStorage) Update(ctx context.Context, mType string, mName string, mValue string) error {
-	db, err := sql.Open("pgx", ms.ConnectDBString)
-	if err != nil {
-		return fmt.Errorf("connect database error: %v", err)
-	}
-	defer db.Close()
-
+func (ms *SqlStorage) Update(ctx context.Context, mType string, mName string, mValue string) error {
 	switch mType {
 	case "counter":
 		counter, err := strconv.ParseInt(mValue, 10, 64)
 		if err != nil {
-			return fmt.Errorf("counter value convert error: %v", err)
+			return fmt.Errorf("counter value convert error: %w", err)
 		}
-		_, err = ms.updateCounter(ctx, mName, counter, db)
+		_, err = ms.updateCounter(ctx, mName, counter, ms.con)
 		return err
 	case "gauge":
 		gauges, err := strconv.ParseFloat(mValue, 64)
 		if err != nil {
-			return fmt.Errorf("gauge value convert error: %v", err)
+			return fmt.Errorf("gauge value convert error: %w", err)
 		}
-		_, err = ms.updateGauge(ctx, mName, gauges, db)
+		_, err = ms.updateGauge(ctx, mName, gauges, ms.con)
 		return err
-
 	default:
 		return errors.New("metric type incorrect. Availible types are: guage or counter")
 	}
 }
 
 // Получение значения метрики по типу и имени
-func (ms *sqlStorage) GetMetric(ctx context.Context, mType string, mName string) (string, error) {
-	db, err := sql.Open("pgx", ms.ConnectDBString)
-	if err != nil {
-		return "", fmt.Errorf("connect database error: %v", err)
-	}
-	defer db.Close()
-
+func (ms *SqlStorage) GetMetric(ctx context.Context, mType string, mName string) (string, error) {
 	switch mType {
 	case "gauge":
-		value, err := ms.getGauge(ctx, mName, db)
-		return fmt.Sprintf("%v", *value), err
+		value, err := ms.getGauge(ctx, mName)
+		return fmt.Sprintf("%f", *value), err
 	case "counter":
-		value, err := ms.getCounter(ctx, mName, db)
+		value, err := ms.getCounter(ctx, mName)
 		return fmt.Sprintf("%d", *value), err
 	default:
 		return "", fmt.Errorf("metric '%s' with type '%s' not found", mName, mType)
@@ -80,20 +67,14 @@ func (ms *sqlStorage) GetMetric(ctx context.Context, mType string, mName string)
 }
 
 // Список всех метрик в html
-func (ms *sqlStorage) GetMetricsHTML(ctx context.Context) (string, error) {
-	db, err := sql.Open("pgx", ms.ConnectDBString)
+func (ms *SqlStorage) GetMetricsHTML(ctx context.Context) (string, error) {
+	gauges, err := ms.getAllMetricOfType(ctx, "gauges")
 	if err != nil {
-		return "", fmt.Errorf("connect database error: %v", err)
+		return "", fmt.Errorf("get gauges metrics error: %w", err)
 	}
-	defer db.Close()
-
-	gauges, err := ms.getAllMetricOfType(ctx, "gauges", db)
+	counters, err := ms.getAllMetricOfType(ctx, "counters")
 	if err != nil {
-		return "", fmt.Errorf("get gauges metrics error: %v", err)
-	}
-	counters, err := ms.getAllMetricOfType(ctx, "counters", db)
-	if err != nil {
-		return "", fmt.Errorf("get counters metrics error: %v", err)
+		return "", fmt.Errorf("get counters metrics error: %w", err)
 	}
 
 	body := "<!doctype html> <html lang='en'> <head> <meta charset='utf-8'> <title>Список метрик</title></head>"
@@ -110,7 +91,7 @@ func (ms *sqlStorage) GetMetricsHTML(ctx context.Context) (string, error) {
 	return body, nil
 }
 
-func (ms *sqlStorage) updateOneMetric(ctx context.Context, m metric, connect SQLQueryInterface) (*metric, error) {
+func (ms *SqlStorage) updateOneMetric(ctx context.Context, m metric, connect SQLQueryInterface) (*metric, error) {
 	switch m.MType {
 	case "counter":
 		if m.Delta != nil {
@@ -139,16 +120,16 @@ func (ms *sqlStorage) updateOneMetric(ctx context.Context, m metric, connect SQL
 }
 
 // обновление через json
-func (ms *sqlStorage) UpdateJSON(ctx context.Context, data []byte) ([]byte, error) {
+func (ms *SqlStorage) UpdateJSON(ctx context.Context, data []byte) ([]byte, error) {
 	var metric metric
 	err := json.Unmarshal(data, &metric)
 	if err != nil {
-		return nil, fmt.Errorf("json conver error: %v", err)
+		return nil, fmt.Errorf("json conver error: %w", err)
 	}
 
 	db, err := sql.Open("pgx", ms.ConnectDBString)
 	if err != nil {
-		return nil, fmt.Errorf("connect database error: %v", err)
+		return nil, fmt.Errorf("connect database error: %w", err)
 	}
 	defer db.Close()
 
@@ -159,28 +140,22 @@ func (ms *sqlStorage) UpdateJSON(ctx context.Context, data []byte) ([]byte, erro
 
 	resp, err := json.Marshal(item)
 	if err != nil {
-		return nil, fmt.Errorf("convert to json error: %v", err)
+		return nil, fmt.Errorf("convert to json error: %w", err)
 	}
 	return resp, nil
 }
 
 // запрос метрик через json
-func (ms *sqlStorage) GetMetricJSON(ctx context.Context, data []byte) ([]byte, error) {
+func (ms *SqlStorage) GetMetricJSON(ctx context.Context, data []byte) ([]byte, error) {
 	var metric metric
 	err := json.Unmarshal(data, &metric)
 	if err != nil {
-		return nil, fmt.Errorf("json conver error: %v", err)
+		return nil, fmt.Errorf("json conver error: %w", err)
 	}
-
-	db, err := sql.Open("pgx", ms.ConnectDBString)
-	if err != nil {
-		return nil, fmt.Errorf("connect database error: %v", err)
-	}
-	defer db.Close()
 
 	switch metric.MType {
 	case "counter":
-		value, err := ms.getCounter(ctx, metric.ID, db)
+		value, err := ms.getCounter(ctx, metric.ID)
 		if err != nil {
 			if value != nil {
 				return []byte(""), err
@@ -194,7 +169,7 @@ func (ms *sqlStorage) GetMetricJSON(ctx context.Context, data []byte) ([]byte, e
 		}
 		return resp, nil
 	case "gauge":
-		value, err := ms.getGauge(ctx, metric.ID, db)
+		value, err := ms.getGauge(ctx, metric.ID)
 		if err != nil {
 			if value != nil {
 				return []byte(""), err
@@ -212,50 +187,38 @@ func (ms *sqlStorage) GetMetricJSON(ctx context.Context, data []byte) ([]byte, e
 	}
 }
 
-func (ms *sqlStorage) Save() error {
+func (ms *SqlStorage) Save() error {
 	// метод - заглушка, проверка подключения к БД, т.к. все данные хранятся в БД
 	return ms.PingDB(context.Background())
 }
 
 // проверка подключения к БД
-func (ms *sqlStorage) PingDB(ctx context.Context) error {
+func (ms *SqlStorage) PingDB(ctx context.Context) error {
 	if ms.ConnectDBString == "" {
 		return fmt.Errorf("connect DB string undefined")
 	}
 
-	db, err := sql.Open("pgx", ms.ConnectDBString)
-	if err != nil {
-		return fmt.Errorf("database connect error: %v", err)
-	}
-	defer db.Close()
-
-	if err = db.PingContext(ctx); err != nil {
-		return fmt.Errorf("check database ping error: %v", err)
+	if err := ms.con.PingContext(ctx); err != nil {
+		return fmt.Errorf("check database ping error: %w", err)
 	}
 	return nil
 }
 
 // очистка БД
-func (ms *sqlStorage) Clear(ctx context.Context) error {
-	db, err := sql.Open("pgx", ms.ConnectDBString)
+func (ms *SqlStorage) Clear(ctx context.Context) error {
+	_, err := ms.con.ExecContext(ctx, "Delete from gauges;")
 	if err != nil {
-		return fmt.Errorf("connect database error: %v", err)
+		return fmt.Errorf("clear gauges table error: %w", err)
 	}
-	defer db.Close()
-
-	_, err = db.ExecContext(ctx, "Delete from gauges;")
+	_, err = ms.con.ExecContext(ctx, "Delete from counters;")
 	if err != nil {
-		return fmt.Errorf("clear gauges table error: %v", err)
-	}
-	_, err = db.ExecContext(ctx, "Delete from counters;")
-	if err != nil {
-		return fmt.Errorf("clear counters table error: %v", err)
+		return fmt.Errorf("clear counters table error: %w", err)
 	}
 	return nil
 }
 
 // обновление через json slice
-func (ms *sqlStorage) UpdateJSONSlice(ctx context.Context, data []byte) ([]byte, error) {
+func (ms *SqlStorage) UpdateJSONSlice(ctx context.Context, data []byte) ([]byte, error) {
 	var metrics []metric
 	err := json.Unmarshal(data, &metrics)
 	if err != nil {
@@ -264,7 +227,7 @@ func (ms *sqlStorage) UpdateJSONSlice(ctx context.Context, data []byte) ([]byte,
 
 	db, err := sql.Open("pgx", ms.ConnectDBString)
 	if err != nil {
-		return nil, fmt.Errorf("connect database error: %v", err)
+		return nil, fmt.Errorf("connect database error: %w", err)
 	}
 	defer db.Close()
 

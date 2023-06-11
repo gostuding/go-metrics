@@ -2,9 +2,13 @@ package server
 
 import (
 	"context"
+	"errors"
 	"io"
 	"net/http"
+	"time"
 
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5/pgconn"
 	"go.uber.org/zap"
 )
 
@@ -37,6 +41,116 @@ type HTMLGetter interface {
 }
 
 // -----------------------------------------------------------------------------------
+// Функции для повторения действий при ошибках
+// -----------------------------------------------------------------------------------
+type fbe func(context.Context, []byte) ([]byte, error)
+
+type fse func(context.Context) (string, error)
+
+type fsse func(context.Context, string, string) (string, error)
+
+type fssse func(context.Context, string, string, string) error
+
+func isRepeat(err error, t *int) bool {
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) && pgerrcode.IsConnectionException(pgErr.Code) {
+		time.Sleep(time.Duration(*t) * time.Second)
+		*t += 2
+	} else {
+		return false
+	}
+	return true
+}
+
+func bytesErrorRepeater(f fbe, ctx context.Context, data []byte) ([]byte, error) {
+	value, err := f(ctx, data)
+	if err != nil {
+		waitTime := 1
+		for i := 0; i < 3; i++ {
+			select {
+			case <-ctx.Done():
+				return nil, errors.New("context done error")
+			default:
+				if !isRepeat(err, &waitTime) {
+					return nil, err
+				}
+				rez, err := f(ctx, data)
+				if err == nil {
+					return rez, nil
+				}
+			}
+		}
+	}
+	return value, err
+}
+
+func seRepeater(f fse, ctx context.Context) (string, error) {
+	value, err := f(ctx)
+	if err != nil {
+		waitTime := 1
+		for i := 0; i < 3; i++ {
+			select {
+			case <-ctx.Done():
+				return "", errors.New("context done error")
+			default:
+				if !isRepeat(err, &waitTime) {
+					return "", err
+				}
+				value, err = f(ctx)
+				if err == nil {
+					return value, err
+				}
+			}
+		}
+	}
+	return value, err
+}
+
+func sseRepeater(f fsse, ctx context.Context, t string, n string) (string, error) {
+	value, err := f(ctx, t, n)
+	if err != nil {
+		waitTime := 1
+		for i := 0; i < 3; i++ {
+			select {
+			case <-ctx.Done():
+				return "", errors.New("context done error")
+			default:
+				if !isRepeat(err, &waitTime) {
+					return "", err
+				}
+				value, err = f(ctx, t, n)
+				if err == nil {
+					return value, err
+				}
+			}
+		}
+	}
+	return value, err
+}
+
+func ssseRepeater(f fssse, ctx context.Context, t string, n string, v string) error {
+	err := f(ctx, t, n, v)
+	if err != nil {
+		waitTime := 1
+		for i := 0; i < 3; i++ {
+			select {
+			case <-ctx.Done():
+				return errors.New("context done error")
+			default:
+				if !isRepeat(err, &waitTime) {
+					return err
+				}
+				err = f(ctx, t, n, v)
+				if err == nil {
+					return nil
+				}
+			}
+		}
+	}
+	return err
+}
+
+// -----------------------------------------------------------------------------------
 // Определение функций, которые используют интерфейсы
 // -----------------------------------------------------------------------------------
 type getMetricsArgs struct {
@@ -51,7 +165,8 @@ type updateMetricsArgs struct {
 
 // Обработка запроса на добавление или изменение метрики
 func Update(writer http.ResponseWriter, request *http.Request, storage StorageSetter, metric updateMetricsArgs, logger *zap.SugaredLogger) {
-	if err := storage.Update(request.Context(), metric.base.mType, metric.base.mName, metric.mValue); err != nil {
+	err := ssseRepeater(storage.Update, request.Context(), metric.base.mType, metric.base.mName, metric.mValue)
+	if err != nil {
 		writer.WriteHeader(http.StatusBadRequest)
 		logger.Warnf("update metric error: %w", err)
 		return
@@ -62,7 +177,8 @@ func Update(writer http.ResponseWriter, request *http.Request, storage StorageSe
 
 // Обработка запроса значения метрики
 func GetMetric(writer http.ResponseWriter, request *http.Request, storage StorageGetter, metric getMetricsArgs, logger *zap.SugaredLogger) {
-	value, err := storage.GetMetric(request.Context(), metric.mType, metric.mName)
+	// value, err := storage.GetMetric(request.Context(), metric.mType, metric.mName)
+	value, err := sseRepeater(storage.GetMetric, request.Context(), metric.mType, metric.mName)
 	if err != nil {
 		writer.WriteHeader(http.StatusNotFound)
 		logger.Warn(err)
@@ -79,7 +195,7 @@ func GetMetric(writer http.ResponseWriter, request *http.Request, storage Storag
 func GetAllMetrics(writer http.ResponseWriter, request *http.Request, storage HTMLGetter, logger *zap.SugaredLogger) {
 	writer.Header().Set("Content-Type", "text/html")
 	writer.WriteHeader(http.StatusOK)
-	data, err := storage.GetMetricsHTML(request.Context())
+	data, err := seRepeater(storage.GetMetricsHTML, request.Context())
 	if err != nil {
 		writer.WriteHeader(http.StatusBadRequest)
 		logger.Warnf("get metrics in html error: %w", err)
@@ -100,7 +216,8 @@ func UpdateJSON(writer http.ResponseWriter, request *http.Request, storage Stora
 		logger.Warnf("read request body error: %w", err)
 		return
 	}
-	value, err := storage.UpdateJSON(request.Context(), data)
+	// value, err := storage.UpdateJSON(request.Context(), data)
+	value, err := bytesErrorRepeater(storage.UpdateJSON, request.Context(), data)
 	if err != nil {
 		writer.WriteHeader(http.StatusBadRequest)
 		logger.Warnf("update metric error: %w", err)
@@ -123,8 +240,7 @@ func GetMetricJSON(writer http.ResponseWriter, request *http.Request, storage St
 		logger.Warnf("get metric json, read request body error: %w", err)
 		return
 	}
-
-	value, err := storage.GetMetricJSON(request.Context(), data)
+	value, err := bytesErrorRepeater(storage.GetMetricJSON, request.Context(), data)
 	if err != nil {
 		if value != nil {
 			writer.WriteHeader(http.StatusNotFound)
@@ -178,7 +294,8 @@ func UpdateJSONSLice(writer http.ResponseWriter, request *http.Request, storage 
 		return
 	}
 
-	value, err := storage.UpdateJSONSlice(request.Context(), data)
+	// value, err := storage.UpdateJSONSlice(request.Context(), data)
+	value, err := bytesErrorRepeater(storage.UpdateJSONSlice, request.Context(), data)
 	if err != nil {
 		writer.WriteHeader(http.StatusBadRequest)
 		logger.Warnf("update metrics list error: %w", err)
