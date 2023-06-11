@@ -72,7 +72,7 @@ func bytesErrorRepeater(f fbe, ctx context.Context, data []byte) ([]byte, error)
 				return nil, errors.New("context done error")
 			default:
 				if !isRepeat(err, &waitTime) {
-					return nil, err
+					return value, err
 				}
 				rez, err := f(ctx, data)
 				if err == nil {
@@ -94,7 +94,7 @@ func seRepeater(f fse, ctx context.Context) (string, error) {
 				return "", errors.New("context done error")
 			default:
 				if !isRepeat(err, &waitTime) {
-					return "", err
+					return value, err
 				}
 				value, err = f(ctx)
 				if err == nil {
@@ -116,7 +116,7 @@ func sseRepeater(f fsse, ctx context.Context, t string, n string) (string, error
 				return "", errors.New("context done error")
 			default:
 				if !isRepeat(err, &waitTime) {
-					return "", err
+					return value, err
 				}
 				value, err = f(ctx, t, n)
 				if err == nil {
