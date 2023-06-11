@@ -154,12 +154,17 @@ func (ms *SQLStorage) updateCounter(ctx context.Context, name string, value int6
 	if err == nil {
 		value += *val
 		_, err = connect.ExecContext(ctx, "Update counters set value=$2 where name=$1;", name, value)
-		return &value, err
+		if err != nil {
+			return &value, fmt.Errorf("counter update error: %w", err)
+		}
+		// return &value, fmt.Errorf("counter update error: %w", err)
 	} else if val != nil {
 		_, err = connect.ExecContext(ctx, "Insert into counters (name, value) values($1, $2);", name, value)
-		return &value, err
+		if err != nil {
+			return &value, fmt.Errorf("counter insert error: %w", err)
+		}
 	}
-	return nil, err
+	return &value, err
 }
 
 func (ms *SQLStorage) updateGauge(ctx context.Context, name string, value float64, connect SQLQueryInterface) (*float64, error) {
@@ -167,12 +172,16 @@ func (ms *SQLStorage) updateGauge(ctx context.Context, name string, value float6
 
 	if err == nil {
 		_, err = connect.ExecContext(ctx, "Update gauges set value=$2 where name=$1;", name, value)
-		return &value, err
+		if err != nil {
+			return &value, fmt.Errorf("gauge update error: %w", err)
+		}
 	} else if val != nil {
 		_, err = connect.ExecContext(ctx, "Insert into gauges (name, value) values($1, $2);", name, value)
-		return &value, err
+		if err != nil {
+			return &value, fmt.Errorf("gauge insert error: %w", err)
+		}
 	}
-	return nil, err
+	return &value, err
 }
 
 func (ms *SQLStorage) getAllMetricOfType(ctx context.Context, table string) (*[]string, error) {
@@ -191,7 +200,7 @@ func (ms *SQLStorage) getAllMetricOfType(ctx context.Context, table string) (*[]
 			var value float64
 			err = rows.Scan(&name, &value)
 			if err != nil {
-				return &values, err
+				return &values, fmt.Errorf("scan gauge value error: %w", err)
 			}
 			values = append(values, fmt.Sprintf("'%s' = %f", name, value))
 		}
@@ -203,7 +212,7 @@ func (ms *SQLStorage) getAllMetricOfType(ctx context.Context, table string) (*[]
 		var value int64
 		err = rows.Scan(&name, &value)
 		if err != nil {
-			return &values, err
+			return &values, fmt.Errorf("scan counter value error: %w", err)
 		}
 		values = append(values, fmt.Sprintf("'%s' = %d", name, value))
 	}

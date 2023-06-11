@@ -165,7 +165,7 @@ func (ms *SQLStorage) GetMetricJSON(ctx context.Context, data []byte) ([]byte, e
 		metric.Delta = value
 		resp, err := json.Marshal(metric)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("matshl metric error: %w", err)
 		}
 		return resp, nil
 	case "gauge":
@@ -179,7 +179,7 @@ func (ms *SQLStorage) GetMetricJSON(ctx context.Context, data []byte) ([]byte, e
 		metric.Value = value
 		resp, err := json.Marshal(metric)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("matshl metric error: %w", err)
 		}
 		return resp, nil
 	default:
