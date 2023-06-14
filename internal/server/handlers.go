@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"time"
@@ -91,7 +92,7 @@ func seRepeater(f fse, ctx context.Context) (string, error) {
 		for i := 0; i < 3; i++ {
 			select {
 			case <-ctx.Done():
-				return "", errors.New("context done error")
+				return "", fmt.Errorf("context error: %w", ctx.Err())
 			default:
 				if !isRepeat(err, &waitTime) {
 					return value, err
@@ -113,7 +114,7 @@ func sseRepeater(f fsse, ctx context.Context, t string, n string) (string, error
 		for i := 0; i < 3; i++ {
 			select {
 			case <-ctx.Done():
-				return "", errors.New("context done error")
+				return "", fmt.Errorf("context error: %w", ctx.Err())
 			default:
 				if !isRepeat(err, &waitTime) {
 					return value, err
@@ -135,7 +136,7 @@ func ssseRepeater(f fssse, ctx context.Context, t string, n string, v string) er
 		for i := 0; i < 3; i++ {
 			select {
 			case <-ctx.Done():
-				return errors.New("context done error")
+				return fmt.Errorf("context error: %w", ctx.Err())
 			default:
 				if !isRepeat(err, &waitTime) {
 					return err
@@ -177,7 +178,6 @@ func Update(writer http.ResponseWriter, request *http.Request, storage StorageSe
 
 // Обработка запроса значения метрики
 func GetMetric(writer http.ResponseWriter, request *http.Request, storage StorageGetter, metric getMetricsArgs, logger *zap.SugaredLogger) {
-	// value, err := storage.GetMetric(request.Context(), metric.mType, metric.mName)
 	value, err := sseRepeater(storage.GetMetric, request.Context(), metric.mType, metric.mName)
 	if err != nil {
 		writer.WriteHeader(http.StatusNotFound)
@@ -216,7 +216,6 @@ func UpdateJSON(writer http.ResponseWriter, request *http.Request, storage Stora
 		logger.Warnf("read request body error: %w", err)
 		return
 	}
-	// value, err := storage.UpdateJSON(request.Context(), data)
 	value, err := bytesErrorRepeater(storage.UpdateJSON, request.Context(), data)
 	if err != nil {
 		writer.WriteHeader(http.StatusBadRequest)
@@ -227,7 +226,7 @@ func UpdateJSON(writer http.ResponseWriter, request *http.Request, storage Stora
 	logger.Debug("update metric by json success")
 	_, err = writer.Write(value)
 	if err != nil {
-		logger.Warnf("write data to clie`nt error: %w", err)
+		logger.Warnf("write data to client error: %w", err)
 	}
 }
 
@@ -294,7 +293,6 @@ func UpdateJSONSLice(writer http.ResponseWriter, request *http.Request, storage 
 		return
 	}
 
-	// value, err := storage.UpdateJSONSlice(request.Context(), data)
 	value, err := bytesErrorRepeater(storage.UpdateJSONSlice, request.Context(), data)
 	if err != nil {
 		writer.WriteHeader(http.StatusBadRequest)

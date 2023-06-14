@@ -42,7 +42,7 @@ func createTable(ctx context.Context, name string, values map[string]any, sql *s
 			items = append(items, fmt.Sprintf("%s double precision", key))
 		}
 	}
-	context, cansel := context.WithTimeout(ctx, 500*time.Millisecond)
+	context, cansel := context.WithTimeout(ctx, 10*time.Second)
 	defer cansel()
 	query := fmt.Sprintf("Create table %s (%s);", name, strings.Join(items, ","))
 	_, err := sql.ExecContext(context, query)
@@ -106,17 +106,14 @@ func (ms *SQLStorage) getCounter(ctx context.Context, name string) (*int64, erro
 	if err != nil {
 		return nil, fmt.Errorf("select value error: %w", err)
 	}
-
+	defer rows.Close()
 	if rows.Err() != nil {
 		return nil, fmt.Errorf("get counter metric rows error: %w", err)
 	}
-	defer rows.Close()
-
 	if !rows.Next() {
 		value := int64(0)
 		return &value, fmt.Errorf("counter value (%s) is absent", name)
 	}
-	defer rows.Close()
 	var value int64
 	err = rows.Scan(&value)
 	if err != nil {
@@ -130,16 +127,14 @@ func (ms *SQLStorage) getGauge(ctx context.Context, name string) (*float64, erro
 	if err != nil {
 		return nil, fmt.Errorf("select value error: %w", err)
 	}
+	defer rows.Close()
 	if rows.Err() != nil {
 		return nil, fmt.Errorf("get gauge metric rows error: %w", err)
 	}
-
 	if !rows.Next() {
 		value := float64(0.0)
 		return &value, fmt.Errorf("gauge value (%s) is absent", name)
 	}
-	defer rows.Close()
-
 	var value float64
 	err = rows.Scan(&value)
 	if err != nil {
@@ -157,13 +152,13 @@ func (ms *SQLStorage) updateCounter(ctx context.Context, name string, value int6
 		if err != nil {
 			return &value, fmt.Errorf("counter update error: %w", err)
 		}
-		// return &value, fmt.Errorf("counter update error: %w", err)
 	} else if val != nil {
 		_, err = connect.ExecContext(ctx, "Insert into counters (name, value) values($1, $2);", name, value)
 		if err != nil {
 			return &value, fmt.Errorf("counter insert error: %w", err)
 		}
 	}
+
 	return &value, err
 }
 
@@ -181,40 +176,54 @@ func (ms *SQLStorage) updateGauge(ctx context.Context, name string, value float6
 			return &value, fmt.Errorf("gauge insert error: %w", err)
 		}
 	}
+
 	return &value, err
+}
+
+func scanValue(table string, rows *sql.Rows) (string, error) {
+	var err error
+	var name string
+	strValue := ""
+	if table == "gauges" {
+		var value float64
+		err = rows.Scan(&name, &value)
+		strValue = fmt.Sprintf("'%s' = %f", name, value)
+	} else {
+		var value int64
+		err = rows.Scan(&name, &value)
+		strValue = fmt.Sprintf("'%s' = %d", name, value)
+	}
+	if err != nil {
+		return strValue, fmt.Errorf("scan gauge value error: %w", err)
+	}
+	return strValue, nil
 }
 
 func (ms *SQLStorage) getAllMetricOfType(ctx context.Context, table string) (*[]string, error) {
 	values := make([]string, 0)
-	rows, err := ms.con.QueryContext(ctx, fmt.Sprintf("Select name, value from %s order by name;", table))
+
+	query := "Select name, value from counters order by name;"
+	if table == "gauges" {
+		query = "Select name, value from gauges order by name;"
+	}
+
+	rows, err := ms.con.QueryContext(ctx, query)
 	if err != nil {
 		return &values, fmt.Errorf("get all metrics query error: %w", err)
 	}
+	defer rows.Close()
+
 	if rows.Err() != nil {
 		return &values, fmt.Errorf("get all metrics rows error: %w", err)
 	}
-	defer rows.Close()
-	if table == "gauges" {
-		for rows.Next() {
-			var name string
-			var value float64
-			err = rows.Scan(&name, &value)
-			if err != nil {
-				return &values, fmt.Errorf("scan gauge value error: %w", err)
-			}
-			values = append(values, fmt.Sprintf("'%s' = %f", name, value))
-		}
-		return &values, nil
-	}
 
 	for rows.Next() {
-		var name string
-		var value int64
-		err = rows.Scan(&name, &value)
+		val, err := scanValue(table, rows)
 		if err != nil {
-			return &values, fmt.Errorf("scan counter value error: %w", err)
+			return &values, fmt.Errorf("scan value error: %w", err)
 		}
-		values = append(values, fmt.Sprintf("'%s' = %d", name, value))
+		values = append(values, val)
 	}
+
 	return &values, nil
 }

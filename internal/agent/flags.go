@@ -51,9 +51,6 @@ func (n *Config) validate() error {
 	if n.ReportSliceInterval <= 0 {
 		return errors.New("args error: report metric by slice must be greater then 0")
 	}
-	if n.ReportSliceInterval == n.ReportInterval {
-		return errors.New("args error: report metric by slice and REPORT_INTERVAL must be diferent")
-	}
 	return nil
 }
 

@@ -127,13 +127,7 @@ func (ms *SQLStorage) UpdateJSON(ctx context.Context, data []byte) ([]byte, erro
 		return nil, fmt.Errorf("json conver error: %w", err)
 	}
 
-	db, err := sql.Open("pgx", ms.ConnectDBString)
-	if err != nil {
-		return nil, fmt.Errorf("connect database error: %w", err)
-	}
-	defer db.Close()
-
-	item, err := ms.updateOneMetric(ctx, metric, db)
+	item, err := ms.updateOneMetric(ctx, metric, ms.con)
 	if err != nil {
 		return nil, err
 	}
@@ -225,21 +219,23 @@ func (ms *SQLStorage) UpdateJSONSlice(ctx context.Context, data []byte) ([]byte,
 		return nil, fmt.Errorf("json conver error: %w", err)
 	}
 
-	db, err := sql.Open("pgx", ms.ConnectDBString)
-	if err != nil {
-		return nil, fmt.Errorf("connect database error: %w", err)
-	}
-	defer db.Close()
-
 	for _, item := range metrics {
 		switch item.MType {
 		case "counter":
-			_, err = ms.updateCounter(ctx, item.ID, *item.Delta, db)
+			if item.Delta == nil {
+				ms.Logger.Debug("skip counter metric update. Metric's delta is nil: ", item.ID)
+				continue
+			}
+			_, err := ms.updateCounter(ctx, item.ID, *item.Delta, ms.con)
 			if err != nil {
 				return nil, err
 			}
 		case "gauge":
-			_, err = ms.updateGauge(ctx, item.ID, *item.Value, db)
+			if item.Value == nil {
+				ms.Logger.Debug("skip gauge metric update. Metric's value is nil: ", item.ID)
+				continue
+			}
+			_, err := ms.updateGauge(ctx, item.ID, *item.Value, ms.con)
 			if err != nil {
 				return nil, err
 			}

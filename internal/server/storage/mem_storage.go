@@ -74,7 +74,7 @@ func (ms *memStorage) GetMetric(ctx context.Context, mType string, mName string)
 	case "gauge":
 		for key, val := range ms.Gauges {
 			if key == mName {
-				return fmt.Sprint(val), nil
+				return strconv.FormatFloat(val, 'f', -1, 64), nil
 			}
 		}
 	case "counter":

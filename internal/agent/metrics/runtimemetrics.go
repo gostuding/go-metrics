@@ -124,29 +124,33 @@ func (ms *metricsStorage) UpdateMetrics() {
 
 // отправка метрик
 func (ms *metricsStorage) SendMetrics(IP string, port int, gzipCompress bool) {
+	URL := fmt.Sprintf("http://%s:%d/update/", IP, port)
+
 	for _, metric := range ms.MetricsSlice {
-		if err := sendJSONToServer(IP, port, metric, gzipCompress); err != nil {
-			ms.Logger.Warn(err)
+		body, err := json.Marshal(metric)
+		if err != nil {
+			ms.Logger.Warn("metric convert to json error: %s", err)
+			continue
+		}
+		if err := sendJSONToServer(URL, body, gzipCompress); err != nil {
+			ms.Logger.Warnf("send json metric error: %w", err)
 			continue
 		}
 		if metric.ID == "PollCount" && metric.MType == "counter" {
-			ms.MetricsSlice["PollCount"] = metrics{ID: "PollCount", MType: "counter"}
+			delta := int64(0)
+			ms.MetricsSlice["PollCount"] = metrics{ID: "PollCount", MType: "counter", Delta: &delta}
 		}
 	}
-	ms.Logger.Debugln("Metrics send iteration finished")
+
+	ms.Logger.Debugln("Metrics json send iteration finished")
 }
 
 // отправка запроса к серверу
-func sendJSONToServer(IP string, port int, metric metrics, compress bool) error {
-	body, err := json.Marshal(metric)
-	if err != nil {
-		return fmt.Errorf("metric convert error: %s", err)
-	}
-	client := http.Client{}
+func sendJSONToServer(URL string, body []byte, compress bool) error {
 	if compress {
 		var b bytes.Buffer
 		gz := gzip.NewWriter(&b)
-		_, err = gz.Write(body)
+		_, err := gz.Write(body)
 		if err != nil {
 			return fmt.Errorf("compress error: %w", err)
 		}
@@ -156,7 +160,9 @@ func sendJSONToServer(IP string, port int, metric metrics, compress bool) error 
 		}
 		body = b.Bytes()
 	}
-	req, err := http.NewRequest("POST", fmt.Sprintf("http://%s:%d/update/", IP, port), bytes.NewReader(body))
+
+	client := http.Client{}
+	req, err := http.NewRequest("POST", URL, bytes.NewReader(body))
 	if err != nil {
 		return fmt.Errorf("request create error: %w", err)
 	}
@@ -165,11 +171,11 @@ func sendJSONToServer(IP string, port int, metric metrics, compress bool) error 
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		return fmt.Errorf("send metric '%s' error: '%w'", metric.ID, err)
+		return fmt.Errorf("send error: '%w'", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("send metric '%v' statusCode error: %d", metric.ID, resp.StatusCode)
+		return fmt.Errorf("statusCode error: %d", resp.StatusCode)
 	}
 	return nil
 }
@@ -180,46 +186,16 @@ func (ms *metricsStorage) SendMetricsSlice(IP string, port int, gzipCompress boo
 	for _, item := range ms.MetricsSlice {
 		mSlice = append(mSlice, item)
 	}
+
 	body, err := json.Marshal(mSlice)
 	if err != nil {
 		ms.Logger.Warnf("metrics slice conver error: %w", err)
 		return
 	}
-	client := http.Client{}
-	if gzipCompress {
-		var b bytes.Buffer
-		gz := gzip.NewWriter(&b)
-		_, err = gz.Write(body)
-		if err != nil {
-			ms.Logger.Warnf("compress metrics json error: %w", err)
-			return
-		}
-		err = gz.Close()
-		if err != nil {
-			ms.Logger.Warnf("compressor close error: %w", err)
-			return
-		}
-		body = b.Bytes()
-	}
 
-	req, err := http.NewRequest("POST", fmt.Sprintf("http://%s:%d/updates/", IP, port), bytes.NewReader(body))
-	if err != nil {
-		ms.Logger.Warnf("request create error: %w", err)
-		return
-	}
-	if gzipCompress {
-		req.Header.Add("Content-Encoding", "gzip")
-	}
-
-	resp, err := client.Do(req)
+	err = sendJSONToServer(fmt.Sprintf("http://%s:%d/updates/", IP, port), body, gzipCompress)
 	if err != nil {
 		ms.Logger.Warnf("send metrics slice error: '%w'", err)
-		return
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		ms.Logger.Warnf("send metrics slice statusCode error: %d", resp.StatusCode)
 		return
 	}
 
@@ -229,5 +205,6 @@ func (ms *metricsStorage) SendMetricsSlice(IP string, port int, gzipCompress boo
 			ms.MetricsSlice["PollCount"] = metrics{ID: "PollCount", MType: "counter", Delta: &delta}
 		}
 	}
-	ms.Logger.Debugln("Metrics send iteration finished")
+
+	ms.Logger.Debugln("Metrics slice send done")
 }
