@@ -218,7 +218,11 @@ func (ms *SQLStorage) UpdateJSONSlice(ctx context.Context, data []byte) ([]byte,
 	if err != nil {
 		return nil, fmt.Errorf("json conver error: %w", err)
 	}
-
+	sqtx, err := ms.con.Begin()
+	if err != nil {
+		return nil, fmt.Errorf("transaction create error: %w", err)
+	}
+	defer sqtx.Rollback()
 	for _, item := range metrics {
 		switch item.MType {
 		case "counter":
@@ -226,7 +230,7 @@ func (ms *SQLStorage) UpdateJSONSlice(ctx context.Context, data []byte) ([]byte,
 				ms.Logger.Debug("skip counter metric update. Metric's delta is nil: ", item.ID)
 				continue
 			}
-			_, err := ms.updateCounter(ctx, item.ID, *item.Delta, ms.con)
+			_, err := ms.updateCounter(ctx, item.ID, *item.Delta, sqtx)
 			if err != nil {
 				return nil, err
 			}
@@ -235,11 +239,15 @@ func (ms *SQLStorage) UpdateJSONSlice(ctx context.Context, data []byte) ([]byte,
 				ms.Logger.Debug("skip gauge metric update. Metric's value is nil: ", item.ID)
 				continue
 			}
-			_, err := ms.updateGauge(ctx, item.ID, *item.Value, ms.con)
+			_, err := ms.updateGauge(ctx, item.ID, *item.Value, sqtx)
 			if err != nil {
 				return nil, err
 			}
 		}
+	}
+	err = sqtx.Commit()
+	if err != nil {
+		return nil, fmt.Errorf("transaction commit error: %w", err)
 	}
 	return nil, nil
 }

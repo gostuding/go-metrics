@@ -2,7 +2,6 @@ package storage
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,7 +9,6 @@ import (
 	"os"
 	"sort"
 	"strconv"
-	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
@@ -187,19 +185,19 @@ func (ms *memStorage) GetMetricJSON(ctx context.Context, data []byte) ([]byte, e
 
 // проверка подключения к БД
 func (ms *memStorage) PingDB(ctx context.Context) error {
-	if ms.ConnectDBString == "" {
-		return fmt.Errorf("connect DB string undefined")
-	}
-	db, err := sql.Open("pgx", ms.ConnectDBString)
-	if err != nil {
-		return fmt.Errorf("database connect error: %w", err)
-	}
-	defer db.Close()
-	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
-	defer cancel()
-	if err = db.PingContext(ctx); err != nil {
-		return fmt.Errorf("check database ping error: %w", err)
-	}
+	// if ms.ConnectDBString == "" {
+	// 	return fmt.Errorf("connect DB string undefined")
+	// }
+	// db, err := sql.Open("pgx", ms.ConnectDBString)
+	// if err != nil {
+	// 	return fmt.Errorf("database connect error: %w", err)
+	// }
+	// defer db.Close()
+	// ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
+	// defer cancel()
+	// if err = db.PingContext(ctx); err != nil {
+	// 	return fmt.Errorf("check database ping error: %w", err)
+	// }
 	return nil
 }
 
@@ -261,8 +259,11 @@ func getSortedKeysInt(items map[string]int64) []string {
 	return keys
 }
 
-// загрузка хранилища из файла
-func (ms *memStorage) fromFileRestore() error {
+// восстановление данных из хранилища
+func (ms *memStorage) restore() error {
+	if !ms.Restore {
+		return nil
+	}
 	file, err := os.OpenFile(ms.SavePath, os.O_RDONLY|os.O_CREATE, 0644)
 	if err != nil {
 		return err
@@ -276,67 +277,7 @@ func (ms *memStorage) fromFileRestore() error {
 	return nil
 }
 
-// загрузка хранилища из БД
-func (ms *memStorage) fromDBRestore() error {
-	// проверка подключения к БД
-	db, err := sql.Open("pgx", ms.ConnectDBString)
-	if err != nil {
-		return fmt.Errorf("database connect error: %v", err)
-	}
-
-	rows, err := db.Query("Select name, value from counters;")
-	if err != nil {
-		return fmt.Errorf("select counters error: %v", err)
-	}
-	if rows.Err() != nil {
-		return fmt.Errorf("select counters error: %v", rows.Err())
-	}
-	for rows.Next() {
-		var name string
-		var value int64
-		err := rows.Scan(&name, &value)
-		if err != nil {
-			return fmt.Errorf("scan counters values error: %v", err)
-		}
-		ms.Counters[name] = value
-	}
-
-	rows, err = db.Query("Select name, value from gauges;")
-	if err != nil {
-		return fmt.Errorf("select gauges error: %v", err)
-	}
-	if rows.Err() != nil {
-		return fmt.Errorf("select gauges error: %v", rows.Err())
-	}
-	for rows.Next() {
-		var name string
-		var value float64
-		err := rows.Scan(&name, &value)
-		if err != nil {
-			return fmt.Errorf("scan gauges values error: %v", err)
-		}
-		ms.Gauges[name] = value
-	}
-
-	return nil
-}
-
-// восстановление данных из хранилища
-func (ms *memStorage) restore() error {
-	if !ms.Restore {
-		return nil
-	}
-	if ms.ConnectDBString == "" {
-		return ms.fromFileRestore()
-	}
-	err := checkDatabaseStructure(ms.ConnectDBString)
-	if err != nil {
-		return fmt.Errorf("check database structure error: %v", err)
-	}
-	return ms.fromDBRestore()
-}
-
-func (ms *memStorage) saveInFile() error {
+func (ms *memStorage) Save() error {
 	file, err := os.OpenFile(ms.SavePath, os.O_WRONLY|os.O_TRUNC, 0644)
 	if err != nil {
 		return err
@@ -351,52 +292,4 @@ func (ms *memStorage) saveInFile() error {
 		return err
 	}
 	return nil
-}
-
-func (ms *memStorage) saveInDatabase() error {
-	db, err := sql.Open("pgx", ms.ConnectDBString)
-	if err != nil {
-		return fmt.Errorf("database connect error: %v", err)
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-
-	transaction, err := db.Begin()
-	if err != nil {
-		return fmt.Errorf("transaction create error: %v", err)
-	}
-	defer transaction.Rollback()
-
-	_, err = transaction.ExecContext(ctx, "Delete from gauges")
-	if err != nil {
-		return fmt.Errorf("clear gauges table error: %v", err)
-	}
-	_, err = transaction.ExecContext(ctx, "Delete from counters")
-	if err != nil {
-		return fmt.Errorf("clear counters table error: %v", err)
-	}
-	for key, value := range ms.Gauges {
-		_, err = transaction.ExecContext(ctx, "Insert into gauges (name, value) values($1, $2);", key, value)
-		if err != nil {
-			return fmt.Errorf("save gauge ('%s') value (%f) error: %v", key, value, err)
-		}
-	}
-	for key, value := range ms.Counters {
-		_, err = transaction.ExecContext(ctx, "Insert into counters (name, value) values($1, $2);", key, value)
-		if err != nil {
-			return fmt.Errorf("save gauge ('%s') value (%d) error: %v", key, value, err)
-		}
-	}
-	err = transaction.Commit()
-	if err != nil {
-		return fmt.Errorf("transaction error: %v", err)
-	}
-	return nil
-}
-
-func (ms *memStorage) Save() error {
-	if ms.ConnectDBString == "" {
-		return ms.saveInFile()
-	}
-	return ms.saveInDatabase()
 }

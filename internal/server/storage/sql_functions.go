@@ -16,7 +16,7 @@ func sqlTablesMaps() *map[string]sqlColumns {
 	counters["name"] = "50"
 	counters["value"] = 0
 
-	gauges["id"] = 0
+	gauges["ID"] = 0
 	gauges["name"] = "50"
 	gauges["value"] = 0.0
 
@@ -33,7 +33,7 @@ func createTable(ctx context.Context, name string, values map[string]any, sql *s
 		case int, int16, int32, int64, uint16, uint32, uint64:
 			items = append(items, fmt.Sprintf("%s bigserial", key))
 		case string:
-			items = append(items, fmt.Sprintf("%s varchar(%s)", key, val))
+			items = append(items, fmt.Sprintf("%s varchar(%s) UNIQUE", key, val))
 		case bool:
 			items = append(items, fmt.Sprintf("%s boolean", key))
 		case time.Time:
@@ -144,37 +144,22 @@ func (ms *SQLStorage) getGauge(ctx context.Context, name string) (*float64, erro
 }
 
 func (ms *SQLStorage) updateCounter(ctx context.Context, name string, value int64, connect SQLQueryInterface) (*int64, error) {
-	val, err := ms.getCounter(ctx, name)
 
-	if err == nil {
-		value += *val
-		_, err = connect.ExecContext(ctx, "Update counters set value=$2 where name=$1;", name, value)
-		if err != nil {
-			return &value, fmt.Errorf("counter update error: %w", err)
-		}
-	} else if val != nil {
-		_, err = connect.ExecContext(ctx, "Insert into counters (name, value) values($1, $2);", name, value)
-		if err != nil {
-			return &value, fmt.Errorf("counter insert error: %w", err)
-		}
+	query := `INSERT INTO counters(name, value) values($1, $2) ON CONFLICT (name) DO 
+	UPDATE SET value=(select SUM(hr) from (SELECT $2 as hr UNION ALL select SUM(value) as hr from counters where name=$1)t) 
+	WHERE counters.name=$1;`
+	_, err := connect.ExecContext(ctx, query, name, value)
+	if err != nil {
+		return &value, fmt.Errorf("counters update error:%s %d: %w", name, value, err)
 	}
-
 	return &value, err
 }
 
 func (ms *SQLStorage) updateGauge(ctx context.Context, name string, value float64, connect SQLQueryInterface) (*float64, error) {
-	val, err := ms.getGauge(ctx, name)
 
-	if err == nil {
-		_, err = connect.ExecContext(ctx, "Update gauges set value=$2 where name=$1;", name, value)
-		if err != nil {
-			return &value, fmt.Errorf("gauge update error: %w", err)
-		}
-	} else if val != nil {
-		_, err = connect.ExecContext(ctx, "Insert into gauges (name, value) values($1, $2);", name, value)
-		if err != nil {
-			return &value, fmt.Errorf("gauge insert error: %w", err)
-		}
+	_, err := connect.ExecContext(ctx, "INSERT INTO gauges(name, value) values($1, $2) ON CONFLICT (name) DO UPDATE SET value=$2 where gauges.name=$1;", name, value)
+	if err != nil {
+		return &value, fmt.Errorf("gauges update error: %w", err)
 	}
 
 	return &value, err
