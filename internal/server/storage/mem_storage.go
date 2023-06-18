@@ -185,19 +185,6 @@ func (ms *memStorage) GetMetricJSON(ctx context.Context, data []byte) ([]byte, e
 
 // проверка подключения к БД
 func (ms *memStorage) PingDB(ctx context.Context) error {
-	// if ms.ConnectDBString == "" {
-	// 	return fmt.Errorf("connect DB string undefined")
-	// }
-	// db, err := sql.Open("pgx", ms.ConnectDBString)
-	// if err != nil {
-	// 	return fmt.Errorf("database connect error: %w", err)
-	// }
-	// defer db.Close()
-	// ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
-	// defer cancel()
-	// if err = db.PingContext(ctx); err != nil {
-	// 	return fmt.Errorf("check database ping error: %w", err)
-	// }
 	return nil
 }
 
