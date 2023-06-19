@@ -15,12 +15,11 @@ import (
 
 // Структура для хранения данных о метриках
 type memStorage struct {
-	Gauges          map[string]float64 `json:"gauges"`
-	Counters        map[string]int64   `json:"counters"`
-	Restore         bool               `json:"-"`
-	SavePath        string             `json:"-"`
-	SaveInterval    int                `json:"-"`
-	ConnectDBString string             `json:"-"`
+	Gauges       map[string]float64 `json:"gauges"`
+	Counters     map[string]int64   `json:"counters"`
+	Restore      bool               `json:"-"`
+	SavePath     string             `json:"-"`
+	SaveInterval int                `json:"-"`
 }
 
 // струтктура не экспоритуемая, т.к. сейчас это не нужно
@@ -31,14 +30,13 @@ type metric struct {
 	Value *float64 `json:"value,omitempty"` // значение метрики в случае передачи gauge
 }
 
-func NewMemStorage(restore bool, filePath string, saveInterval int, DBconnect string) (*memStorage, error) {
+func NewMemStorage(restore bool, filePath string, saveInterval int) (*memStorage, error) {
 	storage := memStorage{
-		Gauges:          make(map[string]float64),
-		Counters:        make(map[string]int64),
-		Restore:         restore,
-		SavePath:        filePath,
-		SaveInterval:    saveInterval,
-		ConnectDBString: DBconnect,
+		Gauges:       make(map[string]float64),
+		Counters:     make(map[string]int64),
+		Restore:      restore,
+		SavePath:     filePath,
+		SaveInterval: saveInterval,
 	}
 	return &storage, storage.restore()
 }

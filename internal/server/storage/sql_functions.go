@@ -146,8 +146,7 @@ func (ms *SQLStorage) getGauge(ctx context.Context, name string) (*float64, erro
 func (ms *SQLStorage) updateCounter(ctx context.Context, name string, value int64, connect SQLQueryInterface) (*int64, error) {
 
 	query := `INSERT INTO counters(name, value) values($1, $2) ON CONFLICT (name) DO 
-	UPDATE SET value=(select SUM(hr) from (SELECT $2 as hr UNION ALL select SUM(value) as hr from counters where name=$1)t) 
-	WHERE counters.name=$1;`
+	UPDATE SET value=EXCLUDED.value+counters.value;`
 	_, err := connect.ExecContext(ctx, query, name, value)
 	if err != nil {
 		return &value, fmt.Errorf("counters update error:%s %d: %w", name, value, err)
@@ -157,7 +156,7 @@ func (ms *SQLStorage) updateCounter(ctx context.Context, name string, value int6
 
 func (ms *SQLStorage) updateGauge(ctx context.Context, name string, value float64, connect SQLQueryInterface) (*float64, error) {
 
-	_, err := connect.ExecContext(ctx, "INSERT INTO gauges(name, value) values($1, $2) ON CONFLICT (name) DO UPDATE SET value=$2 where gauges.name=$1;", name, value)
+	_, err := connect.ExecContext(ctx, "INSERT INTO gauges(name, value) values($1, $2) ON CONFLICT (name) DO UPDATE SET value=EXCLUDED.value;", name, value)
 	if err != nil {
 		return &value, fmt.Errorf("gauges update error: %w", err)
 	}

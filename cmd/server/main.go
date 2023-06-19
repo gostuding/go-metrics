@@ -19,6 +19,11 @@ func checkForError(err error, logger *zap.SugaredLogger) {
 	}
 }
 
+func run(cfg *server.Config, logger *zap.SugaredLogger, strg server.Storage, lastErr error) {
+	checkForError(lastErr, logger)
+	checkForError(server.RunServer(cfg, strg, logger), logger)
+}
+
 func main() {
 	cfg, err := server.GetFlags()
 	checkForError(err, nil)
@@ -27,12 +32,10 @@ func main() {
 
 	if cfg.ConnectDBString != "" {
 		strg, err := storage.NewSQLStorage(cfg.ConnectDBString, logger)
-		checkForError(err, logger)
-		checkForError(server.RunServer(cfg, strg, logger), logger)
+		run(cfg, logger, strg, err)
 	} else {
-		storage, err := storage.NewMemStorage(cfg.Restore, cfg.FileStorePath, cfg.StoreInterval, cfg.ConnectDBString)
-		checkForError(err, logger)
-		checkForError(server.RunServer(cfg, storage, logger), logger)
+		storage, err := storage.NewMemStorage(cfg.Restore, cfg.FileStorePath, cfg.StoreInterval)
+		run(cfg, logger, storage, err)
 	}
 
 }

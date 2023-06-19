@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"go.uber.org/zap"
@@ -18,17 +19,17 @@ type SQLStorage struct {
 	Logger          *zap.SugaredLogger
 }
 
-func NewSQLStorage(DBconnect string, logger *zap.SugaredLogger) (*SQLStorage, error) {
-	db, err := sql.Open("pgx", DBconnect)
+func NewSQLStorage(dsn string, logger *zap.SugaredLogger) (*SQLStorage, error) {
+	db, err := sql.Open("pgx", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("connect database crate error: %w", err)
 	}
 	storage := SQLStorage{
 		con:             db,
-		ConnectDBString: DBconnect,
+		ConnectDBString: dsn,
 		Logger:          logger,
 	}
-	return &storage, checkDatabaseStructure(DBconnect)
+	return &storage, checkDatabaseStructure(dsn)
 }
 
 func (ms *SQLStorage) Update(ctx context.Context, mType string, mName string, mValue string) error {
@@ -188,10 +189,6 @@ func (ms *SQLStorage) Save() error {
 
 // проверка подключения к БД
 func (ms *SQLStorage) PingDB(ctx context.Context) error {
-	if ms.ConnectDBString == "" {
-		return fmt.Errorf("connect DB string undefined")
-	}
-
 	if err := ms.con.PingContext(ctx); err != nil {
 		return fmt.Errorf("check database ping error: %w", err)
 	}
@@ -211,6 +208,13 @@ func (ms *SQLStorage) Clear(ctx context.Context) error {
 	return nil
 }
 
+func replaceName(name string) string {
+	for strings.Contains(name, "''") {
+		name = strings.Replace(name, "''", "'", -1)
+	}
+	return strings.Replace(name, "'", "''", -1)
+}
+
 // обновление через json slice
 func (ms *SQLStorage) UpdateJSONSlice(ctx context.Context, data []byte) ([]byte, error) {
 	var metrics []metric
@@ -218,11 +222,10 @@ func (ms *SQLStorage) UpdateJSONSlice(ctx context.Context, data []byte) ([]byte,
 	if err != nil {
 		return nil, fmt.Errorf("json conver error: %w", err)
 	}
-	sqtx, err := ms.con.Begin()
-	if err != nil {
-		return nil, fmt.Errorf("transaction create error: %w", err)
-	}
-	defer sqtx.Rollback()
+
+	// сбор дубликатов метрик
+	countersLst := make(map[string]int64)
+	gaugeLst := make(map[string]float64)
 	for _, item := range metrics {
 		switch item.MType {
 		case "counter":
@@ -230,21 +233,49 @@ func (ms *SQLStorage) UpdateJSONSlice(ctx context.Context, data []byte) ([]byte,
 				ms.Logger.Debug("skip counter metric update. Metric's delta is nil: ", item.ID)
 				continue
 			}
-			_, err := ms.updateCounter(ctx, item.ID, *item.Delta, sqtx)
-			if err != nil {
-				return nil, err
-			}
+			countersLst[replaceName(item.ID)] += *item.Delta
 		case "gauge":
 			if item.Value == nil {
 				ms.Logger.Debug("skip gauge metric update. Metric's value is nil: ", item.ID)
 				continue
 			}
-			_, err := ms.updateGauge(ctx, item.ID, *item.Value, sqtx)
-			if err != nil {
-				return nil, err
-			}
+			gaugeLst[replaceName(item.ID)] = *item.Value
 		}
 	}
+
+	// запись данных а БД
+	sqtx, err := ms.con.Begin()
+	if err != nil {
+		return nil, fmt.Errorf("transaction create error: %w", err)
+	}
+	defer sqtx.Rollback()
+
+	if len(countersLst) > 0 {
+		rs := make([]string, 0)
+		for key, value := range countersLst {
+			rs = append(rs, fmt.Sprintf("('%s', %d)", key, value))
+		}
+		query := "INSERT INTO counters (name, value) values " + strings.Join(rs, ",") +
+			" ON CONFLICT (name) DO UPDATE SET value=EXCLUDED.value+counters.value;"
+		_, err = sqtx.ExecContext(ctx, query)
+		if err != nil {
+			return nil, fmt.Errorf("insert counters query (%s) error: %w", query, err)
+		}
+	}
+
+	if len(gaugeLst) > 0 {
+		rs := make([]string, 0)
+		for key, value := range gaugeLst {
+			rs = append(rs, fmt.Sprintf("('%s', %s)", key, strconv.FormatFloat(value, 'f', -1, 64)))
+		}
+		query := "INSERT INTO gauges (name, value) values " + strings.Join(rs, ",") +
+			" ON CONFLICT (name) DO UPDATE SET value=EXCLUDED.value;"
+		_, err = sqtx.ExecContext(ctx, query)
+		if err != nil {
+			return nil, fmt.Errorf("insert gauges slise error: %w", err)
+		}
+	}
+
 	err = sqtx.Commit()
 	if err != nil {
 		return nil, fmt.Errorf("transaction commit error: %w", err)
