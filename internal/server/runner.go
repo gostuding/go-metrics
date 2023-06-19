@@ -51,7 +51,7 @@ func saveStorageBeforeFinish(storage Storage, logger *zap.SugaredLogger) {
 	if err == nil {
 		logger.Info("save storage before finish")
 	} else {
-		logger.Warnln("save storage in finish error:", err)
+		logger.Warnln("save storage in finish error", err)
 	}
 	os.Exit(0)
 }
