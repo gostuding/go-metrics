@@ -73,6 +73,7 @@ func makeMap(r *runtime.MemStats, pollCount *int64) map[string]any {
 	mass["HeapObjects"] = r.HeapObjects
 	mass["HeapReleased"] = r.HeapReleased
 	mass["HeapSys"] = r.HeapSys
+	mass["LastGC"] = r.LastGC
 	mass["Lookups"] = r.Lookups
 	mass["MCacheInuse"] = r.MCacheInuse
 	mass["MCacheSys"] = r.MCacheSys
