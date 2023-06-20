@@ -208,11 +208,48 @@ func (ms *SQLStorage) Clear(ctx context.Context) error {
 	return nil
 }
 
-func replaceName(name string) string {
-	for strings.Contains(name, "''") {
-		name = strings.Replace(name, "''", "'", -1)
+func sliceInsert(ctx context.Context, sqtx *sql.Tx, tbl string, mp map[string]string, excl string) error {
+	if len(mp) == 0 {
+		return nil
 	}
-	return strings.Replace(name, "'", "''", -1)
+	rs := make([]string, 0)
+	values := make([]any, 0)
+	for key, val := range mp {
+		rs = append(rs, fmt.Sprintf("($%d, $%d)", len(rs)*2+1, len(rs)*2+2))
+		values = append(values, key)
+		values = append(values, val)
+	}
+	query := "INSERT INTO " + tbl + " (name, value) values " + strings.Join(rs, ",") +
+		" ON CONFLICT (name) DO UPDATE SET value=EXCLUDED.value" + excl + ";"
+	_, err := sqtx.ExecContext(ctx, query, values...)
+	return err
+}
+
+func mkMetricsMaps(metrics []metric, logger *zap.SugaredLogger) (map[string]string, map[string]string) {
+	// сбор дубликатов метрик и суммирование для counters
+	countersLst := make(map[string]int64)
+	gaugeLst := make(map[string]string)
+	for _, item := range metrics {
+		switch item.MType {
+		case "counter":
+			if item.Delta == nil {
+				logger.Debug("skip counter metric update. Metric's delta is nil: ", item.ID)
+				continue
+			}
+			countersLst[item.ID] += *item.Delta
+		case "gauge":
+			if item.Value == nil {
+				logger.Debug("skip gauge metric update. Metric's value is nil: ", item.ID)
+				continue
+			}
+			gaugeLst[item.ID] = strconv.FormatFloat(*item.Value, 'f', -1, 64)
+		}
+	}
+	countersString := make(map[string]string)
+	for key, value := range countersLst {
+		countersString[key] = fmt.Sprintf("%d", value)
+	}
+	return countersString, gaugeLst
 }
 
 // обновление через json slice
@@ -223,61 +260,26 @@ func (ms *SQLStorage) UpdateJSONSlice(ctx context.Context, data []byte) ([]byte,
 		return nil, fmt.Errorf("json conver error: %w", err)
 	}
 
-	// сбор дубликатов метрик
-	countersLst := make(map[string]int64)
-	gaugeLst := make(map[string]float64)
-	for _, item := range metrics {
-		switch item.MType {
-		case "counter":
-			if item.Delta == nil {
-				ms.Logger.Debug("skip counter metric update. Metric's delta is nil: ", item.ID)
-				continue
-			}
-			countersLst[replaceName(item.ID)] += *item.Delta
-		case "gauge":
-			if item.Value == nil {
-				ms.Logger.Debug("skip gauge metric update. Metric's value is nil: ", item.ID)
-				continue
-			}
-			gaugeLst[replaceName(item.ID)] = *item.Value
-		}
-	}
-
 	// запись данных а БД
 	sqtx, err := ms.con.Begin()
 	if err != nil {
 		return nil, fmt.Errorf("transaction create error: %w", err)
 	}
-	defer sqtx.Rollback()
 
-	if len(countersLst) > 0 {
-		rs := make([]string, 0)
-		for key, value := range countersLst {
-			rs = append(rs, fmt.Sprintf("('%s', %d)", key, value))
-		}
-		query := "INSERT INTO counters (name, value) values " + strings.Join(rs, ",") +
-			" ON CONFLICT (name) DO UPDATE SET value=EXCLUDED.value+counters.value;"
-		_, err = sqtx.ExecContext(ctx, query)
-		if err != nil {
-			return nil, fmt.Errorf("insert counters query (%s) error: %w", query, err)
-		}
+	counters, gauges := mkMetricsMaps(metrics, ms.Logger)
+	err = sliceInsert(ctx, sqtx, "counters", counters, "+counters.value")
+	if err != nil {
+		return nil, fmt.Errorf("insert counters slice error: %w", err)
 	}
-
-	if len(gaugeLst) > 0 {
-		rs := make([]string, 0)
-		for key, value := range gaugeLst {
-			rs = append(rs, fmt.Sprintf("('%s', %s)", key, strconv.FormatFloat(value, 'f', -1, 64)))
-		}
-		query := "INSERT INTO gauges (name, value) values " + strings.Join(rs, ",") +
-			" ON CONFLICT (name) DO UPDATE SET value=EXCLUDED.value;"
-		_, err = sqtx.ExecContext(ctx, query)
-		if err != nil {
-			return nil, fmt.Errorf("insert gauges slise error: %w", err)
-		}
+	err = sliceInsert(ctx, sqtx, "gauges", gauges, "")
+	if err != nil {
+		sqtx.Rollback()
+		return nil, fmt.Errorf("insert gauges slice error: %w", err)
 	}
 
 	err = sqtx.Commit()
 	if err != nil {
+		sqtx.Rollback()
 		return nil, fmt.Errorf("transaction commit error: %w", err)
 	}
 	return nil, nil

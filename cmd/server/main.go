@@ -2,40 +2,37 @@ package main
 
 import (
 	"log"
-	"os"
 
 	"github.com/gostuding/go-metrics/internal/server"
 	"github.com/gostuding/go-metrics/internal/server/storage"
-	"go.uber.org/zap"
 )
 
-func checkForError(err error, logger *zap.SugaredLogger) {
+func run() error {
+	cfg, err := server.GetFlags()
 	if err != nil {
-		if logger != nil {
-			logger.Warnln(err)
-			os.Exit(1)
-		}
-		log.Fatalln(err)
+		return err
 	}
-}
+	logger, err := server.InitLogger()
+	if err != nil {
+		return err
+	}
 
-func run(cfg *server.Config, logger *zap.SugaredLogger, strg server.Storage, lastErr error) {
-	checkForError(lastErr, logger)
-	checkForError(server.RunServer(cfg, strg, logger), logger)
+	var strg server.Storage
+	var strErr error
+	if cfg.ConnectDBString == "" {
+		strg, strErr = storage.NewMemStorage(cfg.Restore, cfg.FileStorePath, cfg.StoreInterval)
+	} else {
+		strg, strErr = storage.NewSQLStorage(cfg.ConnectDBString, logger)
+	}
+	if strErr != nil {
+		return strErr
+	}
+	return server.RunServer(cfg, strg, logger)
 }
 
 func main() {
-	cfg, err := server.GetFlags()
-	checkForError(err, nil)
-	logger, err := server.InitLogger()
-	checkForError(err, nil)
-
-	if cfg.ConnectDBString != "" {
-		strg, err := storage.NewSQLStorage(cfg.ConnectDBString, logger)
-		run(cfg, logger, strg, err)
-	} else {
-		storage, err := storage.NewMemStorage(cfg.Restore, cfg.FileStorePath, cfg.StoreInterval)
-		run(cfg, logger, storage, err)
+	err := run()
+	if err != nil {
+		log.Fatal(err)
 	}
-
 }

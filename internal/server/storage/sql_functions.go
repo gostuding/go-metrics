@@ -44,26 +44,10 @@ func createTable(ctx context.Context, name string, values map[string]any, sql *s
 	}
 	context, cansel := context.WithTimeout(ctx, 10*time.Second)
 	defer cansel()
-	query := fmt.Sprintf("Create table %s (%s);", name, strings.Join(items, ","))
+	query := fmt.Sprintf("CREATE TABLE  IF NOT EXISTS %s  (%s);", name, strings.Join(items, ","))
 	_, err := sql.ExecContext(context, query)
 	if err != nil {
 		return fmt.Errorf("create new table ('%s') error: %w ", name, err)
-	}
-	return err
-}
-
-func isTableExist(ctx context.Context, name string, sql *sql.DB) error {
-	context, cansel := context.WithTimeout(ctx, 1*time.Second)
-	defer cansel()
-	query := "Select * from INFORMATION_SCHEMA.TABLES where TABLE_NAME = $1;"
-	rows, err := sql.QueryContext(context, query, name)
-	if rows.Err() != nil {
-		return fmt.Errorf("get table info error in rowa: %w", err)
-	}
-	if err != nil {
-		return fmt.Errorf("get table info error: %s, ERROR: %w", name, err)
-	} else if !rows.Next() {
-		err = fmt.Errorf("table not exist: %s ", name)
 	}
 	return err
 }
@@ -81,11 +65,9 @@ func checkDatabaseStructure(connectionString string) error {
 		return fmt.Errorf("check database ping error: %w", err)
 	}
 	for key, table := range *sqlTablesMaps() {
-		if isTableExist(ctx, key, db) != nil {
-			err := createTable(ctx, key, table, db)
-			if err != nil {
-				return err
-			}
+		err := createTable(ctx, key, table, db)
+		if err != nil {
+			return err
 		}
 	}
 	return nil
