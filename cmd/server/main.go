@@ -5,20 +5,17 @@ import (
 
 	"github.com/gostuding/go-metrics/internal/server"
 	"github.com/gostuding/go-metrics/internal/server/storage"
+	"go.uber.org/zap"
 )
 
-func run() error {
+func run(logger *zap.SugaredLogger) error {
+	var strg server.Storage
+	var strErr error
+
 	cfg, err := server.GetFlags()
 	if err != nil {
 		return err
 	}
-	logger, err := server.InitLogger()
-	if err != nil {
-		return err
-	}
-
-	var strg server.Storage
-	var strErr error
 	if cfg.ConnectDBString == "" {
 		strg, strErr = storage.NewMemStorage(cfg.Restore, cfg.FileStorePath, cfg.StoreInterval)
 	} else {
@@ -28,11 +25,16 @@ func run() error {
 		return strErr
 	}
 	return server.RunServer(cfg, strg, logger)
+
 }
 
 func main() {
-	err := run()
+	logger, err := server.InitLogger()
 	if err != nil {
 		log.Fatal(err)
+	}
+	err = run(logger)
+	if err != nil {
+		logger.Warn(err)
 	}
 }
