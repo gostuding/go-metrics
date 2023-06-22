@@ -14,6 +14,13 @@ type Config struct {
 	FileStorePath   string
 	Restore         bool
 	ConnectDBString string
+	Key             string
+}
+
+func stringEnvCheck(val *string, name string) {
+	if value := os.Getenv("ADDRESS"); value != "" {
+		*val = value
+	}
 }
 
 func GetFlags() (*Config, error) {
@@ -23,11 +30,9 @@ func GetFlags() (*Config, error) {
 	flag.StringVar(&options.FileStorePath, "f", "/tmp/metrics-db.json", "file path for save the storage")
 	flag.BoolVar(&options.Restore, "r", true, "restore storage on start server")
 	flag.StringVar(&options.ConnectDBString, "d", "", "database connect string")
+	flag.StringVar(&options.Key, "k", "", "Key for SHA256 checks")
 	flag.Parse()
 	//-------------------------------------------------------------------------
-	if val := os.Getenv("ADDRESS"); val != "" {
-		options.IPAddress = val
-	}
 	if val := os.Getenv("STORE_INTERVAL"); val != "" {
 		interval, err := strconv.Atoi(val)
 		if err != nil {
@@ -35,13 +40,10 @@ func GetFlags() (*Config, error) {
 		}
 		options.StoreInterval = interval
 	}
-	if val := os.Getenv("FILE_STORAGE_PATH"); val != "" {
-		options.FileStorePath = val
-	}
-
-	if val := os.Getenv("DATABASE_DSN"); val != "" {
-		options.ConnectDBString = val
-	}
+	stringEnvCheck(&options.IPAddress, "ADDRESS")
+	stringEnvCheck(&options.FileStorePath, "FILE_STORAGE_PATH")
+	stringEnvCheck(&options.ConnectDBString, "DATABASE_DSN")
+	stringEnvCheck(&options.Key, "KEY")
 
 	val := strings.ToLower(os.Getenv("RESTORE"))
 	switch val {

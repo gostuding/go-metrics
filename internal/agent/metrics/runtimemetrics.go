@@ -123,7 +123,7 @@ func (ms *metricsStorage) UpdateMetrics() {
 }
 
 // отправка метрик
-func (ms *metricsStorage) SendMetrics(IP string, port int, gzipCompress bool) {
+func (ms *metricsStorage) SendMetrics(IP string, port int, gzipCompress bool, key string) {
 	URL := fmt.Sprintf("http://%s:%d/update/", IP, port)
 
 	for _, metric := range ms.MetricsSlice {
@@ -132,7 +132,7 @@ func (ms *metricsStorage) SendMetrics(IP string, port int, gzipCompress bool) {
 			ms.Logger.Warn("metric convert to json error: %s", err)
 			continue
 		}
-		if err := sendJSONToServer(URL, body, gzipCompress); err != nil {
+		if err := sendJSONToServer(URL, body, gzipCompress, key); err != nil {
 			ms.Logger.Warnf("send json metric error: %w", err)
 			continue
 		}
@@ -146,7 +146,7 @@ func (ms *metricsStorage) SendMetrics(IP string, port int, gzipCompress bool) {
 }
 
 // отправка запроса к серверу
-func sendJSONToServer(URL string, body []byte, compress bool) error {
+func sendJSONToServer(URL string, body []byte, compress bool, key string) error {
 	if compress {
 		var b bytes.Buffer
 		gz := gzip.NewWriter(&b)
@@ -181,7 +181,7 @@ func sendJSONToServer(URL string, body []byte, compress bool) error {
 }
 
 // отправка метрик списком
-func (ms *metricsStorage) SendMetricsSlice(IP string, port int, gzipCompress bool) {
+func (ms *metricsStorage) SendMetricsSlice(IP string, port int, gzipCompress bool, key string) {
 	mSlice := make([]metrics, 0)
 	for _, item := range ms.MetricsSlice {
 		mSlice = append(mSlice, item)
@@ -193,7 +193,7 @@ func (ms *metricsStorage) SendMetricsSlice(IP string, port int, gzipCompress boo
 		return
 	}
 
-	err = sendJSONToServer(fmt.Sprintf("http://%s:%d/updates/", IP, port), body, gzipCompress)
+	err = sendJSONToServer(fmt.Sprintf("http://%s:%d/updates/", IP, port), body, gzipCompress, key)
 	if err != nil {
 		ms.Logger.Warnf("send metrics slice error: '%w'", err)
 		return

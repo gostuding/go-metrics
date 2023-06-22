@@ -16,6 +16,7 @@ type Config struct {
 	ReportInterval      int
 	ReportSliceInterval int
 	GzipCompress        bool
+	Key                 string
 }
 
 // функция для удовлетворения интерфейсу flag.Value
@@ -74,14 +75,22 @@ func envToInt(envName string, def int) (int, error) {
 	return def, nil
 }
 
+func envToString(envName string, def string) string {
+	if value := os.Getenv(envName); value != "" {
+		return value
+	}
+	return def
+}
+
 // получение и проверка флагов и переменных окружения
 func GetFlags() (Config, error) {
-	agentArgs := Config{"", 8080, 2, 10, 3, false}
+	agentArgs := Config{"", 8080, 2, 10, 3, false, ""}
 	flag.Var(&agentArgs, "a", "Net address like 'host:port'")
 	flag.IntVar(&agentArgs.PollInterval, "p", 2, "Poll metricks interval")
 	flag.IntVar(&agentArgs.ReportInterval, "r", 10, "Report metricks interval")
 	flag.IntVar(&agentArgs.ReportSliceInterval, "rs", 25, "Report metricks by slice interval")
 	flag.BoolVar(&agentArgs.GzipCompress, "gzip", true, "Use gzip compress in requests")
+	flag.StringVar(&agentArgs.Key, "k", "", "Key for SHA256")
 	flag.Parse()
 
 	if address := os.Getenv("ADDRESS"); address != "" {
@@ -100,6 +109,6 @@ func GetFlags() (Config, error) {
 	if err != nil {
 		return agentArgs, err
 	}
-
+	agentArgs.Key = envToString("KEY", agentArgs.Key)
 	return agentArgs, agentArgs.validate()
 }

@@ -1,7 +1,11 @@
 package server
 
 import (
+	"bytes"
 	"compress/gzip"
+	"crypto/hmac"
+	"crypto/sha256"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -154,6 +158,69 @@ func loggerMiddleware(logger *zap.SugaredLogger) func(h http.Handler) http.Handl
 				"status", rWriter.status,
 				"size", rWriter.size,
 			)
+		}
+		return http.HandlerFunc(fn)
+	}
+}
+
+// ----------------------------------------------------------------------
+
+// структура для проверки hash в заголовке
+type hashReader struct {
+	reader *bytes.Reader
+}
+
+func newHashReader(r *http.Request, key []byte) (*hashReader, error) {
+	data, err := io.ReadAll(r.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read request body error: %w", err)
+	}
+	err = r.Body.Close()
+	if err != nil {
+		return nil, fmt.Errorf("close request body error: %w", err)
+	}
+	if len(data) > 0 {
+		headerHash := r.Header.Get("HashSHA256")
+		if headerHash == "" {
+			return nil, fmt.Errorf("header HashSHA256 undefined, data: %x", data)
+		}
+		h := hmac.New(sha256.New, key)
+		_, err = h.Write(data)
+		if err != nil {
+			return nil, fmt.Errorf("write hash summ error: %w", err)
+		}
+		hashSum := fmt.Sprintf("%x", h.Sum(nil))
+		if headerHash != hashSum {
+			return nil, fmt.Errorf("request body hash check error. hash must be: %s, get: %s", hashSum, headerHash)
+		}
+		if err != nil {
+			return nil, err
+		}
+	}
+	return &hashReader{reader: bytes.NewReader(data)}, nil
+}
+
+func (c *hashReader) Read(p []byte) (n int, err error) {
+	return c.reader.Read(p) // чтени данных и их распаковка
+}
+
+func (c *hashReader) Close() error {
+	return nil
+}
+
+func hashCheckMiddleware(key string, logger *zap.SugaredLogger) func(h http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		fn := func(w http.ResponseWriter, r *http.Request) {
+			if key != "" && r.Method == "POST" {
+				reader, err := newHashReader(r, []byte(key))
+				if err != nil {
+					w.WriteHeader(http.StatusBadRequest)
+					logger.Warnf("hash (%s) checker error: %w", err)
+					return
+				}
+				r.Body = reader
+			}
+			next.ServeHTTP(w, r)
 		}
 		return http.HandlerFunc(fn)
 	}
