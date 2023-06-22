@@ -35,6 +35,6 @@ func main() {
 	}
 	err = run(logger)
 	if err != nil {
-		logger.Warn(err)
+		logger.Fatalln(err)
 	}
 }
