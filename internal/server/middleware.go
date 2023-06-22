@@ -175,23 +175,19 @@ func newHashReader(r *http.Request, key []byte) (*hashReader, error) {
 	if err != nil {
 		return nil, fmt.Errorf("read request body error: %w", err)
 	}
-	err = r.Body.Close()
-	if err != nil {
-		return nil, fmt.Errorf("close request body error: %w", err)
-	}
+	defer r.Body.Close()
 	if len(data) > 0 {
 		headerHash := r.Header.Get("HashSHA256")
-		if headerHash == "" {
-			return nil, fmt.Errorf("header HashSHA256 undefined, data: %x", data)
-		}
-		h := hmac.New(sha256.New, key)
-		_, err = h.Write(data)
-		if err != nil {
-			return nil, fmt.Errorf("write hash summ error: %w", err)
-		}
-		hashSum := fmt.Sprintf("%x", h.Sum(nil))
-		if headerHash != hashSum {
-			return nil, fmt.Errorf("request body hash check error. hash must be: %s, get: %s", hashSum, headerHash)
+		if headerHash != "" {
+			h := hmac.New(sha256.New, key)
+			_, err = h.Write(data)
+			if err != nil {
+				return nil, fmt.Errorf("write hash summ error: %w", err)
+			}
+			hashSum := fmt.Sprintf("%x", h.Sum(nil))
+			if headerHash != hashSum {
+				return nil, fmt.Errorf("request body hash check error. hash must be: %s, get: %s", hashSum, headerHash)
+			}
 		}
 	}
 	return &hashReader{reader: bytes.NewReader(data)}, nil
