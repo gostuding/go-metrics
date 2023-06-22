@@ -17,10 +17,11 @@ type Config struct {
 	Key             string
 }
 
-func stringEnvCheck(val *string, name string) {
-	if value := os.Getenv("ADDRESS"); value != "" {
-		*val = value
+func stringEnvCheck(val string, name string) string {
+	if value := os.Getenv(name); value != "" {
+		return value
 	}
+	return val
 }
 
 func GetFlags() (*Config, error) {
@@ -40,10 +41,10 @@ func GetFlags() (*Config, error) {
 		}
 		options.StoreInterval = interval
 	}
-	stringEnvCheck(&options.IPAddress, "ADDRESS")
-	stringEnvCheck(&options.FileStorePath, "FILE_STORAGE_PATH")
-	stringEnvCheck(&options.ConnectDBString, "DATABASE_DSN")
-	stringEnvCheck(&options.Key, "KEY")
+	options.IPAddress = stringEnvCheck(options.IPAddress, "ADDRESS")
+	options.FileStorePath = stringEnvCheck(options.FileStorePath, "FILE_STORAGE_PATH")
+	options.ConnectDBString = stringEnvCheck(options.ConnectDBString, "DATABASE_DSN")
+	options.Key = stringEnvCheck(options.Key, "KEY")
 
 	val := strings.ToLower(os.Getenv("RESTORE"))
 	switch val {
