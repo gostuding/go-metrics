@@ -193,9 +193,6 @@ func newHashReader(r *http.Request, key []byte) (*hashReader, error) {
 		if headerHash != hashSum {
 			return nil, fmt.Errorf("request body hash check error. hash must be: %s, get: %s", hashSum, headerHash)
 		}
-		if err != nil {
-			return nil, err
-		}
 	}
 	return &hashReader{reader: bytes.NewReader(data)}, nil
 }
