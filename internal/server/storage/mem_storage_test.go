@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"reflect"
 	"testing"
 
@@ -27,7 +28,7 @@ func TestMemStorageAddMetric(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ms, err := NewMemStorage(false, "", 300)
 			assert.NoError(t, err, "error making new memStorage")
-			err = ms.Update(tt.path.mType, tt.path.mName, tt.path.mValue)
+			err = ms.Update(context.Background(), tt.path.mType, tt.path.mName, tt.path.mValue)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Update() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -43,7 +44,7 @@ func TestMemStorageGetMetric(t *testing.T) {
 
 	var gTest = func() map[string]float64 {
 		v := make(map[string]float64)
-		v["item"] = 0.34
+		v["item"] = float64(0.34)
 		return v
 	}
 
@@ -75,7 +76,7 @@ func TestMemStorageGetMetric(t *testing.T) {
 			assert.NoError(t, err, "error making new memStorage")
 			ms.Counters = tt.fields.Counters
 			ms.Gauges = tt.fields.Gauges
-			got, err := ms.GetMetric(tt.args.mType, tt.args.mName)
+			got, err := ms.GetMetric(context.Background(), tt.args.mType, tt.args.mName)
 			if got != tt.want {
 				t.Errorf("function GetMetric() got = %v, want %v", got, tt.want)
 			}
@@ -140,7 +141,7 @@ func TestMemStorage_GetMetricJSON(t *testing.T) {
 			assert.NoError(t, err, "error making new memStorage")
 			ms.Counters = tt.fields.Counters
 			ms.Gauges = tt.fields.Gauges
-			got, err := ms.GetMetricJSON(tt.args.data)
+			got, err := ms.GetMetricJSON(context.Background(), tt.args.data)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("memStorage.GetMetricJSON() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -214,7 +215,7 @@ func TestMemStorage_UpdateJSON(t *testing.T) {
 			assert.NoError(t, err, "error making new memStorage")
 			ms.Counters = tt.fields.Counters
 			ms.Gauges = tt.fields.Gauges
-			got, err := ms.UpdateJSON(tt.args.data)
+			got, err := ms.UpdateJSON(context.Background(), tt.args.data)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("memStorage.UpdateJSON() error = %v, wantErr %v", err, tt.wantErr)
 				return

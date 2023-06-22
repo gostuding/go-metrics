@@ -10,11 +10,12 @@ import (
 )
 
 type Config struct {
-	IP             string
-	Port           int
-	PollInterval   int
-	ReportInterval int
-	GzipCompress   bool
+	IP                  string
+	Port                int
+	PollInterval        int
+	ReportInterval      int
+	ReportSliceInterval int
+	GzipCompress        bool
 }
 
 // функция для удовлетворения интерфейсу flag.Value
@@ -47,6 +48,9 @@ func (n *Config) validate() error {
 	if n.PollInterval <= 0 {
 		return errors.New("args error: POLL_INTERVAL must be greater then 0")
 	}
+	if n.ReportSliceInterval <= 0 {
+		return errors.New("args error: report metric by slice must be greater then 0")
+	}
 	return nil
 }
 
@@ -72,11 +76,12 @@ func envToInt(envName string, def int) (int, error) {
 
 // получение и проверка флагов и переменных окружения
 func GetFlags() (Config, error) {
-	agentArgs := Config{"", 8080, 2, 10, false}
+	agentArgs := Config{"", 8080, 2, 10, 3, false}
 	flag.Var(&agentArgs, "a", "Net address like 'host:port'")
 	flag.IntVar(&agentArgs.PollInterval, "p", 2, "Poll metricks interval")
 	flag.IntVar(&agentArgs.ReportInterval, "r", 10, "Report metricks interval")
-	flag.BoolVar(&agentArgs.GzipCompress, "gzip", false, "Use gzip compress in requests")
+	flag.IntVar(&agentArgs.ReportSliceInterval, "rs", 25, "Report metricks by slice interval")
+	flag.BoolVar(&agentArgs.GzipCompress, "gzip", true, "Use gzip compress in requests")
 	flag.Parse()
 
 	if address := os.Getenv("ADDRESS"); address != "" {
@@ -91,7 +96,7 @@ func GetFlags() (Config, error) {
 	if err != nil {
 		return agentArgs, err
 	}
-	agentArgs.PollInterval, err = envToInt("POLL_INTERVAL", agentArgs.ReportInterval)
+	agentArgs.PollInterval, err = envToInt("POLL_INTERVAL", agentArgs.PollInterval)
 	if err != nil {
 		return agentArgs, err
 	}

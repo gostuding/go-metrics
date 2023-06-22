@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -8,6 +9,8 @@ import (
 	"os"
 	"sort"
 	"strconv"
+
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 // Структура для хранения данных о метриках
@@ -38,7 +41,7 @@ func NewMemStorage(restore bool, filePath string, saveInterval int) (*memStorage
 	return &storage, storage.restore()
 }
 
-func (ms *memStorage) Update(mType string, mName string, mValue string) error {
+func (ms *memStorage) Update(ctx context.Context, mType string, mName string, mValue string) error {
 	switch mType {
 	case "gauge":
 		val, err := strconv.ParseFloat(mValue, 64)
@@ -62,18 +65,18 @@ func (ms *memStorage) Update(mType string, mName string, mValue string) error {
 }
 
 // Получение значения метрики по типу и имени
-func (ms *memStorage) GetMetric(mType string, mName string) (string, error) {
+func (ms *memStorage) GetMetric(ctx context.Context, mType string, mName string) (string, error) {
 	switch mType {
 	case "gauge":
 		for key, val := range ms.Gauges {
 			if key == mName {
-				return fmt.Sprintf("%v", val), nil
+				return strconv.FormatFloat(val, 'f', -1, 64), nil
 			}
 		}
 	case "counter":
 		for key, val := range ms.Counters {
 			if key == mName {
-				return fmt.Sprintf("%v", val), nil
+				return fmt.Sprintf("%d", val), nil
 			}
 		}
 	}
@@ -81,7 +84,7 @@ func (ms *memStorage) GetMetric(mType string, mName string) (string, error) {
 }
 
 // Список всех метрик в html
-func (ms *memStorage) GetMetricsHTML() string {
+func (ms *memStorage) GetMetricsHTML(ctx context.Context) (string, error) {
 	body := "<!doctype html> <html lang='en'> <head> <meta charset='utf-8'> <title>Список метрик</title></head>"
 	body += "<body><header><h1><p>Metrics list</p></h1></header>"
 	index := 1
@@ -97,53 +100,43 @@ func (ms *memStorage) GetMetricsHTML() string {
 		index += 1
 	}
 	body += "</body></html>"
-	return body
+	return body, nil
 }
 
-func getSortedKeysFloat(items map[string]float64) []string {
-	keys := make([]string, 0, len(items))
-	for k := range items {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	return keys
-}
-
-func getSortedKeysInt(items map[string]int64) []string {
-	keys := make([]string, 0, len(items))
-	for k := range items {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	return keys
-}
-
-// обновление через json
-func (ms *memStorage) UpdateJSON(data []byte) ([]byte, error) {
-	var metric metric
-	err := json.Unmarshal(data, &metric)
-	if err != nil {
-		return nil, fmt.Errorf("json conver error: %w", err)
-	}
-	switch metric.MType {
+func (ms *memStorage) updateOneMetric(m metric) (*metric, error) {
+	switch m.MType {
 	case "counter":
-		if metric.Delta != nil {
-			ms.Counters[metric.ID] += *metric.Delta
-			delta := ms.Counters[metric.ID]
-			metric.Delta = &delta
+		if m.Delta != nil {
+			ms.Counters[m.ID] += *m.Delta
+			delta := ms.Counters[m.ID]
+			m.Delta = &delta
 		} else {
 			return nil, errors.New("metric's delta indefined")
 		}
 	case "gauge":
-		if metric.Value != nil {
-			ms.Gauges[metric.ID] += *metric.Value
+		if m.Value != nil {
+			ms.Gauges[m.ID] = *m.Value
 		} else {
 			return nil, errors.New("metric's value indefined")
 		}
 	default:
 		return nil, errors.New("metric type error, use counter like int64 or gauge like float64")
 	}
-	resp, err := json.Marshal(metric)
+	return &m, nil
+}
+
+// обновление через json
+func (ms *memStorage) UpdateJSON(ctx context.Context, data []byte) ([]byte, error) {
+	var metric metric
+	err := json.Unmarshal(data, &metric)
+	if err != nil {
+		return nil, fmt.Errorf("json conver error: %w", err)
+	}
+	item, err := ms.updateOneMetric(metric)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := json.Marshal(item)
 	if err != nil {
 		return nil, fmt.Errorf("convert to json error: %w", err)
 	}
@@ -155,8 +148,8 @@ func (ms *memStorage) UpdateJSON(data []byte) ([]byte, error) {
 	return resp, nil
 }
 
-// обновление через json
-func (ms *memStorage) GetMetricJSON(data []byte) ([]byte, error) {
+// запрос метрик через json
+func (ms *memStorage) GetMetricJSON(ctx context.Context, data []byte) ([]byte, error) {
 	var metric metric
 	err := json.Unmarshal(data, &metric)
 	if err != nil {
@@ -188,7 +181,70 @@ func (ms *memStorage) GetMetricJSON(data []byte) ([]byte, error) {
 	return resp, nil
 }
 
-// загрузка хранилища из файла
+// проверка подключения к БД
+func (ms *memStorage) PingDB(ctx context.Context) error {
+	return nil
+}
+
+// очистка хранилища
+func (ms *memStorage) Clear(ctx context.Context) error {
+	for k := range ms.Counters {
+		delete(ms.Counters, k)
+	}
+	for k := range ms.Gauges {
+		delete(ms.Gauges, k)
+	}
+	ms.Gauges = make(map[string]float64)
+	ms.Counters = make(map[string]int64)
+	return ms.Save()
+}
+
+// обновление через json slice
+func (ms *memStorage) UpdateJSONSlice(ctx context.Context, data []byte) ([]byte, error) {
+	var metrics []metric
+	err := json.Unmarshal(data, &metrics)
+	if err != nil {
+		return nil, fmt.Errorf("json conver error: %w", err)
+	}
+	resp := ""
+	for index, value := range metrics {
+		_, err := ms.updateOneMetric(value)
+		if err != nil {
+			resp += fmt.Sprintf("%d. '%s' update ERROR: %v\n", index+1, value.ID, err)
+		} else {
+			resp += fmt.Sprintf("%d. '%s' update SUCCESS \n", index+1, value.ID)
+		}
+	}
+	if ms.SaveInterval == 0 {
+		if err := ms.Save(); err != nil {
+			return nil, fmt.Errorf("save metric error: %w", err)
+		}
+	}
+	return []byte(resp), nil
+}
+
+// -------------------------------------------------------------------------------------------------
+// внутренние функции хранилища
+// -------------------------------------------------------------------------------------------------
+func getSortedKeysFloat(items map[string]float64) []string {
+	keys := make([]string, 0, len(items))
+	for k := range items {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+func getSortedKeysInt(items map[string]int64) []string {
+	keys := make([]string, 0, len(items))
+	for k := range items {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+// восстановление данных из хранилища
 func (ms *memStorage) restore() error {
 	if !ms.Restore {
 		return nil

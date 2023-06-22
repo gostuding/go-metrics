@@ -13,6 +13,7 @@ type Storage interface {
 	StorageSetter
 	StorageGetter
 	HTMLGetter
+	StorageDB
 }
 
 // получние однотипных данных из адреса запроса
@@ -41,8 +42,18 @@ func makeRouter(storage Storage, logger *zap.SugaredLogger) http.Handler {
 	router.Post("/update/", func(w http.ResponseWriter, r *http.Request) {
 		UpdateJSON(w, r, storage, logger)
 	})
+	router.Post("/updates/", func(w http.ResponseWriter, r *http.Request) {
+		UpdateJSONSLice(w, r, storage, logger)
+	})
 	router.Post("/value/", func(w http.ResponseWriter, r *http.Request) {
 		GetMetricJSON(w, r, storage, logger)
 	})
+	router.Get("/ping", func(w http.ResponseWriter, r *http.Request) {
+		Ping(w, r, storage, logger)
+	})
+	router.Get("/clear", func(w http.ResponseWriter, r *http.Request) {
+		Clear(w, r, storage, logger)
+	})
+
 	return router
 }
