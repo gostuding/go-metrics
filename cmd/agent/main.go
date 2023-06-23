@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	agentArgs, err := agent.GetFlags()
+	cfg, err := agent.GetFlags()
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -17,6 +17,6 @@ func main() {
 	if err != nil {
 		log.Fatalln("create logger error:", err)
 	}
-	storage := metrics.NewMemoryStorage(logger)
-	agent.StartAgent(agentArgs, storage)
+	storage := metrics.NewMemoryStorage(logger, cfg.IP, cfg.Key, cfg.Port, cfg.GzipCompress, cfg.RateLimit)
+	agent.StartAgent(cfg, storage)
 }
