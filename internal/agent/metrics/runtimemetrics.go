@@ -24,7 +24,7 @@ type metricsStorage struct {
 	GzipCompress   bool
 	Key            string
 	UpdateURL      string
-	UpdateSliceUrl string
+	UpdateSliceURL string
 	mx             sync.RWMutex
 	sendChan       chan sendStruct
 	resiveChan     chan resiveStruct
@@ -38,7 +38,7 @@ type metrics struct {
 }
 
 type sendStruct struct {
-	Url      string
+	URL      string
 	Body     []byte
 	Compress bool
 	Key      string
@@ -59,14 +59,14 @@ func NewMemoryStorage(logger *zap.Logger, ip, key string, port int, compress boo
 		GzipCompress:   compress,
 		Key:            key,
 		UpdateURL:      fmt.Sprintf("http://%s:%d/update/", ip, port),
-		UpdateSliceUrl: fmt.Sprintf("http://%s:%d/updates/", ip, port),
+		UpdateSliceURL: fmt.Sprintf("http://%s:%d/updates/", ip, port),
 		sendChan:       make(chan sendStruct, rateLimit),
 		resiveChan:     make(chan resiveStruct, rateLimit),
 	}
 
 	go func() {
 		for item := range mS.sendChan {
-			go mS.sendJSONToServer(item.Url, item.Body, item.Compress, item.Key, item.Metric)
+			go mS.sendJSONToServer(item.URL, item.Body, item.Compress, item.Key, item.Metric)
 		}
 	}()
 	go func() {
@@ -204,7 +204,7 @@ func (ms *metricsStorage) SendMetrics() {
 			ms.Logger.Warn("metric convert to json error: %s", err)
 			continue
 		}
-		sendSlice = append(sendSlice, sendStruct{Url: ms.UpdateURL, Body: body, Compress: ms.GzipCompress, Key: ms.Key, Metric: &metric})
+		sendSlice = append(sendSlice, sendStruct{URL: ms.UpdateURL, Body: body, Compress: ms.GzipCompress, Key: ms.Key, Metric: &metric})
 	}
 	ms.mx.RUnlock()
 	for _, val := range sendSlice {
@@ -228,7 +228,7 @@ func (ms *metricsStorage) SendMetricsSlice() {
 		return
 	}
 
-	ms.sendChan <- sendStruct{Url: ms.UpdateSliceUrl, Body: body, Compress: ms.GzipCompress, Key: ms.Key, Metric: nil}
+	ms.sendChan <- sendStruct{URL: ms.UpdateSliceURL, Body: body, Compress: ms.GzipCompress, Key: ms.Key, Metric: nil}
 	ms.Logger.Debugln("Metrics slice send done")
 }
 
