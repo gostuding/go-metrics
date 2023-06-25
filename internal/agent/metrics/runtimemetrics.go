@@ -69,6 +69,7 @@ func NewMemoryStorage(logger *zap.Logger, ip, key string, port int, compress boo
 			go mS.sendJSONToServer(item.URL, item.Body, item.Compress, item.Key, item.Metric)
 		}
 	}()
+
 	go func() {
 		for item := range mS.resiveChan {
 			if item.Err != nil {
@@ -81,7 +82,6 @@ func NewMemoryStorage(logger *zap.Logger, ip, key string, port int, compress boo
 					mS.mx.Unlock()
 				}
 			}
-
 		}
 	}()
 	return &mS
