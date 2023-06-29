@@ -2,8 +2,6 @@ package server
 
 import (
 	"context"
-	"crypto/hmac"
-	"crypto/sha256"
 	"errors"
 	"fmt"
 	"io"
@@ -166,18 +164,18 @@ type updateMetricsArgs struct {
 	mValue string
 }
 
-func mkHash(writer http.ResponseWriter, body []byte, key string) error {
-	if key == "" {
-		return nil
-	}
-	h := hmac.New(sha256.New, []byte(key))
-	_, err := h.Write(body)
-	if err != nil {
-		return fmt.Errorf("make hash error: %w", err)
-	}
-	writer.Header().Set("HashSHA256", fmt.Sprintf("%x", h.Sum(nil)))
-	return nil
-}
+// func mkHash(writer http.ResponseWriter, body, key []byte) error {
+// 	if key == nil {
+// 		return nil
+// 	}
+// 	h := hmac.New(sha256.New, key)
+// 	_, err := h.Write(body)
+// 	if err != nil {
+// 		return fmt.Errorf("make hash error: %w", err)
+// 	}
+// 	writer.Header().Set("HashSHA256", fmt.Sprintf("%x", h.Sum(nil)))
+// 	return nil
+// }
 
 // Обработка запроса на добавление или изменение метрики
 func Update(writer http.ResponseWriter, request *http.Request, storage StorageSetter, metric updateMetricsArgs, logger *zap.SugaredLogger) {
@@ -193,27 +191,27 @@ func Update(writer http.ResponseWriter, request *http.Request, storage StorageSe
 
 // Обработка запроса значения метрики
 func GetMetric(writer http.ResponseWriter, request *http.Request, storage StorageGetter, metric getMetricsArgs,
-	logger *zap.SugaredLogger, key string) {
+	logger *zap.SugaredLogger, key []byte) {
 	body, err := sseRepeater(storage.GetMetric, request.Context(), metric.mType, metric.mName)
 	if err != nil {
 		writer.WriteHeader(http.StatusNotFound)
 		logger.Warn(err)
 		return
 	}
-	err = mkHash(writer, []byte(body), key)
-	if err != nil {
-		logger.Warnln(err)
-	}
-	writer.WriteHeader(http.StatusOK)
+	// err = mkHash(writer, []byte(body), key)
+	// if err != nil {
+	// 	logger.Warnln(err)
+	// }
 	_, err = writer.Write([]byte(body))
 	if err != nil {
 		logger.Warnf("write data to client error: %w", err)
 	}
+	writer.WriteHeader(http.StatusOK)
 }
 
 // Запрос всех метрик в html
 func GetAllMetrics(writer http.ResponseWriter, request *http.Request, storage HTMLGetter,
-	logger *zap.SugaredLogger, key string) {
+	logger *zap.SugaredLogger, key []byte) {
 	writer.Header().Set("Content-Type", "text/html")
 	body, err := seRepeater(storage.GetMetricsHTML, request.Context())
 	if err != nil {
@@ -221,20 +219,20 @@ func GetAllMetrics(writer http.ResponseWriter, request *http.Request, storage HT
 		logger.Warnf("get metrics in html error: %w", err)
 		return
 	}
-	err = mkHash(writer, []byte(body), key)
-	if err != nil {
-		logger.Warnln(err)
-	}
-	writer.WriteHeader(http.StatusOK)
+	// err = mkHash(writer, []byte(body), key)
+	// if err != nil {
+	// 	logger.Warnln(err)
+	// }
 	_, err = writer.Write([]byte(body))
 	if err != nil {
 		logger.Warnf("write metrics data to client error: %w", err)
 	}
+	writer.WriteHeader(http.StatusOK)
 }
 
 // обновление в JSON формате
 func UpdateJSON(writer http.ResponseWriter, request *http.Request, storage StorageSetter,
-	logger *zap.SugaredLogger, key string) {
+	logger *zap.SugaredLogger, key []byte) {
 	writer.Header().Set("Content-Type", "application/json")
 	data, err := io.ReadAll(request.Body)
 	if err != nil {
@@ -249,20 +247,20 @@ func UpdateJSON(writer http.ResponseWriter, request *http.Request, storage Stora
 		return
 	}
 	logger.Debug("update metric by json success")
-	err = mkHash(writer, []byte(body), key)
-	if err != nil {
-		logger.Warnln(err)
-	}
-	writer.WriteHeader(http.StatusOK)
+	// err = mkHash(writer, []byte(body), key)
+	// if err != nil {
+	// 	logger.Warnln(err)
+	// }
 	_, err = writer.Write(body)
 	if err != nil {
 		logger.Warnf("write data to client error: %w", err)
 	}
+	writer.WriteHeader(http.StatusOK)
 }
 
 // получение метрики в JSON формате
 func GetMetricJSON(writer http.ResponseWriter, request *http.Request, storage StorageGetter,
-	logger *zap.SugaredLogger, key string) {
+	logger *zap.SugaredLogger, key []byte) {
 	writer.Header().Set("Content-Type", "application/json")
 	data, err := io.ReadAll(request.Body)
 	if err != nil {
@@ -280,15 +278,15 @@ func GetMetricJSON(writer http.ResponseWriter, request *http.Request, storage St
 		logger.Warnf("get metric json error: %w", err)
 		return
 	}
-	err = mkHash(writer, []byte(body), key)
-	if err != nil {
-		logger.Warnln(err)
-	}
-	writer.WriteHeader(http.StatusOK)
+	// err = mkHash(writer, []byte(body), key)
+	// if err != nil {
+	// 	logger.Warnln(err)
+	// }
 	_, err = writer.Write(body)
 	if err != nil {
 		logger.Warnf("get metric json, write data to client error: %w", err)
 	}
+	writer.WriteHeader(http.StatusOK)
 }
 
 // проверка подключения к БД
@@ -319,7 +317,7 @@ func Clear(writer http.ResponseWriter, request *http.Request, storage StorageDB,
 
 // обновление списком json
 func UpdateJSONSLice(writer http.ResponseWriter, request *http.Request, storage StorageSetter,
-	logger *zap.SugaredLogger, key string) {
+	logger *zap.SugaredLogger, key []byte) {
 	writer.Header().Set("Content-Type", "text/html")
 	data, err := io.ReadAll(request.Body)
 	if err != nil {
@@ -334,15 +332,15 @@ func UpdateJSONSLice(writer http.ResponseWriter, request *http.Request, storage 
 		logger.Warnf("update metrics list error: %w", err)
 		return
 	}
-	err = mkHash(writer, []byte(body), key)
-	if err != nil {
-		logger.Warnln(err)
-	}
-	writer.WriteHeader(http.StatusOK)
+	// err = mkHash(writer, []byte(body), key)
+	// if err != nil {
+	// 	logger.Warnln(err)
+	// }
 
 	logger.Debug("update metrics by json list success")
 	_, err = writer.Write(body)
 	if err != nil {
 		logger.Warnf("write data to client error: %w", err)
 	}
+	writer.WriteHeader(http.StatusOK)
 }

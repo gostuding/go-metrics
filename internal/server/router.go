@@ -25,10 +25,10 @@ func getParams(r *http.Request) getMetricsArgs {
 }
 
 // формирование доступных адресов
-func makeRouter(storage Storage, logger *zap.SugaredLogger, key string) http.Handler {
+func makeRouter(storage Storage, logger *zap.SugaredLogger, key []byte) http.Handler {
 	router := chi.NewRouter()
 
-	router.Use(middleware.RealIP, hashCheckMiddleware(key, logger), gzipMiddleware(logger), loggerMiddleware(logger), middleware.Recoverer)
+	router.Use(middleware.RealIP, hashCheckMiddleware(key, logger, false), gzipMiddleware(logger), loggerMiddleware(logger), middleware.Recoverer)
 
 	router.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		GetAllMetrics(w, r, storage, logger, key)

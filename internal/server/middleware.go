@@ -107,8 +107,7 @@ func (c *gzipReader) Close() error {
 	return c.gzip.Close()
 }
 
-//----------------------------------------------------------------------
-
+// ----------------------------------------------------------------------
 func gzipMiddleware(logger *zap.SugaredLogger) func(h http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
@@ -201,19 +200,52 @@ func (c *hashReader) Close() error {
 	return nil
 }
 
-func hashCheckMiddleware(key string, logger *zap.SugaredLogger) func(h http.Handler) http.Handler {
+type hashWriter struct {
+	http.ResponseWriter
+	key         []byte
+	body        []byte
+	writeHeader bool
+}
+
+func newHashWriter(r http.ResponseWriter, key []byte, wh bool) *hashWriter {
+	return &hashWriter{ResponseWriter: r, key: key, body: nil, writeHeader: wh}
+}
+
+func (r *hashWriter) Write(b []byte) (int, error) {
+	if r.key != nil {
+		data := append(r.body[:], b[:]...)
+		h := hmac.New(sha256.New, r.key)
+		_, err := h.Write(data)
+		if err != nil {
+			return 0, fmt.Errorf("write body hash summ error: %w", err)
+		}
+		r.body = data
+		r.Header().Set("HashSHA256", fmt.Sprintf("%x", h.Sum(nil)))
+	}
+	return r.ResponseWriter.Write(b)
+}
+
+func (r *hashWriter) WriteHeader(statusCode int) {
+	if r.writeHeader {
+		r.ResponseWriter.WriteHeader(statusCode)
+	}
+}
+
+func hashCheckMiddleware(key []byte, logger *zap.SugaredLogger, writeHeaderStatus bool) func(h http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
-			if key != "" && r.Method == "POST" {
-				reader, err := newHashReader(r, []byte(key))
+			if len(key) > 0 && r.Method == "POST" {
+				reader, err := newHashReader(r, key)
 				if err != nil {
 					w.WriteHeader(http.StatusBadRequest)
 					logger.Warnf("hash (%s) checker error: %w", err)
 					return
 				}
 				r.Body = reader
+				next.ServeHTTP(newHashWriter(w, key, writeHeaderStatus), r)
+			} else {
+				next.ServeHTTP(w, r)
 			}
-			next.ServeHTTP(w, r)
 		}
 		return http.HandlerFunc(fn)
 	}

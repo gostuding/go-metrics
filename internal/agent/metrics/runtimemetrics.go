@@ -3,8 +3,12 @@ package metrics
 import (
 	"bytes"
 	"compress/gzip"
+	"crypto/hmac"
+	"crypto/sha256"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"math/rand"
 	"net/http"
 	"runtime"
@@ -22,7 +26,7 @@ type metricsStorage struct {
 	IP             string
 	Port           int
 	GzipCompress   bool
-	Key            string
+	Key            []byte
 	UpdateURL      string
 	UpdateSliceURL string
 	mx             sync.RWMutex
@@ -41,7 +45,7 @@ type sendStruct struct {
 	URL      string
 	Body     []byte
 	Compress bool
-	Key      string
+	Key      []byte
 	Metric   *metrics
 }
 
@@ -50,7 +54,7 @@ type resiveStruct struct {
 	Err    error
 }
 
-func NewMemoryStorage(logger *zap.Logger, ip, key string, port int, compress bool, rateLimit int) *metricsStorage {
+func NewMemoryStorage(logger *zap.Logger, ip string, key []byte, port int, compress bool, rateLimit int) *metricsStorage {
 	mS := metricsStorage{
 		MetricsSlice:   make(map[string]metrics),
 		Logger:         logger.Sugar(),
@@ -161,6 +165,10 @@ func (ms *metricsStorage) addMetric(name string, value any) {
 	}
 }
 
+func (ms *metricsStorage) IsSendAvailable() bool {
+	return len(ms.sendChan) < cap(ms.resiveChan)
+}
+
 func (ms *metricsStorage) UpdateAditionalMetrics() {
 	memory, err := mem.VirtualMemory()
 	if err != nil {
@@ -227,13 +235,12 @@ func (ms *metricsStorage) SendMetricsSlice() {
 		ms.Logger.Warnf("metrics slice conver error: %w", err)
 		return
 	}
-
 	ms.sendChan <- sendStruct{URL: ms.UpdateSliceURL, Body: body, Compress: ms.GzipCompress, Key: ms.Key, Metric: nil}
 	ms.Logger.Debugln("Metrics slice send done")
 }
 
 // отправка запроса к серверу
-func (ms *metricsStorage) sendJSONToServer(URL string, body []byte, compress bool, key string, metric *metrics) {
+func (ms *metricsStorage) sendJSONToServer(URL string, body []byte, compress bool, key []byte, metric *metrics) {
 	if compress {
 		var b bytes.Buffer
 		gz := gzip.NewWriter(&b)
@@ -259,6 +266,15 @@ func (ms *metricsStorage) sendJSONToServer(URL string, body []byte, compress boo
 	if compress {
 		req.Header.Add("Content-Encoding", "gzip")
 	}
+	if key != nil {
+		h := hmac.New(sha256.New, key)
+		_, err = h.Write(body)
+		if err != nil {
+			ms.resiveChan <- resiveStruct{Err: fmt.Errorf("write hash summ error: '%w'", err), Metric: metric}
+			return
+		}
+		req.Header.Add("HashSHA256", fmt.Sprintf("%x", h.Sum(nil)))
+	}
 	resp, err := client.Do(req)
 	if err != nil {
 		ms.resiveChan <- resiveStruct{Err: fmt.Errorf("send error: '%w'", err), Metric: metric}
@@ -269,6 +285,22 @@ func (ms *metricsStorage) sendJSONToServer(URL string, body []byte, compress boo
 		ms.resiveChan <- resiveStruct{Err: fmt.Errorf("statusCode error: %d", resp.StatusCode), Metric: metric}
 		return
 	}
-
+	if key != nil {
+		data, err := io.ReadAll(resp.Body)
+		if err != nil {
+			ms.resiveChan <- resiveStruct{Err: fmt.Errorf("responce body read error: %w", err), Metric: metric}
+			return
+		}
+		hash := hmac.New(sha256.New, key)
+		_, err = hash.Write(data)
+		if err != nil {
+			ms.resiveChan <- resiveStruct{Err: fmt.Errorf("responce read hash summ error: '%w'", err), Metric: metric}
+			return
+		}
+		if resp.Header.Get("HashSHA256") != fmt.Sprintf("%x", hash.Sum(nil)) {
+			ms.resiveChan <- resiveStruct{Err: errors.New("check responce hash summ error"), Metric: metric}
+			return
+		}
+	}
 	ms.resiveChan <- resiveStruct{Err: nil, Metric: metric}
 }
