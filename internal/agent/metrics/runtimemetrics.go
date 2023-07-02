@@ -46,7 +46,7 @@ type sendStruct struct {
 	Body     []byte
 	Compress bool
 	Key      []byte
-	Metric   *metrics
+	Metric   metrics
 }
 
 type resiveStruct struct {
@@ -70,7 +70,7 @@ func NewMemoryStorage(logger *zap.Logger, ip string, key []byte, port int, compr
 
 	go func() {
 		for item := range mS.sendChan {
-			go mS.sendJSONToServer(item.URL, item.Body, item.Compress, item.Key, item.Metric)
+			go mS.sendJSONToServer(item.URL, item.Body, item.Compress, item.Key, &item.Metric)
 		}
 	}()
 
@@ -79,12 +79,12 @@ func NewMemoryStorage(logger *zap.Logger, ip string, key []byte, port int, compr
 			if item.Err != nil {
 				mS.Logger.Warnf("send error: %w", item.Err)
 			} else {
-				if item.Metric == nil || (item.Metric.ID == "PollCount" && item.Metric.MType == "counter") {
-					delta := int64(0)
-					mS.mx.Lock()
+				mS.mx.Lock()
+				if item.Metric.ID == "PollCount" {
+					delta := *mS.MetricsSlice["PollCount"].Delta - *item.Metric.Delta
 					mS.MetricsSlice["PollCount"] = metrics{ID: "PollCount", MType: "counter", Delta: &delta}
-					mS.mx.Unlock()
 				}
+				mS.mx.Unlock()
 			}
 		}
 	}()
@@ -166,7 +166,7 @@ func (ms *metricsStorage) addMetric(name string, value any) {
 }
 
 func (ms *metricsStorage) IsSendAvailable() bool {
-	return len(ms.sendChan) < cap(ms.resiveChan)
+	return len(ms.sendChan) < cap(ms.sendChan)
 }
 
 func (ms *metricsStorage) UpdateAditionalMetrics() {
@@ -212,11 +212,16 @@ func (ms *metricsStorage) SendMetrics() {
 			ms.Logger.Warn("metric convert to json error: %s", err)
 			continue
 		}
-		sendSlice = append(sendSlice, sendStruct{URL: ms.UpdateURL, Body: body, Compress: ms.GzipCompress, Key: ms.Key, Metric: &metric})
+		sendSlice = append(sendSlice, sendStruct{URL: ms.UpdateURL, Body: body, Compress: ms.GzipCompress,
+			Key: ms.Key, Metric: metric})
 	}
 	ms.mx.RUnlock()
 	for _, val := range sendSlice {
-		ms.sendChan <- val
+		if len(ms.sendChan) < cap(ms.sendChan) {
+			ms.sendChan <- val
+		} else {
+			ms.Logger.Warnf("send metric's (%s) value error. Chang is full\n", val.Metric.ID)
+		}
 	}
 	ms.Logger.Debugln("Metrics json send iteration finished")
 }
@@ -225,18 +230,23 @@ func (ms *metricsStorage) SendMetricsSlice() {
 	mSlice := make([]metrics, 0)
 
 	ms.mx.RLock()
+	defer ms.mx.RUnlock()
 	for _, item := range ms.MetricsSlice {
 		mSlice = append(mSlice, item)
 	}
-	ms.mx.RUnlock()
 
 	body, err := json.Marshal(mSlice)
 	if err != nil {
 		ms.Logger.Warnf("metrics slice conver error: %w", err)
 		return
 	}
-	ms.sendChan <- sendStruct{URL: ms.UpdateSliceURL, Body: body, Compress: ms.GzipCompress, Key: ms.Key, Metric: nil}
-	ms.Logger.Debugln("Metrics slice send done")
+	if len(ms.sendChan) < cap(ms.sendChan) {
+		ms.sendChan <- sendStruct{URL: ms.UpdateSliceURL, Body: body, Compress: ms.GzipCompress,
+			Key: ms.Key, Metric: ms.MetricsSlice["PollCount"]}
+		ms.Logger.Debugln("Metrics slice send done")
+	} else {
+		ms.Logger.Warnln("send metric slice error. Chang is full.")
+	}
 }
 
 // отправка запроса к серверу

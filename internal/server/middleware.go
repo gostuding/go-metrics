@@ -163,13 +163,31 @@ func loggerMiddleware(logger *zap.SugaredLogger) func(h http.Handler) http.Handl
 }
 
 // ----------------------------------------------------------------------
-
-// структура для проверки hash в заголовке
-type hashReader struct {
-	reader *bytes.Reader
+type hashWriter struct {
+	http.ResponseWriter
+	key  []byte
+	body []byte
 }
 
-func newHashReader(r *http.Request, key []byte) (*hashReader, error) {
+func newHashWriter(r http.ResponseWriter, key []byte, wh bool) *hashWriter {
+	return &hashWriter{ResponseWriter: r, key: key, body: nil}
+}
+
+func (r *hashWriter) Write(b []byte) (int, error) {
+	if r.key != nil {
+		data := append(r.body[:], b[:]...)
+		h := hmac.New(sha256.New, r.key)
+		_, err := h.Write(data)
+		if err != nil {
+			return 0, fmt.Errorf("write body hash summ error: %w", err)
+		}
+		r.body = data
+		r.Header().Set("HashSHA256", fmt.Sprintf("%x", h.Sum(nil)))
+	}
+	return r.ResponseWriter.Write(b)
+}
+
+func checkBodyHash(r *http.Request, key []byte) (*[]byte, error) {
 	data, err := io.ReadAll(r.Body)
 	if err != nil {
 		return nil, fmt.Errorf("read request body error: %w", err)
@@ -189,59 +207,20 @@ func newHashReader(r *http.Request, key []byte) (*hashReader, error) {
 			}
 		}
 	}
-	return &hashReader{reader: bytes.NewReader(data)}, nil
-}
-
-func (c *hashReader) Read(p []byte) (n int, err error) {
-	return c.reader.Read(p) // чтени данных и их распаковка
-}
-
-func (c *hashReader) Close() error {
-	return nil
-}
-
-type hashWriter struct {
-	http.ResponseWriter
-	key         []byte
-	body        []byte
-	writeHeader bool
-}
-
-func newHashWriter(r http.ResponseWriter, key []byte, wh bool) *hashWriter {
-	return &hashWriter{ResponseWriter: r, key: key, body: nil, writeHeader: wh}
-}
-
-func (r *hashWriter) Write(b []byte) (int, error) {
-	if r.key != nil {
-		data := append(r.body[:], b[:]...)
-		h := hmac.New(sha256.New, r.key)
-		_, err := h.Write(data)
-		if err != nil {
-			return 0, fmt.Errorf("write body hash summ error: %w", err)
-		}
-		r.body = data
-		r.Header().Set("HashSHA256", fmt.Sprintf("%x", h.Sum(nil)))
-	}
-	return r.ResponseWriter.Write(b)
-}
-
-func (r *hashWriter) WriteHeader(statusCode int) {
-	if r.writeHeader {
-		r.ResponseWriter.WriteHeader(statusCode)
-	}
+	return &data, nil
 }
 
 func hashCheckMiddleware(key []byte, logger *zap.SugaredLogger, writeHeaderStatus bool) func(h http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			if len(key) > 0 && r.Method == "POST" {
-				reader, err := newHashReader(r, key)
+				body, err := checkBodyHash(r, key)
 				if err != nil {
 					w.WriteHeader(http.StatusBadRequest)
-					logger.Warnf("hash (%s) checker error: %w", err)
+					logger.Warnf("hash checker error: %w", err)
 					return
 				}
-				r.Body = reader
+				r.Body = io.NopCloser(bytes.NewReader(*body))
 				next.ServeHTTP(newHashWriter(w, key, writeHeaderStatus), r)
 			} else {
 				next.ServeHTTP(w, r)

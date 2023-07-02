@@ -164,19 +164,6 @@ type updateMetricsArgs struct {
 	mValue string
 }
 
-// func mkHash(writer http.ResponseWriter, body, key []byte) error {
-// 	if key == nil {
-// 		return nil
-// 	}
-// 	h := hmac.New(sha256.New, key)
-// 	_, err := h.Write(body)
-// 	if err != nil {
-// 		return fmt.Errorf("make hash error: %w", err)
-// 	}
-// 	writer.Header().Set("HashSHA256", fmt.Sprintf("%x", h.Sum(nil)))
-// 	return nil
-// }
-
 // Обработка запроса на добавление или изменение метрики
 func Update(writer http.ResponseWriter, request *http.Request, storage StorageSetter, metric updateMetricsArgs, logger *zap.SugaredLogger) {
 	err := ssseRepeater(storage.Update, request.Context(), metric.base.mType, metric.base.mName, metric.mValue)
@@ -198,15 +185,10 @@ func GetMetric(writer http.ResponseWriter, request *http.Request, storage Storag
 		logger.Warn(err)
 		return
 	}
-	// err = mkHash(writer, []byte(body), key)
-	// if err != nil {
-	// 	logger.Warnln(err)
-	// }
 	_, err = writer.Write([]byte(body))
 	if err != nil {
 		logger.Warnf("write data to client error: %w", err)
 	}
-	writer.WriteHeader(http.StatusOK)
 }
 
 // Запрос всех метрик в html
@@ -219,15 +201,10 @@ func GetAllMetrics(writer http.ResponseWriter, request *http.Request, storage HT
 		logger.Warnf("get metrics in html error: %w", err)
 		return
 	}
-	// err = mkHash(writer, []byte(body), key)
-	// if err != nil {
-	// 	logger.Warnln(err)
-	// }
 	_, err = writer.Write([]byte(body))
 	if err != nil {
 		logger.Warnf("write metrics data to client error: %w", err)
 	}
-	writer.WriteHeader(http.StatusOK)
 }
 
 // обновление в JSON формате
@@ -247,15 +224,10 @@ func UpdateJSON(writer http.ResponseWriter, request *http.Request, storage Stora
 		return
 	}
 	logger.Debug("update metric by json success")
-	// err = mkHash(writer, []byte(body), key)
-	// if err != nil {
-	// 	logger.Warnln(err)
-	// }
 	_, err = writer.Write(body)
 	if err != nil {
 		logger.Warnf("write data to client error: %w", err)
 	}
-	writer.WriteHeader(http.StatusOK)
 }
 
 // получение метрики в JSON формате
@@ -278,15 +250,10 @@ func GetMetricJSON(writer http.ResponseWriter, request *http.Request, storage St
 		logger.Warnf("get metric json error: %w", err)
 		return
 	}
-	// err = mkHash(writer, []byte(body), key)
-	// if err != nil {
-	// 	logger.Warnln(err)
-	// }
 	_, err = writer.Write(body)
 	if err != nil {
 		logger.Warnf("get metric json, write data to client error: %w", err)
 	}
-	writer.WriteHeader(http.StatusOK)
 }
 
 // проверка подключения к БД
@@ -332,15 +299,10 @@ func UpdateJSONSLice(writer http.ResponseWriter, request *http.Request, storage 
 		logger.Warnf("update metrics list error: %w", err)
 		return
 	}
-	// err = mkHash(writer, []byte(body), key)
-	// if err != nil {
-	// 	logger.Warnln(err)
-	// }
 
 	logger.Debug("update metrics by json list success")
 	_, err = writer.Write(body)
 	if err != nil {
 		logger.Warnf("write data to client error: %w", err)
 	}
-	writer.WriteHeader(http.StatusOK)
 }

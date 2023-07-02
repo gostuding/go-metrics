@@ -10,14 +10,13 @@ import (
 )
 
 type Config struct {
-	IP                  string
-	Port                int
-	PollInterval        int
-	ReportInterval      int
-	ReportSliceInterval int
-	GzipCompress        bool
-	Key                 []byte
-	RateLimit           int
+	IP             string
+	Port           int
+	PollInterval   int
+	ReportInterval int
+	GzipCompress   bool
+	Key            []byte
+	RateLimit      int
 }
 
 // функция для удовлетворения интерфейсу flag.Value
@@ -49,9 +48,6 @@ func (n *Config) validate() error {
 	}
 	if n.PollInterval <= 0 {
 		return errors.New("args error: POLL_INTERVAL must be greater then 0")
-	}
-	if n.ReportSliceInterval <= 0 {
-		return errors.New("args error: report metric by slice must be greater then 0")
 	}
 	if n.RateLimit <= 0 {
 		return errors.New("args error: rate limit must be greater then 0")
@@ -88,12 +84,11 @@ func envToString(envName string, def string) string {
 
 // получение и проверка флагов и переменных окружения
 func GetFlags() (Config, error) {
-	agentArgs := Config{"", 8080, 2, 10, 3, false, nil, 5}
+	agentArgs := Config{"", 8080, 2, 10, false, nil, 5}
 	var key string
 	flag.Var(&agentArgs, "a", "Net address like 'host:port'")
 	flag.IntVar(&agentArgs.PollInterval, "p", 2, "Poll metricks interval")
 	flag.IntVar(&agentArgs.ReportInterval, "r", 10, "Report metricks interval")
-	flag.IntVar(&agentArgs.ReportSliceInterval, "rs", 25, "Report metricks by slice interval")
 	flag.IntVar(&agentArgs.RateLimit, "l", 5, "Rate limit")
 	flag.BoolVar(&agentArgs.GzipCompress, "gzip", true, "Use gzip compress in requests")
 	flag.StringVar(&key, "k", "", "Key for SHA256")
