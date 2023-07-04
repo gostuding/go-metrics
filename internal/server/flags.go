@@ -14,8 +14,7 @@ type Config struct {
 	FileStorePath   string
 	Restore         bool
 	ConnectDBString string
-	// Key             string
-	Key []byte
+	Key             []byte
 }
 
 func stringEnvCheck(val string, name string) string {

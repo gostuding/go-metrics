@@ -8,9 +8,7 @@ import (
 type Storager interface {
 	UpdateMetrics()
 	UpdateAditionalMetrics()
-	SendMetrics()
 	SendMetricsSlice()
-	IsSendAvailable() bool
 }
 
 // бесконечный цикл отправки данных
@@ -25,7 +23,7 @@ func StartAgent(args Config, storage Storager) {
 			go storage.UpdateMetrics()
 			go storage.UpdateAditionalMetrics()
 		case <-reportTicker.C:
-			go storage.SendMetricsSlice()
+			storage.SendMetricsSlice()
 		}
 	}
 }
