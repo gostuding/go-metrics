@@ -25,28 +25,28 @@ func getParams(r *http.Request) getMetricsArgs {
 }
 
 // формирование доступных адресов
-func makeRouter(storage Storage, logger *zap.SugaredLogger) http.Handler {
+func makeRouter(storage Storage, logger *zap.SugaredLogger, key []byte) http.Handler {
 	router := chi.NewRouter()
 
-	router.Use(middleware.RealIP, gzipMiddleware(logger), loggerMiddleware(logger), middleware.Recoverer)
+	router.Use(middleware.RealIP, hashCheckMiddleware(key, logger, false), gzipMiddleware(logger), loggerMiddleware(logger), middleware.Recoverer)
 
 	router.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		GetAllMetrics(w, r, storage, logger)
+		GetAllMetrics(w, r, storage, logger, key)
+	})
+	router.Post("/value/", func(w http.ResponseWriter, r *http.Request) {
+		GetMetricJSON(w, r, storage, logger, key)
+	})
+	router.Get("/value/{mType}/{mName}", func(w http.ResponseWriter, r *http.Request) {
+		GetMetric(w, r, storage, getParams(r), logger, key)
 	})
 	router.Post("/update/{mType}/{mName}/{mValue}", func(w http.ResponseWriter, r *http.Request) {
 		Update(w, r, storage, updateParams(r), logger)
 	})
-	router.Get("/value/{mType}/{mName}", func(w http.ResponseWriter, r *http.Request) {
-		GetMetric(w, r, storage, getParams(r), logger)
-	})
 	router.Post("/update/", func(w http.ResponseWriter, r *http.Request) {
-		UpdateJSON(w, r, storage, logger)
+		UpdateJSON(w, r, storage, logger, key)
 	})
 	router.Post("/updates/", func(w http.ResponseWriter, r *http.Request) {
-		UpdateJSONSLice(w, r, storage, logger)
-	})
-	router.Post("/value/", func(w http.ResponseWriter, r *http.Request) {
-		GetMetricJSON(w, r, storage, logger)
+		UpdateJSONSLice(w, r, storage, logger, key)
 	})
 	router.Get("/ping", func(w http.ResponseWriter, r *http.Request) {
 		Ping(w, r, storage, logger)

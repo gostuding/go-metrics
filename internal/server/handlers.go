@@ -177,61 +177,62 @@ func Update(writer http.ResponseWriter, request *http.Request, storage StorageSe
 }
 
 // Обработка запроса значения метрики
-func GetMetric(writer http.ResponseWriter, request *http.Request, storage StorageGetter, metric getMetricsArgs, logger *zap.SugaredLogger) {
-	value, err := sseRepeater(storage.GetMetric, request.Context(), metric.mType, metric.mName)
+func GetMetric(writer http.ResponseWriter, request *http.Request, storage StorageGetter, metric getMetricsArgs,
+	logger *zap.SugaredLogger, key []byte) {
+	body, err := sseRepeater(storage.GetMetric, request.Context(), metric.mType, metric.mName)
 	if err != nil {
 		writer.WriteHeader(http.StatusNotFound)
 		logger.Warn(err)
 		return
 	}
-	writer.WriteHeader(http.StatusOK)
-	_, err = writer.Write([]byte(value))
+	_, err = writer.Write([]byte(body))
 	if err != nil {
 		logger.Warnf("write data to client error: %w", err)
 	}
 }
 
 // Запрос всех метрик в html
-func GetAllMetrics(writer http.ResponseWriter, request *http.Request, storage HTMLGetter, logger *zap.SugaredLogger) {
+func GetAllMetrics(writer http.ResponseWriter, request *http.Request, storage HTMLGetter,
+	logger *zap.SugaredLogger, key []byte) {
 	writer.Header().Set("Content-Type", "text/html")
-	writer.WriteHeader(http.StatusOK)
-	data, err := seRepeater(storage.GetMetricsHTML, request.Context())
+	body, err := seRepeater(storage.GetMetricsHTML, request.Context())
 	if err != nil {
 		writer.WriteHeader(http.StatusBadRequest)
 		logger.Warnf("get metrics in html error: %w", err)
 		return
 	}
-	_, err = writer.Write([]byte(data))
+	_, err = writer.Write([]byte(body))
 	if err != nil {
 		logger.Warnf("write metrics data to client error: %w", err)
 	}
 }
 
 // обновление в JSON формате
-func UpdateJSON(writer http.ResponseWriter, request *http.Request, storage StorageSetter, logger *zap.SugaredLogger) {
+func UpdateJSON(writer http.ResponseWriter, request *http.Request, storage StorageSetter,
+	logger *zap.SugaredLogger, key []byte) {
 	writer.Header().Set("Content-Type", "application/json")
 	data, err := io.ReadAll(request.Body)
 	if err != nil {
 		writer.WriteHeader(http.StatusBadRequest)
-		logger.Warnf("read request body error: %w", err)
+		logger.Warnf("read request body error, %s: %w", data, err)
 		return
 	}
-	value, err := bytesErrorRepeater(storage.UpdateJSON, request.Context(), data)
+	body, err := bytesErrorRepeater(storage.UpdateJSON, request.Context(), data)
 	if err != nil {
 		writer.WriteHeader(http.StatusBadRequest)
 		logger.Warnf("update metric error: %w", err)
 		return
 	}
-	writer.WriteHeader(http.StatusOK)
 	logger.Debug("update metric by json success")
-	_, err = writer.Write(value)
+	_, err = writer.Write(body)
 	if err != nil {
 		logger.Warnf("write data to client error: %w", err)
 	}
 }
 
 // получение метрики в JSON формате
-func GetMetricJSON(writer http.ResponseWriter, request *http.Request, storage StorageGetter, logger *zap.SugaredLogger) {
+func GetMetricJSON(writer http.ResponseWriter, request *http.Request, storage StorageGetter,
+	logger *zap.SugaredLogger, key []byte) {
 	writer.Header().Set("Content-Type", "application/json")
 	data, err := io.ReadAll(request.Body)
 	if err != nil {
@@ -239,9 +240,9 @@ func GetMetricJSON(writer http.ResponseWriter, request *http.Request, storage St
 		logger.Warnf("get metric json, read request body error: %w", err)
 		return
 	}
-	value, err := bytesErrorRepeater(storage.GetMetricJSON, request.Context(), data)
+	body, err := bytesErrorRepeater(storage.GetMetricJSON, request.Context(), data)
 	if err != nil {
-		if value != nil {
+		if body != nil {
 			writer.WriteHeader(http.StatusNotFound)
 		} else {
 			writer.WriteHeader(http.StatusBadRequest)
@@ -249,9 +250,7 @@ func GetMetricJSON(writer http.ResponseWriter, request *http.Request, storage St
 		logger.Warnf("get metric json error: %w", err)
 		return
 	}
-
-	writer.WriteHeader(http.StatusOK)
-	_, err = writer.Write(value)
+	_, err = writer.Write(body)
 	if err != nil {
 		logger.Warnf("get metric json, write data to client error: %w", err)
 	}
@@ -284,7 +283,8 @@ func Clear(writer http.ResponseWriter, request *http.Request, storage StorageDB,
 }
 
 // обновление списком json
-func UpdateJSONSLice(writer http.ResponseWriter, request *http.Request, storage StorageSetter, logger *zap.SugaredLogger) {
+func UpdateJSONSLice(writer http.ResponseWriter, request *http.Request, storage StorageSetter,
+	logger *zap.SugaredLogger, key []byte) {
 	writer.Header().Set("Content-Type", "text/html")
 	data, err := io.ReadAll(request.Body)
 	if err != nil {
@@ -293,17 +293,15 @@ func UpdateJSONSLice(writer http.ResponseWriter, request *http.Request, storage 
 		return
 	}
 
-	value, err := bytesErrorRepeater(storage.UpdateJSONSlice, request.Context(), data)
+	body, err := bytesErrorRepeater(storage.UpdateJSONSlice, request.Context(), data)
 	if err != nil {
 		writer.WriteHeader(http.StatusBadRequest)
 		logger.Warnf("update metrics list error: %w", err)
 		return
 	}
 
-	writer.WriteHeader(http.StatusOK)
-
 	logger.Debug("update metrics by json list success")
-	_, err = writer.Write(value)
+	_, err = writer.Write(body)
 	if err != nil {
 		logger.Warnf("write data to client error: %w", err)
 	}

@@ -3,13 +3,19 @@ package metrics
 import (
 	"bytes"
 	"compress/gzip"
+	"crypto/hmac"
+	"crypto/sha256"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"math/rand"
 	"net/http"
 	"runtime"
 	"strconv"
+	"sync"
 
+	"github.com/shirou/gopsutil/mem"
 	"go.uber.org/zap"
 )
 
@@ -17,13 +23,14 @@ type metricsStorage struct {
 	Supplier     runtime.MemStats
 	MetricsSlice map[string]metrics
 	Logger       *zap.SugaredLogger
-}
-
-func NewMemoryStorage(logger *zap.Logger) *metricsStorage {
-	return &metricsStorage{
-		MetricsSlice: make(map[string]metrics),
-		Logger:       logger.Sugar(),
-	}
+	IP           string
+	Port         int
+	GzipCompress bool
+	Key          []byte
+	URL          string
+	mx           sync.RWMutex
+	resiveChan   chan resiveStruct
+	requestChan  chan struct{}
 }
 
 type metrics struct {
@@ -31,6 +38,41 @@ type metrics struct {
 	MType string   `json:"type"`            // параметр, принимающий значение gauge или counter
 	Delta *int64   `json:"delta,omitempty"` // значение метрики в случае передачи counter
 	Value *float64 `json:"value,omitempty"` // значение метрики в случае передачи gauge
+}
+
+type resiveStruct struct {
+	Metric *metrics
+	Err    error
+}
+
+func NewMemoryStorage(logger *zap.Logger, ip string, key []byte, port int, compress bool, rateLimit int) *metricsStorage {
+	mS := metricsStorage{
+		MetricsSlice: make(map[string]metrics),
+		Logger:       logger.Sugar(),
+		IP:           ip,
+		Port:         port,
+		GzipCompress: compress,
+		Key:          key,
+		URL:          fmt.Sprintf("http://%s:%d/updates/", ip, port),
+		resiveChan:   make(chan resiveStruct, rateLimit),
+		requestChan:  make(chan struct{}, rateLimit),
+	}
+
+	go func() {
+		for item := range mS.resiveChan {
+			if item.Err != nil {
+				mS.Logger.Warnf("send error: %w", item.Err)
+			} else {
+				mS.mx.Lock()
+				if item.Metric.ID == "PollCount" {
+					delta := *mS.MetricsSlice["PollCount"].Delta - *item.Metric.Delta
+					mS.MetricsSlice["PollCount"] = metrics{ID: "PollCount", MType: "counter", Delta: &delta}
+				}
+				mS.mx.Unlock()
+			}
+		}
+	}()
+	return &mS
 }
 
 func makeMetric(id string, value any) (*metrics, error) {
@@ -98,91 +140,54 @@ func makeMap(r *runtime.MemStats, pollCount *int64) map[string]any {
 	return mass
 }
 
-// обновление метрик
+func (ms *metricsStorage) addMetric(name string, value any) {
+	metric, err := makeMetric(name, value)
+	if err != nil {
+		ms.Logger.Warn(err)
+	} else {
+		ms.MetricsSlice[name] = *metric
+	}
+}
+
+func (ms *metricsStorage) UpdateAditionalMetrics() {
+	memory, err := mem.VirtualMemory()
+	if err != nil {
+		ms.Logger.Warnf("get virtualmemory metric error: %w", err)
+		return
+	}
+
+	mSlice := make(map[string]float64)
+	mSlice["TotalMemory"] = float64(memory.Total)
+	mSlice["FreeMemory"] = float64(memory.Free)
+	mSlice["UsedMemoryPercent"] = memory.UsedPercent
+	mSlice["CPUutilization1"] = float64(runtime.NumCPU())
+
+	ms.mx.Lock()
+	for name, value := range mSlice {
+		ms.addMetric(name, value)
+	}
+	ms.mx.Unlock()
+}
+
 func (ms *metricsStorage) UpdateMetrics() {
 	var rStats runtime.MemStats
 	runtime.ReadMemStats(&rStats)
+	ms.mx.Lock()
 	for name, value := range makeMap(&rStats, ms.MetricsSlice["PollCount"].Delta) {
-		metric, err := makeMetric(name, value)
-		if err != nil {
-			ms.Logger.Warn(err)
-			continue
-		}
-		ms.MetricsSlice[name] = *metric
-		if metric.MType == "counter" {
-			gaugeName := fmt.Sprintf("%sGauge", name)
-			gauge, err := makeMetric(name, float64(*metric.Delta))
-			if err != nil {
-				ms.Logger.Warnf("make gauge value error: %w", err)
-				continue
-			}
-			ms.MetricsSlice[gaugeName] = *gauge
+		ms.addMetric(name, value)
+		if ms.MetricsSlice[name].MType == "counter" {
+			ms.addMetric(fmt.Sprintf("%sGauge", name), float64(*ms.MetricsSlice[name].Delta))
 		}
 	}
+	ms.mx.Unlock()
 	ms.Logger.Debugln("Update finished")
 }
 
-// отправка метрик
-func (ms *metricsStorage) SendMetrics(IP string, port int, gzipCompress bool) {
-	URL := fmt.Sprintf("http://%s:%d/update/", IP, port)
-
-	for _, metric := range ms.MetricsSlice {
-		body, err := json.Marshal(metric)
-		if err != nil {
-			ms.Logger.Warn("metric convert to json error: %s", err)
-			continue
-		}
-		if err := sendJSONToServer(URL, body, gzipCompress); err != nil {
-			ms.Logger.Warnf("send json metric error: %w", err)
-			continue
-		}
-		if metric.ID == "PollCount" && metric.MType == "counter" {
-			delta := int64(0)
-			ms.MetricsSlice["PollCount"] = metrics{ID: "PollCount", MType: "counter", Delta: &delta}
-		}
-	}
-
-	ms.Logger.Debugln("Metrics json send iteration finished")
-}
-
-// отправка запроса к серверу
-func sendJSONToServer(URL string, body []byte, compress bool) error {
-	if compress {
-		var b bytes.Buffer
-		gz := gzip.NewWriter(&b)
-		_, err := gz.Write(body)
-		if err != nil {
-			return fmt.Errorf("compress error: %w", err)
-		}
-		err = gz.Close()
-		if err != nil {
-			return fmt.Errorf("compressor close error: %w", err)
-		}
-		body = b.Bytes()
-	}
-
-	client := http.Client{}
-	req, err := http.NewRequest("POST", URL, bytes.NewReader(body))
-	if err != nil {
-		return fmt.Errorf("request create error: %w", err)
-	}
-	if compress {
-		req.Header.Add("Content-Encoding", "gzip")
-	}
-	resp, err := client.Do(req)
-	if err != nil {
-		return fmt.Errorf("send error: '%w'", err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("statusCode error: %d", resp.StatusCode)
-	}
-	return nil
-}
-
-// отправка метрик списком
-func (ms *metricsStorage) SendMetricsSlice(IP string, port int, gzipCompress bool) {
+func (ms *metricsStorage) SendMetricsSlice() {
 	mSlice := make([]metrics, 0)
+
+	ms.mx.RLock()
+	defer ms.mx.RUnlock()
 	for _, item := range ms.MetricsSlice {
 		mSlice = append(mSlice, item)
 	}
@@ -192,19 +197,79 @@ func (ms *metricsStorage) SendMetricsSlice(IP string, port int, gzipCompress boo
 		ms.Logger.Warnf("metrics slice conver error: %w", err)
 		return
 	}
+	select {
+	case ms.requestChan <- struct{}{}:
+		metric := ms.MetricsSlice["PollCount"]
+		go ms.sendJSONToServer(body, &metric)
+		ms.Logger.Debug("Metrics slice send success")
+	default:
+		ms.Logger.Warnln("send metric slice error. Chan is full.")
+	}
+}
 
-	err = sendJSONToServer(fmt.Sprintf("http://%s:%d/updates/", IP, port), body, gzipCompress)
+func (ms *metricsStorage) sendJSONToServer(body []byte, metric *metrics) {
+	defer func() {
+		<-ms.requestChan
+	}()
+
+	client := http.Client{}
+	req, err := http.NewRequest("POST", ms.URL, nil)
 	if err != nil {
-		ms.Logger.Warnf("send metrics slice error: '%w'", err)
+		ms.resiveChan <- resiveStruct{Err: fmt.Errorf("request create error: %w", err), Metric: metric}
 		return
 	}
-
-	for _, metric := range ms.MetricsSlice {
-		if metric.ID == "PollCount" && metric.MType == "counter" {
-			delta := int64(0)
-			ms.MetricsSlice["PollCount"] = metrics{ID: "PollCount", MType: "counter", Delta: &delta}
+	if ms.GzipCompress {
+		var b bytes.Buffer
+		gz := gzip.NewWriter(&b)
+		_, err := gz.Write(body)
+		if err != nil {
+			ms.resiveChan <- resiveStruct{Err: fmt.Errorf("compress error: %w", err), Metric: metric}
+			return
+		}
+		err = gz.Close()
+		if err != nil {
+			ms.resiveChan <- resiveStruct{Err: fmt.Errorf("compressor close error: %w", err), Metric: metric}
+			return
+		}
+		body = b.Bytes()
+		req.Header.Add("Content-Encoding", "gzip")
+	}
+	req.Body = io.NopCloser(bytes.NewReader(body))
+	if ms.Key != nil {
+		h := hmac.New(sha256.New, ms.Key)
+		_, err = h.Write(body)
+		if err != nil {
+			ms.resiveChan <- resiveStruct{Err: fmt.Errorf("write hash summ error: '%w'", err), Metric: metric}
+			return
+		}
+		req.Header.Add("HashSHA256", fmt.Sprintf("%x", h.Sum(nil)))
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		ms.resiveChan <- resiveStruct{Err: fmt.Errorf("send error: '%w'", err), Metric: metric}
+		return
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		ms.resiveChan <- resiveStruct{Err: fmt.Errorf("statusCode error: %d", resp.StatusCode), Metric: metric}
+		return
+	}
+	if ms.Key != nil {
+		data, err := io.ReadAll(resp.Body)
+		if err != nil {
+			ms.resiveChan <- resiveStruct{Err: fmt.Errorf("responce body read error: %w", err), Metric: metric}
+			return
+		}
+		hash := hmac.New(sha256.New, ms.Key)
+		_, err = hash.Write(data)
+		if err != nil {
+			ms.resiveChan <- resiveStruct{Err: fmt.Errorf("responce read hash summ error: '%w'", err), Metric: metric}
+			return
+		}
+		if resp.Header.Get("HashSHA256") != fmt.Sprintf("%x", hash.Sum(nil)) {
+			ms.resiveChan <- resiveStruct{Err: errors.New("check responce hash summ error"), Metric: metric}
+			return
 		}
 	}
-
-	ms.Logger.Debugln("Metrics slice send done")
+	ms.resiveChan <- resiveStruct{Err: nil, Metric: metric}
 }

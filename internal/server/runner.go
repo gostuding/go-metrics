@@ -21,7 +21,7 @@ func RunServer(options *Config, storage Storage, logger *zap.SugaredLogger) erro
 		go saveStorageInterval(options.StoreInterval, storage, logger)
 		go saveStorageBeforeFinish(storage, logger)
 	}
-	return http.ListenAndServe(options.IPAddress, makeRouter(storage, logger))
+	return http.ListenAndServe(options.IPAddress, makeRouter(storage, logger, options.Key))
 }
 
 func saveStorageInterval(interval int, storage Storage, logger *zap.SugaredLogger) {

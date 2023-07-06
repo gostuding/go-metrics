@@ -9,6 +9,7 @@ import (
 	"os"
 	"sort"
 	"strconv"
+	"sync"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
@@ -20,6 +21,7 @@ type memStorage struct {
 	Restore      bool               `json:"-"`
 	SavePath     string             `json:"-"`
 	SaveInterval int                `json:"-"`
+	mx           sync.RWMutex       `json:"-"`
 }
 
 // струтктура не экспоритуемая, т.к. сейчас это не нужно
@@ -49,12 +51,15 @@ func (ms *memStorage) Update(ctx context.Context, mType string, mName string, mV
 			return fmt.Errorf("gauge value convert error: %w", err)
 		}
 		ms.Gauges[mName] = val
+		ms.mx.Unlock()
 	case "counter":
 		val, err := strconv.ParseInt(mValue, 10, 64)
 		if err != nil {
 			return fmt.Errorf("counter value convert error: %w", err)
 		}
+		ms.mx.Lock()
 		ms.Counters[mName] += val
+		ms.mx.Unlock()
 	default:
 		return errors.New("metric type incorrect. Availible types are: guage or counter")
 	}
@@ -66,6 +71,8 @@ func (ms *memStorage) Update(ctx context.Context, mType string, mName string, mV
 
 // Получение значения метрики по типу и имени
 func (ms *memStorage) GetMetric(ctx context.Context, mType string, mName string) (string, error) {
+	ms.mx.RLock()
+	defer ms.mx.RUnlock()
 	switch mType {
 	case "gauge":
 		for key, val := range ms.Gauges {
@@ -89,6 +96,8 @@ func (ms *memStorage) GetMetricsHTML(ctx context.Context) (string, error) {
 	body += "<body><header><h1><p>Metrics list</p></h1></header>"
 	index := 1
 	body += "<h1><p>Gauges</p></h1>"
+	ms.mx.RLock()
+	defer ms.mx.RUnlock()
 	for _, key := range getSortedKeysFloat(ms.Gauges) {
 		body += fmt.Sprintf("<nav><p>%d. '%s'= %f</p></nav>", index, key, ms.Gauges[key])
 		index += 1
@@ -132,7 +141,9 @@ func (ms *memStorage) UpdateJSON(ctx context.Context, data []byte) ([]byte, erro
 	if err != nil {
 		return nil, fmt.Errorf("json conver error: %w", err)
 	}
+	ms.mx.Lock()
 	item, err := ms.updateOneMetric(metric)
+	ms.mx.Unlock()
 	if err != nil {
 		return nil, err
 	}
@@ -140,6 +151,7 @@ func (ms *memStorage) UpdateJSON(ctx context.Context, data []byte) ([]byte, erro
 	if err != nil {
 		return nil, fmt.Errorf("convert to json error: %w", err)
 	}
+
 	if ms.SaveInterval == 0 {
 		if err := ms.Save(); err != nil {
 			return nil, fmt.Errorf("save metric error: %w", err)
@@ -157,6 +169,8 @@ func (ms *memStorage) GetMetricJSON(ctx context.Context, data []byte) ([]byte, e
 	}
 	resp := make([]byte, 0)
 	err = fmt.Errorf("metric not found. id: '%s', type: '%s'", metric.ID, metric.MType)
+	ms.mx.RLock()
+	defer ms.mx.RUnlock()
 	switch metric.MType {
 	case "counter":
 		for key, val := range ms.Counters {
@@ -188,6 +202,7 @@ func (ms *memStorage) PingDB(ctx context.Context) error {
 
 // очистка хранилища
 func (ms *memStorage) Clear(ctx context.Context) error {
+	ms.mx.Lock()
 	for k := range ms.Counters {
 		delete(ms.Counters, k)
 	}
@@ -196,6 +211,7 @@ func (ms *memStorage) Clear(ctx context.Context) error {
 	}
 	ms.Gauges = make(map[string]float64)
 	ms.Counters = make(map[string]int64)
+	ms.mx.Unlock()
 	return ms.Save()
 }
 
@@ -207,6 +223,7 @@ func (ms *memStorage) UpdateJSONSlice(ctx context.Context, data []byte) ([]byte,
 		return nil, fmt.Errorf("json conver error: %w", err)
 	}
 	resp := ""
+	ms.mx.Lock()
 	for index, value := range metrics {
 		_, err := ms.updateOneMetric(value)
 		if err != nil {
@@ -215,6 +232,7 @@ func (ms *memStorage) UpdateJSONSlice(ctx context.Context, data []byte) ([]byte,
 			resp += fmt.Sprintf("%d. '%s' update SUCCESS \n", index+1, value.ID)
 		}
 	}
+	ms.mx.Unlock()
 	if ms.SaveInterval == 0 {
 		if err := ms.Save(); err != nil {
 			return nil, fmt.Errorf("save metric error: %w", err)
@@ -268,7 +286,9 @@ func (ms *memStorage) Save() error {
 		return err
 	}
 	defer file.Close()
+	ms.mx.Lock()
 	data, err := json.MarshalIndent(ms, "", "    ")
+	ms.mx.Unlock()
 	if err != nil {
 		return err
 	}
