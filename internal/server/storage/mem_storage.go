@@ -50,6 +50,7 @@ func (ms *memStorage) Update(ctx context.Context, mType string, mName string, mV
 		if err != nil {
 			return fmt.Errorf("gauge value convert error: %w", err)
 		}
+		ms.mx.Lock()
 		ms.Gauges[mName] = val
 		ms.mx.Unlock()
 	case "counter":

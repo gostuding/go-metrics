@@ -3,9 +3,11 @@ package storage
 import (
 	"context"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 )
 
 func TestMemStorageAddMetric(t *testing.T) {
@@ -225,4 +227,115 @@ func TestMemStorage_UpdateJSON(t *testing.T) {
 			}
 		})
 	}
+}
+
+func BenchmarkMemStorage(b *testing.B) {
+	ms, err := NewMemStorage(false, "", 300)
+	assert.NoError(b, err, "error making new memStorage")
+	ctx := context.Background()
+	err = ms.Update(ctx, "counter", "test", "0")
+	assert.NoError(b, err, "add initial metric error")
+	val := int64(1)
+	m := metric{ID: "test", MType: "counter", Delta: &val}
+	mString := `{"id": "test", "type": "counter", "value": 1}`
+	mStringSlice := strings.Repeat(mString, 2) + `{"id": "test", "type": "gauge", "value": 1.0}`
+
+	b.ResetTimer()
+	b.Run("add metric", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			ms.Update(ctx, m.MType, m.ID, "1")
+		}
+	})
+
+	b.Run("update one metric", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			ms.updateOneMetric(m)
+		}
+	})
+
+	b.ResetTimer()
+	b.Run("get metric", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			ms.GetMetric(ctx, m.MType, m.ID)
+		}
+	})
+
+	b.Run("get metric json", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			ms.GetMetricJSON(ctx, []byte(mString))
+		}
+	})
+
+	b.Run("update metric json", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			ms.UpdateJSON(ctx, []byte(mString))
+		}
+	})
+
+	b.Run("update metric json slice", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			ms.UpdateJSONSlice(ctx, []byte(mStringSlice))
+		}
+	})
+
+	b.Run("get metrics HTML", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			ms.GetMetricsHTML(ctx)
+		}
+	})
+}
+
+func BenchmarkSQLStorage(b *testing.B) {
+	logger, err := zap.NewDevelopment()
+	assert.NoError(b, err, "create logger error")
+	ms, err := NewSQLStorage("host=localhost user=postgres database=metrics", logger.Sugar())
+	assert.NoError(b, err, "create sql storage error")
+	ctx := context.Background()
+	val := int64(1)
+	m := metric{ID: "test", MType: "counter", Delta: &val}
+	mString := `{"id": "test", "type": "counter", "value": 1}`
+	mStringSlice := strings.Repeat(mString, 2) + `{"id": "test", "type": "gauge", "value": 1.0}`
+
+	b.Run("add metric", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			ms.Update(ctx, m.MType, m.ID, "1")
+		}
+	})
+
+	b.Run("update one metric", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			ms.updateOneMetric(ctx, m, ms.con)
+		}
+	})
+
+	b.ResetTimer()
+	b.Run("get metric", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			ms.GetMetric(ctx, m.MType, m.ID)
+		}
+	})
+
+	b.Run("get metric json", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			ms.GetMetricJSON(ctx, []byte(mString))
+		}
+	})
+
+	b.Run("update metric json", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			ms.UpdateJSON(ctx, []byte(mString))
+		}
+	})
+
+	b.Run("update metric json slice", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			ms.UpdateJSONSlice(ctx, []byte(mStringSlice))
+		}
+	})
+
+	b.Run("get metrics HTML", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			ms.GetMetricsHTML(ctx)
+		}
+	})
 }

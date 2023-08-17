@@ -33,6 +33,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	err = run(logger)
 	if err != nil {
 		logger.Fatalln(err)

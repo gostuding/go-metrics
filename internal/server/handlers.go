@@ -283,8 +283,11 @@ func Clear(writer http.ResponseWriter, request *http.Request, storage StorageDB,
 }
 
 // обновление списком json
-func UpdateJSONSLice(writer http.ResponseWriter, request *http.Request, storage StorageSetter,
-	logger *zap.SugaredLogger, key []byte) {
+func UpdateJSONSLice(writer http.ResponseWriter,
+	request *http.Request,
+	storage StorageSetter,
+	logger *zap.SugaredLogger,
+	key []byte) {
 	writer.Header().Set("Content-Type", "text/html")
 	data, err := io.ReadAll(request.Body)
 	if err != nil {

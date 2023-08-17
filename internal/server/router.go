@@ -28,7 +28,8 @@ func getParams(r *http.Request) getMetricsArgs {
 func makeRouter(storage Storage, logger *zap.SugaredLogger, key []byte) http.Handler {
 	router := chi.NewRouter()
 
-	router.Use(middleware.RealIP, hashCheckMiddleware(key, logger, false), gzipMiddleware(logger), loggerMiddleware(logger), middleware.Recoverer)
+	router.Use(middleware.RealIP, hashCheckMiddleware(key, logger, false), gzipMiddleware(logger),
+		loggerMiddleware(logger), middleware.Recoverer)
 
 	router.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		GetAllMetrics(w, r, storage, logger, key)
@@ -54,6 +55,8 @@ func makeRouter(storage Storage, logger *zap.SugaredLogger, key []byte) http.Han
 	router.Get("/clear", func(w http.ResponseWriter, r *http.Request) {
 		Clear(w, r, storage, logger)
 	})
+
+	router.Mount("/debug", middleware.Profiler())
 
 	return router
 }
