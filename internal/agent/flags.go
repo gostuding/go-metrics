@@ -4,6 +4,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"net"
 	"os"
 	"strconv"
 	"strings"
@@ -11,27 +12,31 @@ import (
 
 type Config struct {
 	IP             string
+	Key            []byte
+	RateLimit      int
 	Port           int
 	PollInterval   int
 	ReportInterval int
 	GzipCompress   bool
-	Key            []byte
-	RateLimit      int
 }
 
-// функция для удовлетворения интерфейсу flag.Value
 func (n *Config) String() string {
 	return fmt.Sprintf("%s:%d -r %d -p %d", n.IP, n.Port, n.PollInterval, n.ReportInterval)
 }
 
-// функция для удовлетворения интерфейсу flag.Value
 func (n *Config) Set(value string) error {
 	items := strings.Split(value, ":")
 	if len(items) != 2 {
 		return fmt.Errorf("NetworkAddress ('%s') incorrect. Use value like: 'IP:PORT'", value)
 	}
-	n.IP = items[0]
-	val, err := strconv.Atoi(items[1])
+
+	ip, port, err := net.SplitHostPort(value)
+	if err != nil {
+		return fmt.Errorf("NetworkAddress ('%s') incorrect. Use value like: 'IP:PORT': %w", value, err)
+	}
+
+	n.IP = ip
+	val, err := strconv.Atoi(port)
 	if err != nil {
 		return fmt.Errorf("NetworkAddress Port ('%s') convert error: %w. Use integer type", items[1], err)
 	}
@@ -55,7 +60,6 @@ func (n *Config) validate() error {
 	return nil
 }
 
-// проверка значения переменных окружения на тип int
 func strToInt(name string, str string) (int, error) {
 	val, err := strconv.Atoi(str)
 	if err != nil {
@@ -82,15 +86,22 @@ func envToString(envName string, def string) string {
 	return def
 }
 
-// получение и проверка флагов и переменных окружения
 func GetFlags() (Config, error) {
-	agentArgs := Config{"", 8080, 2, 10, false, nil, 5}
+	agentArgs := Config{
+		IP:             "",
+		Port:           8080,
+		PollInterval:   2,
+		ReportInterval: 10,
+		GzipCompress:   true,
+		Key:            nil,
+		RateLimit:      5,
+	}
 	var key string
 	flag.Var(&agentArgs, "a", "Net address like 'host:port'")
-	flag.IntVar(&agentArgs.PollInterval, "p", 2, "Poll metricks interval")
-	flag.IntVar(&agentArgs.ReportInterval, "r", 10, "Report metricks interval")
-	flag.IntVar(&agentArgs.RateLimit, "l", 5, "Rate limit")
-	flag.BoolVar(&agentArgs.GzipCompress, "gzip", true, "Use gzip compress in requests")
+	flag.IntVar(&agentArgs.PollInterval, "p", agentArgs.PollInterval, "Poll metricks interval")
+	flag.IntVar(&agentArgs.ReportInterval, "r", agentArgs.ReportInterval, "Report metricks interval")
+	flag.IntVar(&agentArgs.RateLimit, "l", agentArgs.RateLimit, "Rate limit")
+	flag.BoolVar(&agentArgs.GzipCompress, "gzip", agentArgs.GzipCompress, "Use gzip compress in requests")
 	flag.StringVar(&key, "k", "", "Key for SHA256")
 	flag.Parse()
 
@@ -100,7 +111,6 @@ func GetFlags() (Config, error) {
 			return agentArgs, fmt.Errorf("enviroment 'ADDRESS' value error: %w", err)
 		}
 	}
-
 	var err error
 	agentArgs.ReportInterval, err = envToInt("REPORT_INTERVAL", agentArgs.ReportInterval)
 	if err != nil {

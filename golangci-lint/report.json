@@ -1,0 +1,3907 @@
+{
+    "Issues": [
+        {
+            "FromLinter": "gomnd",
+            "Text": "mnd: Magic number: 2, in <condition> detected",
+            "Severity": "error",
+            "SourceLines": [
+                "\tif len(items) != 2 {"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/agent/flags.go",
+                "Offset": 482,
+                "Line": 29,
+                "Column": 19
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "gomnd",
+            "Text": "mnd: Magic number: 8080, in <assign> detected",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\tPort:           8080,"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/agent/flags.go",
+                "Offset": 2032,
+                "Line": 92,
+                "Column": 19
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "gomnd",
+            "Text": "mnd: Magic number: 2, in <assign> detected",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\tPollInterval:   2,"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/agent/flags.go",
+                "Offset": 2056,
+                "Line": 93,
+                "Column": 19
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "gomnd",
+            "Text": "mnd: Magic number: 10, in <assign> detected",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\tReportInterval: 10,"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/agent/flags.go",
+                "Offset": 2077,
+                "Line": 94,
+                "Column": 19
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "gomnd",
+            "Text": "mnd: Magic number: 5, in <assign> detected",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\tRateLimit:      5,"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/agent/flags.go",
+                "Offset": 2146,
+                "Line": 97,
+                "Column": 19
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "govet",
+            "Text": "fieldalignment: struct with 48 pointer bytes could be 40",
+            "Severity": "error",
+            "SourceLines": [
+                "type metrics struct {"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/agent/metrics/runtimemetrics.go",
+                "Offset": 565,
+                "Line": 36,
+                "Column": 14
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "lll",
+            "Text": "line is 122 characters",
+            "Severity": "error",
+            "SourceLines": [
+                "func NewMemoryStorage(logger *zap.Logger, ip string, key []byte, port int, compress bool, rateLimit int) *metricsStorage {"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/agent/metrics/runtimemetrics.go",
+                "Offset": 0,
+                "Line": 48,
+                "Column": 0
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "nosprintfhostport",
+            "Text": "host:port in url should be constructed with net.JoinHostPort and not directly with fmt.Sprintf",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\tURL:          fmt.Sprintf(\"http://%s:%d/updates/\", ip, port),"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/agent/metrics/runtimemetrics.go",
+                "Offset": 1384,
+                "Line": 56,
+                "Column": 17
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "usestdlibvars",
+            "Text": "\"POST\" can be replaced by http.MethodPost",
+            "Severity": "error",
+            "SourceLines": [
+                "\treq, err := http.NewRequest(\"POST\", ms.URL, nil)"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/agent/metrics/runtimemetrics.go",
+                "Offset": 5590,
+                "Line": 216,
+                "Column": 30
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "goconst",
+            "Text": "string `HashSHA256` has 2 occurrences, make it a constant",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\treq.Header.Add(\"HashSHA256\", fmt.Sprintf(\"%x\", h.Sum(nil)))"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/agent/metrics/runtimemetrics.go",
+                "Offset": 6459,
+                "Line": 245,
+                "Column": 18
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "errcheck",
+            "Text": "Error return value of `resp.Body.Close` is not checked",
+            "Severity": "error",
+            "SourceLines": [
+                "\tdefer resp.Body.Close()"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/agent/metrics/runtimemetrics.go",
+                "Offset": 6677,
+                "Line": 252,
+                "Column": 23
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "godot",
+            "Text": "Comment should end in a period",
+            "Severity": "error",
+            "SourceLines": [
+                "// \u0438\u043d\u0442\u0435\u0440\u0444\u0435\u0439\u0441 \u0434\u043b\u044f \u043e\u0442\u043f\u0440\u0430\u0432\u043a\u0438 \u0438 \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u044f \u0434\u0430\u043d\u043d\u044b\u0445"
+            ],
+            "Replacement": {
+                "NeedOnlyDelete": false,
+                "NewLines": [
+                    "// \u0438\u043d\u0442\u0435\u0440\u0444\u0435\u0439\u0441 \u0434\u043b\u044f \u043e\u0442\u043f\u0440\u0430\u0432\u043a\u0438 \u0438 \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u044f \u0434\u0430\u043d\u043d\u044b\u0445."
+                ],
+                "Inline": null
+            },
+            "Pos": {
+                "Filename": "internal/agent/runner.go",
+                "Offset": 35,
+                "Line": 7,
+                "Column": 83
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "godot",
+            "Text": "Comment should end in a period",
+            "Severity": "error",
+            "SourceLines": [
+                "// \u0431\u0435\u0441\u043a\u043e\u043d\u0435\u0447\u043d\u044b\u0439 \u0446\u0438\u043a\u043b \u043e\u0442\u043f\u0440\u0430\u0432\u043a\u0438 \u0434\u0430\u043d\u043d\u044b\u0445"
+            ],
+            "Replacement": {
+                "NeedOnlyDelete": false,
+                "NewLines": [
+                    "// \u0431\u0435\u0441\u043a\u043e\u043d\u0435\u0447\u043d\u044b\u0439 \u0446\u0438\u043a\u043b \u043e\u0442\u043f\u0440\u0430\u0432\u043a\u0438 \u0434\u0430\u043d\u043d\u044b\u0445."
+                ],
+                "Inline": null
+            },
+            "Pos": {
+                "Filename": "internal/agent/runner.go",
+                "Offset": 210,
+                "Line": 14,
+                "Column": 65
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "gomnd",
+            "Text": "mnd: Magic number: 300, in <argument> detected",
+            "Severity": "error",
+            "SourceLines": [
+                "\tflag.IntVar(&options.StoreInterval, \"i\", 300, \"store interval in seconds\")"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/flags.go",
+                "Offset": 580,
+                "Line": 31,
+                "Column": 43
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "wrapcheck",
+            "Text": "error returned from external package is unwrapped: sig: func strconv.Atoi(s string) (int, error)",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\t\treturn nil, err"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/flags.go",
+                "Offset": 1066,
+                "Line": 41,
+                "Column": 16
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "stylecheck",
+            "Text": "ST1021: comment on exported type StorageSetter should be of the form \"StorageSetter ...\" (with optional leading article)",
+            "Severity": "error",
+            "SourceLines": [
+                "// -----------------------------------------------------------------------------------"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/handlers.go",
+                "Offset": 166,
+                "Line": 16,
+                "Column": 1
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "godot",
+            "Text": "Comment should end in a period",
+            "Severity": "error",
+            "SourceLines": [
+                "// \u0418\u043d\u0442\u0435\u0440\u0444\u0435\u0439 \u0434\u043b\u044f \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0438 \u0437\u043d\u0430\u0447\u0435\u043d\u0438\u0439 \u0432 \u043e\u0431\u044a\u0435\u043a\u0442 \u0438\u0437 \u0441\u0442\u0440\u043e\u043a\u0438"
+            ],
+            "Replacement": {
+                "NeedOnlyDelete": false,
+                "NewLines": [
+                    "// \u0418\u043d\u0442\u0435\u0440\u0444\u0435\u0439 \u0434\u043b\u044f \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0438 \u0437\u043d\u0430\u0447\u0435\u043d\u0438\u0439 \u0432 \u043e\u0431\u044a\u0435\u043a\u0442 \u0438\u0437 \u0441\u0442\u0440\u043e\u043a\u0438."
+                ],
+                "Inline": null
+            },
+            "Pos": {
+                "Filename": "internal/server/handlers.go",
+                "Offset": 166,
+                "Line": 19,
+                "Column": 97
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "godot",
+            "Text": "Comment should end in a period",
+            "Severity": "error",
+            "SourceLines": [
+                "// \u0418\u043d\u0442\u0435\u0440\u0444\u0435\u0439\u0441 \u043f\u043e\u043b\u0443\u0447\u0435\u043d\u0438\u044f \u0437\u043d\u0430\u0447\u0435\u043d\u0438\u044f \u043c\u0435\u0442\u0440\u0438\u043a\u0438"
+            ],
+            "Replacement": {
+                "NeedOnlyDelete": false,
+                "NewLines": [
+                    "// \u0418\u043d\u0442\u0435\u0440\u0444\u0435\u0439\u0441 \u043f\u043e\u043b\u0443\u0447\u0435\u043d\u0438\u044f \u0437\u043d\u0430\u0447\u0435\u043d\u0438\u044f \u043c\u0435\u0442\u0440\u0438\u043a\u0438."
+                ],
+                "Inline": null
+            },
+            "Pos": {
+                "Filename": "internal/server/handlers.go",
+                "Offset": 700,
+                "Line": 27,
+                "Column": 73
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "godot",
+            "Text": "Comment should end in a period",
+            "Severity": "error",
+            "SourceLines": [
+                "// \u0438\u043d\u0442\u0435\u0440\u0444\u0435\u0439\u0441 \u0434\u043b\u044f \u0440\u0430\u0431\u043e\u0442\u044b \u0441 \u0411\u0414"
+            ],
+            "Replacement": {
+                "NeedOnlyDelete": false,
+                "NewLines": [
+                    "// \u0438\u043d\u0442\u0435\u0440\u0444\u0435\u0439\u0441 \u0434\u043b\u044f \u0440\u0430\u0431\u043e\u0442\u044b \u0441 \u0411\u0414."
+                ],
+                "Inline": null
+            },
+            "Pos": {
+                "Filename": "internal/server/handlers.go",
+                "Offset": 923,
+                "Line": 33,
+                "Column": 50
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "godot",
+            "Text": "Comment should end in a period",
+            "Severity": "error",
+            "SourceLines": [
+                "// \u0418\u043d\u0442\u0435\u0440\u0444\u0435\u0439\u0441 \u0434\u043b\u044f \u0432\u044b\u0432\u043e\u0434 \u0437\u043d\u0430\u0447\u0435\u043d\u0438\u0439 \u0432 \u0432\u0438\u0434\u0435 HTML"
+            ],
+            "Replacement": {
+                "NeedOnlyDelete": false,
+                "NewLines": [
+                    "// \u0418\u043d\u0442\u0435\u0440\u0444\u0435\u0439\u0441 \u0434\u043b\u044f \u0432\u044b\u0432\u043e\u0434 \u0437\u043d\u0430\u0447\u0435\u043d\u0438\u0439 \u0432 \u0432\u0438\u0434\u0435 HTML."
+                ],
+                "Inline": null
+            },
+            "Pos": {
+                "Filename": "internal/server/handlers.go",
+                "Offset": 1064,
+                "Line": 39,
+                "Column": 74
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "godot",
+            "Text": "Comment should end in a period",
+            "Severity": "error",
+            "SourceLines": [
+                "// -----------------------------------------------------------------------------------"
+            ],
+            "Replacement": {
+                "NeedOnlyDelete": false,
+                "NewLines": [
+                    "// -----------------------------------------------------------------------------------."
+                ],
+                "Inline": null
+            },
+            "Pos": {
+                "Filename": "internal/server/handlers.go",
+                "Offset": 1218,
+                "Line": 46,
+                "Column": 87
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "revive",
+            "Text": "context-as-argument: context.Context should be the first parameter of a function",
+            "Severity": "error",
+            "SourceLines": [
+                "func bytesErrorRepeater(f fbe, ctx context.Context, data []byte) ([]byte, error) {"
+            ],
+            "Replacement": null,
+            "LineRange": {
+                "From": 66,
+                "To": 66
+            },
+            "Pos": {
+                "Filename": "internal/server/handlers.go",
+                "Offset": 1984,
+                "Line": 66,
+                "Column": 32
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "revive",
+            "Text": "context-as-argument: context.Context should be the first parameter of a function",
+            "Severity": "error",
+            "SourceLines": [
+                "func seRepeater(f fse, ctx context.Context) (string, error) {"
+            ],
+            "Replacement": null,
+            "LineRange": {
+                "From": 88,
+                "To": 88
+            },
+            "Pos": {
+                "Filename": "internal/server/handlers.go",
+                "Offset": 2416,
+                "Line": 88,
+                "Column": 24
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "goconst",
+            "Text": "string `context error: %w` has 3 occurrences, make it a constant",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\t\t\treturn \"\", fmt.Errorf(\"context error: %w\", ctx.Err())"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/handlers.go",
+                "Offset": 2597,
+                "Line": 95,
+                "Column": 27
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "nilerr",
+            "Text": "error is nil (line 100) but it returns error",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\t\t\t\treturn value, err"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/handlers.go",
+                "Offset": 2754,
+                "Line": 102,
+                "Column": 6
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "revive",
+            "Text": "context-as-argument: context.Context should be the first parameter of a function",
+            "Severity": "error",
+            "SourceLines": [
+                "func sseRepeater(f fsse, ctx context.Context, t string, n string) (string, error) {"
+            ],
+            "Replacement": null,
+            "LineRange": {
+                "From": 110,
+                "To": 110
+            },
+            "Pos": {
+                "Filename": "internal/server/handlers.go",
+                "Offset": 2837,
+                "Line": 110,
+                "Column": 26
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "nilerr",
+            "Text": "error is nil (line 122) but it returns error",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\t\t\t\treturn value, err"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/handlers.go",
+                "Offset": 3207,
+                "Line": 124,
+                "Column": 6
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "revive",
+            "Text": "context-as-argument: context.Context should be the first parameter of a function",
+            "Severity": "error",
+            "SourceLines": [
+                "func ssseRepeater(f fssse, ctx context.Context, t string, n string, v string) error {"
+            ],
+            "Replacement": null,
+            "LineRange": {
+                "From": 132,
+                "To": 132
+            },
+            "Pos": {
+                "Filename": "internal/server/handlers.go",
+                "Offset": 3292,
+                "Line": 132,
+                "Column": 28
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "godot",
+            "Text": "Comment should end in a period",
+            "Severity": "error",
+            "SourceLines": [
+                "// -----------------------------------------------------------------------------------"
+            ],
+            "Replacement": {
+                "NeedOnlyDelete": false,
+                "NewLines": [
+                    "// -----------------------------------------------------------------------------------."
+                ],
+                "Inline": null
+            },
+            "Pos": {
+                "Filename": "internal/server/handlers.go",
+                "Offset": 3687,
+                "Line": 156,
+                "Column": 87
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "godot",
+            "Text": "Comment should end in a period",
+            "Severity": "error",
+            "SourceLines": [
+                "// \u041e\u0431\u0440\u0430\u0431\u043e\u0442\u043a\u0430 \u0437\u0430\u043f\u0440\u043e\u0441\u0430 \u043d\u0430 \u0434\u043e\u0431\u0430\u0432\u043b\u0435\u043d\u0438\u0435 \u0438\u043b\u0438 \u0438\u0437\u043c\u0435\u043d\u0435\u043d\u0438\u0435 \u043c\u0435\u0442\u0440\u0438\u043a\u0438"
+            ],
+            "Replacement": {
+                "NeedOnlyDelete": false,
+                "NewLines": [
+                    "// \u041e\u0431\u0440\u0430\u0431\u043e\u0442\u043a\u0430 \u0437\u0430\u043f\u0440\u043e\u0441\u0430 \u043d\u0430 \u0434\u043e\u0431\u0430\u0432\u043b\u0435\u043d\u0438\u0435 \u0438\u043b\u0438 \u0438\u0437\u043c\u0435\u043d\u0435\u043d\u0438\u0435 \u043c\u0435\u0442\u0440\u0438\u043a\u0438."
+                ],
+                "Inline": null
+            },
+            "Pos": {
+                "Filename": "internal/server/handlers.go",
+                "Offset": 4093,
+                "Line": 167,
+                "Column": 104
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "lll",
+            "Text": "line is 140 characters",
+            "Severity": "error",
+            "SourceLines": [
+                "func Update(writer http.ResponseWriter, request *http.Request, storage StorageSetter, metric updateMetricsArgs, logger *zap.SugaredLogger) {"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/handlers.go",
+                "Offset": 0,
+                "Line": 168,
+                "Column": 0
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "goconst",
+            "Text": "string `update metric error: %w` has 2 occurrences, make it a constant",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\tlogger.Warnf(\"update metric error: %w\", err)"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/handlers.go",
+                "Offset": 4523,
+                "Line": 172,
+                "Column": 16
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "godot",
+            "Text": "Comment should end in a period",
+            "Severity": "error",
+            "SourceLines": [
+                "// \u041e\u0431\u0440\u0430\u0431\u043e\u0442\u043a\u0430 \u0437\u0430\u043f\u0440\u043e\u0441\u0430 \u0437\u043d\u0430\u0447\u0435\u043d\u0438\u044f \u043c\u0435\u0442\u0440\u0438\u043a\u0438"
+            ],
+            "Replacement": {
+                "NeedOnlyDelete": false,
+                "NewLines": [
+                    "// \u041e\u0431\u0440\u0430\u0431\u043e\u0442\u043a\u0430 \u0437\u0430\u043f\u0440\u043e\u0441\u0430 \u0437\u043d\u0430\u0447\u0435\u043d\u0438\u044f \u043c\u0435\u0442\u0440\u0438\u043a\u0438."
+                ],
+                "Inline": null
+            },
+            "Pos": {
+                "Filename": "internal/server/handlers.go",
+                "Offset": 4669,
+                "Line": 179,
+                "Column": 69
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "goconst",
+            "Text": "string `write data to client error: %w` has 3 occurrences, make it a constant",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\tlogger.Warnf(\"write data to client error: %w\", err)"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/handlers.go",
+                "Offset": 5143,
+                "Line": 190,
+                "Column": 16
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "godot",
+            "Text": "Comment should end in a period",
+            "Severity": "error",
+            "SourceLines": [
+                "// \u0417\u0430\u043f\u0440\u043e\u0441 \u0432\u0441\u0435\u0445 \u043c\u0435\u0442\u0440\u0438\u043a \u0432 html"
+            ],
+            "Replacement": {
+                "NeedOnlyDelete": false,
+                "NewLines": [
+                    "// \u0417\u0430\u043f\u0440\u043e\u0441 \u0432\u0441\u0435\u0445 \u043c\u0435\u0442\u0440\u0438\u043a \u0432 html."
+                ],
+                "Inline": null
+            },
+            "Pos": {
+                "Filename": "internal/server/handlers.go",
+                "Offset": 5188,
+                "Line": 194,
+                "Column": 46
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "goconst",
+            "Text": "string `text/html` has 3 occurrences, make it a constant",
+            "Severity": "error",
+            "SourceLines": [
+                "\twriter.Header().Set(\"Content-Type\", \"text/html\")"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/handlers.go",
+                "Offset": 5403,
+                "Line": 197,
+                "Column": 38
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "godot",
+            "Text": "Comment should end in a period",
+            "Severity": "error",
+            "SourceLines": [
+                "// \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435 \u0432 JSON \u0444\u043e\u0440\u043c\u0430\u0442\u0435"
+            ],
+            "Replacement": {
+                "NeedOnlyDelete": false,
+                "NewLines": [
+                    "// \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435 \u0432 JSON \u0444\u043e\u0440\u043c\u0430\u0442\u0435."
+                ],
+                "Inline": null
+            },
+            "Pos": {
+                "Filename": "internal/server/handlers.go",
+                "Offset": 5732,
+                "Line": 210,
+                "Column": 47
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "goconst",
+            "Text": "string `application/json` has 3 occurrences, make it a constant",
+            "Severity": "error",
+            "SourceLines": [
+                "\twriter.Header().Set(\"Content-Type\", \"application/json\")"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/handlers.go",
+                "Offset": 5953,
+                "Line": 217,
+                "Column": 38
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "godot",
+            "Text": "Comment should end in a period",
+            "Severity": "error",
+            "SourceLines": [
+                "// \u043f\u043e\u043b\u0443\u0447\u0435\u043d\u0438\u0435 \u043c\u0435\u0442\u0440\u0438\u043a\u0438 \u0432 JSON \u0444\u043e\u0440\u043c\u0430\u0442\u0435"
+            ],
+            "Replacement": {
+                "NeedOnlyDelete": false,
+                "NewLines": [
+                    "// \u043f\u043e\u043b\u0443\u0447\u0435\u043d\u0438\u0435 \u043c\u0435\u0442\u0440\u0438\u043a\u0438 \u0432 JSON \u0444\u043e\u0440\u043c\u0430\u0442\u0435."
+                ],
+                "Inline": null
+            },
+            "Pos": {
+                "Filename": "internal/server/handlers.go",
+                "Offset": 6497,
+                "Line": 237,
+                "Column": 60
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "godot",
+            "Text": "Comment should end in a period",
+            "Severity": "error",
+            "SourceLines": [
+                "// \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0430 \u043f\u043e\u0434\u043a\u043b\u044e\u0447\u0435\u043d\u0438\u044f \u043a \u0411\u0414"
+            ],
+            "Replacement": {
+                "NeedOnlyDelete": false,
+                "NewLines": [
+                    "// \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0430 \u043f\u043e\u0434\u043a\u043b\u044e\u0447\u0435\u043d\u0438\u044f \u043a \u0411\u0414."
+                ],
+                "Inline": null
+            },
+            "Pos": {
+                "Filename": "internal/server/handlers.go",
+                "Offset": 7338,
+                "Line": 267,
+                "Column": 51
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "godot",
+            "Text": "Comment should end in a period",
+            "Severity": "error",
+            "SourceLines": [
+                "// \u043e\u0447\u0438\u0441\u0442\u043a\u0430 storage"
+            ],
+            "Replacement": {
+                "NeedOnlyDelete": false,
+                "NewLines": [
+                    "// \u043e\u0447\u0438\u0441\u0442\u043a\u0430 storage."
+                ],
+                "Inline": null
+            },
+            "Pos": {
+                "Filename": "internal/server/handlers.go",
+                "Offset": 7764,
+                "Line": 283,
+                "Column": 26
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "godot",
+            "Text": "Comment should end in a period",
+            "Severity": "error",
+            "SourceLines": [
+                "// \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435 \u0441\u043f\u0438\u0441\u043a\u043e\u043c json"
+            ],
+            "Replacement": {
+                "NeedOnlyDelete": false,
+                "NewLines": [
+                    "// \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435 \u0441\u043f\u0438\u0441\u043a\u043e\u043c json."
+                ],
+                "Inline": null
+            },
+            "Pos": {
+                "Filename": "internal/server/handlers.go",
+                "Offset": 8167,
+                "Line": 300,
+                "Column": 44
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "goconst",
+            "Text": "string `read request body error: %w` has 2 occurrences, make it a constant",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\tlogger.Warnf(\"read request body error: %w\", err)"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/handlers.go",
+                "Offset": 8516,
+                "Line": 310,
+                "Column": 16
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "containedctx",
+            "Text": "found a struct that contains a context.Context field",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\tctx context.Context"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/handlers_test.go",
+                "Offset": 219,
+                "Line": 18,
+                "Column": 3
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "containedctx",
+            "Text": "found a struct that contains a context.Context field",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\tctx  context.Context"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/handlers_test.go",
+                "Offset": 1981,
+                "Line": 97,
+                "Column": 3
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "containedctx",
+            "Text": "found a struct that contains a context.Context field",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\tctx context.Context"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/handlers_test.go",
+                "Offset": 3970,
+                "Line": 179,
+                "Column": 3
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "containedctx",
+            "Text": "found a struct that contains a context.Context field",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\tctx context.Context"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/handlers_test.go",
+                "Offset": 5921,
+                "Line": 265,
+                "Column": 3
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "godot",
+            "Text": "Comment should end in a period",
+            "Severity": "error",
+            "SourceLines": [
+                "// \u0438\u043d\u0438\u0446\u0438\u0430\u043b\u0438\u0437\u0430\u0446\u0438\u044f \u043b\u043e\u0433\u0435\u0440\u0430 \u0438 \u043e\u043f\u0440\u0435\u0434\u0435\u043b\u0435\u043d\u0438\u0435 \u0435\u0433\u043e \u0442\u0438\u043f\u0430 \u043a\u0430\u043a Sugar"
+            ],
+            "Replacement": {
+                "NeedOnlyDelete": false,
+                "NewLines": [
+                    "// \u0438\u043d\u0438\u0446\u0438\u0430\u043b\u0438\u0437\u0430\u0446\u0438\u044f \u043b\u043e\u0433\u0435\u0440\u0430 \u0438 \u043e\u043f\u0440\u0435\u0434\u0435\u043b\u0435\u043d\u0438\u0435 \u0435\u0433\u043e \u0442\u0438\u043f\u0430 \u043a\u0430\u043a Sugar."
+                ],
+                "Inline": null
+            },
+            "Pos": {
+                "Filename": "internal/server/logger.go",
+                "Offset": 55,
+                "Line": 9,
+                "Column": 98
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "godot",
+            "Text": "Comment should end in a period",
+            "Severity": "error",
+            "SourceLines": [
+                "// \u0441\u0442\u0440\u0443\u043a\u0442\u0443\u0440\u0430 \u0434\u043b\u044f \u043f\u043e\u0434\u043c\u0435\u043d\u044b \u0438\u043d\u0442\u0435\u0440\u0444\u0435\u0439\u0441\u0430 http.ResponseWriter"
+            ],
+            "Replacement": {
+                "NeedOnlyDelete": false,
+                "NewLines": [
+                    "// \u0441\u0442\u0440\u0443\u043a\u0442\u0443\u0440\u0430 \u0434\u043b\u044f \u043f\u043e\u0434\u043c\u0435\u043d\u044b \u0438\u043d\u0442\u0435\u0440\u0444\u0435\u0439\u0441\u0430 http.ResponseWriter."
+                ],
+                "Inline": null
+            },
+            "Pos": {
+                "Filename": "internal/server/middleware.go",
+                "Offset": 150,
+                "Line": 17,
+                "Column": 85
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "wrapcheck",
+            "Text": "error returned from interface method should be wrapped: sig: func (net/http.ResponseWriter).Write([]byte) (int, error)",
+            "Severity": "error",
+            "SourceLines": [
+                "\treturn size, err // \u043f\u043e\u043b\u0443\u0447\u0430\u0435\u043c \u0440\u0430\u0437\u043c\u0435\u0440 \u0437\u0430\u043f\u0438\u0441\u0430\u043d\u043d\u044b\u0445 \u0434\u0430\u043d\u043d\u044b\u0445"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/middleware.go",
+                "Offset": 759,
+                "Line": 31,
+                "Column": 15
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "godot",
+            "Text": "Comment should end in a period",
+            "Severity": "error",
+            "SourceLines": [
+                "// \u0441\u0442\u0440\u0443\u043a\u0442\u0443\u0440\u0430 \u0434\u043b\u044f \u0441\u043e\u0437\u0434\u0430\u043d\u0438\u044f middleware gzip"
+            ],
+            "Replacement": {
+                "NeedOnlyDelete": false,
+                "NewLines": [
+                    "// \u0441\u0442\u0440\u0443\u043a\u0442\u0443\u0440\u0430 \u0434\u043b\u044f \u0441\u043e\u0437\u0434\u0430\u043d\u0438\u044f middleware gzip."
+                ],
+                "Inline": null
+            },
+            "Pos": {
+                "Filename": "internal/server/middleware.go",
+                "Offset": 1081,
+                "Line": 43,
+                "Column": 62
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "govet",
+            "Text": "fieldalignment: struct with 32 pointer bytes could be 24",
+            "Severity": "error",
+            "SourceLines": [
+                "type myGzipWriter struct {"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/middleware.go",
+                "Offset": 1161,
+                "Line": 44,
+                "Column": 19
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "goconst",
+            "Text": "string `gzip` has 4 occurrences, make it a constant",
+            "Severity": "error",
+            "SourceLines": [
+                "\tif !r.isWriting && r.Header().Get(\"Content-Encoding\") == \"gzip\" {"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/middleware.go",
+                "Offset": 1577,
+                "Line": 55,
+                "Column": 59
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "wrapcheck",
+            "Text": "error returned from external package is unwrapped: sig: func (*compress/gzip.Writer).Write(p []byte) (int, error)",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\t\treturn 0, err"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/middleware.go",
+                "Offset": 1768,
+                "Line": 61,
+                "Column": 14
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "wrapcheck",
+            "Text": "error returned from external package is unwrapped: sig: func (*compress/gzip.Writer).Close() error",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\t\treturn 0, err"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/middleware.go",
+                "Offset": 1887,
+                "Line": 65,
+                "Column": 14
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "wrapcheck",
+            "Text": "error returned from external package is unwrapped: sig: func (*compress/gzip.Writer).Close() error",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\treturn size, err"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/middleware.go",
+                "Offset": 1932,
+                "Line": 68,
+                "Column": 16
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "wrapcheck",
+            "Text": "error returned from interface method should be wrapped: sig: func (net/http.ResponseWriter).Write([]byte) (int, error)",
+            "Severity": "error",
+            "SourceLines": [
+                "\treturn r.ResponseWriter.Write(b)"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/middleware.go",
+                "Offset": 1947,
+                "Line": 70,
+                "Column": 9
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "godot",
+            "Text": "Comment should end in a period",
+            "Severity": "error",
+            "SourceLines": [
+                "// \u0441\u0442\u0440\u0443\u043a\u0442\u0443\u0440\u0430 \u0434\u043b\u044f \u0447\u0442\u0435\u043d\u0438\u044f \u0434\u0430\u043d\u043d\u044b\u0445 \u0438\u0437 Body \u0447\u0435\u0440\u0435\u0437 gzip"
+            ],
+            "Replacement": {
+                "NeedOnlyDelete": false,
+                "NewLines": [
+                    "// \u0441\u0442\u0440\u0443\u043a\u0442\u0443\u0440\u0430 \u0434\u043b\u044f \u0447\u0442\u0435\u043d\u0438\u044f \u0434\u0430\u043d\u043d\u044b\u0445 \u0438\u0437 Body \u0447\u0435\u0440\u0435\u0437 gzip."
+                ],
+                "Inline": null
+            },
+            "Pos": {
+                "Filename": "internal/server/middleware.go",
+                "Offset": 2473,
+                "Line": 85,
+                "Column": 81
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "wrapcheck",
+            "Text": "error returned from external package is unwrapped: sig: func compress/gzip.NewReader(r io.Reader) (*compress/gzip.Reader, error)",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\treturn nil, err"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/middleware.go",
+                "Offset": 2745,
+                "Line": 94,
+                "Column": 15
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "wrapcheck",
+            "Text": "error returned from external package is unwrapped: sig: func (*compress/gzip.Reader).Read(p []byte) (n int, err error)",
+            "Severity": "error",
+            "SourceLines": [
+                "\treturn c.gzip.Read(p) // \u0447\u0442\u0435\u043d\u0438 \u0434\u0430\u043d\u043d\u044b\u0445 \u0438 \u0438\u0445 \u0440\u0430\u0441\u043f\u0430\u043a\u043e\u0432\u043a\u0430"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/middleware.go",
+                "Offset": 2864,
+                "Line": 100,
+                "Column": 9
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "wrapcheck",
+            "Text": "error returned from interface method should be wrapped: sig: func (io.Closer).Close() error",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\treturn err"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/middleware.go",
+                "Offset": 3021,
+                "Line": 105,
+                "Column": 10
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "wrapcheck",
+            "Text": "error returned from external package is unwrapped: sig: func (*compress/gzip.Reader).Close() error",
+            "Severity": "error",
+            "SourceLines": [
+                "\treturn c.gzip.Close()"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/middleware.go",
+                "Offset": 3036,
+                "Line": 107,
+                "Column": 9
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "godot",
+            "Text": "Comment should end in a period",
+            "Severity": "error",
+            "SourceLines": [
+                "// ----------------------------------------------------------------------"
+            ],
+            "Replacement": {
+                "NeedOnlyDelete": false,
+                "NewLines": [
+                    "// ----------------------------------------------------------------------."
+                ],
+                "Inline": null
+            },
+            "Pos": {
+                "Filename": "internal/server/middleware.go",
+                "Offset": 3054,
+                "Line": 110,
+                "Column": 74
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "errcheck",
+            "Text": "Error return value of `cr.Close` is not checked",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\t\t\tdefer cr.Close()"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/middleware.go",
+                "Offset": 3800,
+                "Line": 123,
+                "Column": 19
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "gocritic",
+            "Text": "commentFormatting: put a space between `//` and comment text",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\t\t\t//\u0432\u044b\u043f\u043e\u043b\u043d\u0435\u043d\u0438\u0435 \u0437\u0430\u043f\u0440\u043e\u0441\u0430 \u0441 \u043d\u0430\u0448\u0438\u043c ResponseWriter"
+            ],
+            "Replacement": {
+                "NeedOnlyDelete": false,
+                "NewLines": null,
+                "Inline": {
+                    "StartCol": 4,
+                    "Length": 66,
+                    "NewString": "// \u0432\u044b\u043f\u043e\u043b\u043d\u0435\u043d\u0438\u0435 \u0437\u0430\u043f\u0440\u043e\u0441\u0430 \u0441 \u043d\u0430\u0448\u0438\u043c ResponseWriter"
+                }
+            },
+            "Pos": {
+                "Filename": "internal/server/middleware.go",
+                "Offset": 3925,
+                "Line": 127,
+                "Column": 5
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "gocritic",
+            "Text": "commentFormatting: put a space between `//` and comment text",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\t\t//\u0432\u044b\u043f\u043e\u043b\u043d\u0435\u043d\u0438\u0435 \u0437\u0430\u043f\u0440\u043e\u0441\u0430 \u0441 \u043d\u0430\u0448\u0438\u043c ResponseWriter"
+            ],
+            "Replacement": {
+                "NeedOnlyDelete": false,
+                "NewLines": null,
+                "Inline": {
+                    "StartCol": 3,
+                    "Length": 66,
+                    "NewString": "// \u0432\u044b\u043f\u043e\u043b\u043d\u0435\u043d\u0438\u0435 \u0437\u0430\u043f\u0440\u043e\u0441\u0430 \u0441 \u043d\u0430\u0448\u0438\u043c ResponseWriter"
+                }
+            },
+            "Pos": {
+                "Filename": "internal/server/middleware.go",
+                "Offset": 4451,
+                "Line": 141,
+                "Column": 4
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "goconst",
+            "Text": "string `Server logger` has 2 occurrences, make it a constant",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\t\t\t\"Server logger\","
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/middleware.go",
+                "Offset": 4697,
+                "Line": 146,
+                "Column": 5
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "goconst",
+            "Text": "string `type` has 2 occurrences, make it a constant",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\t\t\t\"type\", \"request\","
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/middleware.go",
+                "Offset": 4718,
+                "Line": 147,
+                "Column": 5
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "goconst",
+            "Text": "string `uri` has 2 occurrences, make it a constant",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\t\t\t\"uri\", r.RequestURI,"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/middleware.go",
+                "Offset": 4741,
+                "Line": 148,
+                "Column": 5
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "godot",
+            "Text": "Comment should end in a period",
+            "Severity": "error",
+            "SourceLines": [
+                "// ----------------------------------------------------------------------"
+            ],
+            "Replacement": {
+                "NeedOnlyDelete": false,
+                "NewLines": [
+                    "// ----------------------------------------------------------------------."
+                ],
+                "Inline": null
+            },
+            "Pos": {
+                "Filename": "internal/server/middleware.go",
+                "Offset": 5062,
+                "Line": 165,
+                "Column": 74
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "unparam",
+            "Text": "`newHashWriter` - `wh` is unused",
+            "Severity": "error",
+            "SourceLines": [
+                "func newHashWriter(r http.ResponseWriter, key []byte, wh bool) *hashWriter {"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/middleware.go",
+                "Offset": 5265,
+                "Line": 172,
+                "Column": 55
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "gocritic",
+            "Text": "appendAssign: append result not assigned to the same slice",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\tdata := append(r.body[:], b[:]...)"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/middleware.go",
+                "Offset": 5432,
+                "Line": 178,
+                "Column": 11
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "goconst",
+            "Text": "string `%x` has 2 occurrences, make it a constant",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\tr.Header().Set(\"HashSHA256\", fmt.Sprintf(\"%x\", h.Sum(nil)))"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/middleware.go",
+                "Offset": 5664,
+                "Line": 185,
+                "Column": 44
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "wrapcheck",
+            "Text": "error returned from interface method should be wrapped: sig: func (net/http.ResponseWriter).Write([]byte) (int, error)",
+            "Severity": "error",
+            "SourceLines": [
+                "\treturn r.ResponseWriter.Write(b)"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/middleware.go",
+                "Offset": 5694,
+                "Line": 187,
+                "Column": 9
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "errcheck",
+            "Text": "Error return value of `r.Body.Close` is not checked",
+            "Severity": "error",
+            "SourceLines": [
+                "\tdefer r.Body.Close()"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/middleware.go",
+                "Offset": 5923,
+                "Line": 195,
+                "Column": 20
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "lll",
+            "Text": "line is 123 characters",
+            "Severity": "error",
+            "SourceLines": [
+                "func hashCheckMiddleware(key []byte, logger *zap.SugaredLogger, writeHeaderStatus bool) func(h http.Handler) http.Handler {"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/middleware.go",
+                "Offset": 0,
+                "Line": 213,
+                "Column": 0
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "godot",
+            "Text": "Comment should end in a period",
+            "Severity": "error",
+            "SourceLines": [
+                "// \u0438\u043d\u0442\u0435\u0440\u0444\u0435\u0439\u0441 \u0434\u043b\u044f \u043e\u0431\u0440\u0430\u0431\u043e\u0442\u043a\u0438 \u0437\u0430\u043f\u0440\u043e\u0441\u043e\u0432"
+            ],
+            "Replacement": {
+                "NeedOnlyDelete": false,
+                "NewLines": [
+                    "// \u0438\u043d\u0442\u0435\u0440\u0444\u0435\u0439\u0441 \u0434\u043b\u044f \u043e\u0431\u0440\u0430\u0431\u043e\u0442\u043a\u0438 \u0437\u0430\u043f\u0440\u043e\u0441\u043e\u0432."
+                ],
+                "Inline": null
+            },
+            "Pos": {
+                "Filename": "internal/server/router.go",
+                "Offset": 121,
+                "Line": 11,
+                "Column": 65
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "godot",
+            "Text": "Comment should end in a period",
+            "Severity": "error",
+            "SourceLines": [
+                "// \u043f\u043e\u043b\u0443\u0447\u043d\u0438\u0435 \u043e\u0434\u043d\u043e\u0442\u0438\u043f\u043d\u044b\u0445 \u0434\u0430\u043d\u043d\u044b\u0445 \u0438\u0437 \u0430\u0434\u0440\u0435\u0441\u0430 \u0437\u0430\u043f\u0440\u043e\u0441\u0430"
+            ],
+            "Replacement": {
+                "NeedOnlyDelete": false,
+                "NewLines": [
+                    "// \u043f\u043e\u043b\u0443\u0447\u043d\u0438\u0435 \u043e\u0434\u043d\u043e\u0442\u0438\u043f\u043d\u044b\u0445 \u0434\u0430\u043d\u043d\u044b\u0445 \u0438\u0437 \u0430\u0434\u0440\u0435\u0441\u0430 \u0437\u0430\u043f\u0440\u043e\u0441\u0430."
+                ],
+                "Inline": null
+            },
+            "Pos": {
+                "Filename": "internal/server/router.go",
+                "Offset": 267,
+                "Line": 19,
+                "Column": 87
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "goconst",
+            "Text": "string `mType` has 2 occurrences, make it a constant",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\tbase:   getMetricsArgs{mType: chi.URLParam(r, \"mType\"), mName: chi.URLParam(r, \"mName\")},"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/router.go",
+                "Offset": 484,
+                "Line": 22,
+                "Column": 49
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "godot",
+            "Text": "Comment should end in a period",
+            "Severity": "error",
+            "SourceLines": [
+                "// \u0444\u043e\u0440\u043c\u0438\u0440\u043e\u0432\u0430\u043d\u0438\u0435 \u0434\u043e\u0441\u0442\u0443\u043f\u043d\u044b\u0445 \u0430\u0434\u0440\u0435\u0441\u043e\u0432"
+            ],
+            "Replacement": {
+                "NeedOnlyDelete": false,
+                "NewLines": [
+                    "// \u0444\u043e\u0440\u043c\u0438\u0440\u043e\u0432\u0430\u043d\u0438\u0435 \u0434\u043e\u0441\u0442\u0443\u043f\u043d\u044b\u0445 \u0430\u0434\u0440\u0435\u0441\u043e\u0432."
+                ],
+                "Inline": null
+            },
+            "Pos": {
+                "Filename": "internal/server/router.go",
+                "Offset": 712,
+                "Line": 31,
+                "Column": 62
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "godot",
+            "Text": "Comment should end in a period",
+            "Severity": "error",
+            "SourceLines": [
+                "// \u0437\u0430\u043f\u0443\u0441\u043a \u0441\u0435\u0440\u0432\u0435\u0440\u0430 \u043d\u0430 \u043f\u0440\u043e\u0441\u043b\u0443\u0448\u043a\u0443"
+            ],
+            "Replacement": {
+                "NeedOnlyDelete": false,
+                "NewLines": [
+                    "// \u0437\u0430\u043f\u0443\u0441\u043a \u0441\u0435\u0440\u0432\u0435\u0440\u0430 \u043d\u0430 \u043f\u0440\u043e\u0441\u043b\u0443\u0448\u043a\u0443."
+                ],
+                "Inline": null
+            },
+            "Pos": {
+                "Filename": "internal/server/runner.go",
+                "Offset": 105,
+                "Line": 14,
+                "Column": 55
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "wrapcheck",
+            "Text": "error returned from external package is unwrapped: sig: func net/http.ListenAndServe(addr string, handler net/http.Handler) error",
+            "Severity": "error",
+            "SourceLines": [
+                "\treturn http.ListenAndServe(options.IPAddress, makeRouter(storage, logger, options.Key))"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/runner.go",
+                "Offset": 530,
+                "Line": 24,
+                "Column": 9
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "godot",
+            "Text": "Comment should end in a period",
+            "Severity": "error",
+            "SourceLines": [
+                "// \u0421\u0442\u0440\u0443\u043a\u0442\u0443\u0440\u0430 \u0434\u043b\u044f \u0445\u0440\u0430\u043d\u0435\u043d\u0438\u044f \u0434\u0430\u043d\u043d\u044b\u0445 \u043e \u043c\u0435\u0442\u0440\u0438\u043a\u0430\u0445"
+            ],
+            "Replacement": {
+                "NeedOnlyDelete": false,
+                "NewLines": [
+                    "// \u0421\u0442\u0440\u0443\u043a\u0442\u0443\u0440\u0430 \u0434\u043b\u044f \u0445\u0440\u0430\u043d\u0435\u043d\u0438\u044f \u0434\u0430\u043d\u043d\u044b\u0445 \u043e \u043c\u0435\u0442\u0440\u0438\u043a\u0430\u0445."
+                ],
+                "Inline": null
+            },
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage.go",
+                "Offset": 207,
+                "Line": 22,
+                "Column": 79
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "govet",
+            "Text": "fieldalignment: struct with 32 pointer bytes could be 24",
+            "Severity": "error",
+            "SourceLines": [
+                "type memStorage struct {"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage.go",
+                "Offset": 302,
+                "Line": 23,
+                "Column": 17
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "godot",
+            "Text": "Sentence should start with a capital letter",
+            "Severity": "error",
+            "SourceLines": [
+                "// \u0441\u0442\u0440\u0443\u0442\u043a\u0442\u0443\u0440\u0430 \u043d\u0435 \u044d\u043a\u0441\u043f\u043e\u0440\u0438\u0442\u0443\u0435\u043c\u0430\u044f, \u0442.\u043a. \u0441\u0435\u0439\u0447\u0430\u0441 \u044d\u0442\u043e \u043d\u0435 \u043d\u0443\u0436\u043d\u043e"
+            ],
+            "Replacement": {
+                "NeedOnlyDelete": false,
+                "NewLines": [
+                    "// \u0441\u0442\u0440\u0443\u0442\u043a\u0442\u0443\u0440\u0430 \u043d\u0435 \u044d\u043a\u0441\u043f\u043e\u0440\u0438\u0442\u0443\u0435\u043c\u0430\u044f, \u0442.\u043a. \u0421\u0435\u0439\u0447\u0430\u0441 \u044d\u0442\u043e \u043d\u0435 \u043d\u0443\u0436\u043d\u043e."
+                ],
+                "Inline": null
+            },
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage.go",
+                "Offset": 590,
+                "Line": 32,
+                "Column": 65
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "govet",
+            "Text": "fieldalignment: struct with 48 pointer bytes could be 40",
+            "Severity": "error",
+            "SourceLines": [
+                "type metric struct {"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage.go",
+                "Offset": 702,
+                "Line": 33,
+                "Column": 13
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "goconst",
+            "Text": "string `gauge value convert error: %w` has 2 occurrences, make it a constant",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\t\treturn fmt.Errorf(\"gauge value convert error: %w\", err)"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage.go",
+                "Offset": 1673,
+                "Line": 56,
+                "Column": 22
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "goconst",
+            "Text": "string `counter value convert error: %w` has 2 occurrences, make it a constant",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\t\treturn fmt.Errorf(\"counter value convert error: %w\", err)"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage.go",
+                "Offset": 1877,
+                "Line": 64,
+                "Column": 22
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "goconst",
+            "Text": "string `metric type incorrect. Availible types are: guage or counter` has 2 occurrences, make it a constant",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\treturn errors.New(\"metric type incorrect. Availible types are: guage or counter\")"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage.go",
+                "Offset": 2011,
+                "Line": 70,
+                "Column": 21
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "errcheck",
+            "Text": "Error return value of `ms.Save` is not checked",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\tms.Save()"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage.go",
+                "Offset": 2114,
+                "Line": 73,
+                "Column": 10
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "godot",
+            "Text": "Comment should end in a period",
+            "Severity": "error",
+            "SourceLines": [
+                "// \u041f\u043e\u043b\u0443\u0447\u0435\u043d\u0438\u0435 \u0437\u043d\u0430\u0447\u0435\u043d\u0438\u044f \u043c\u0435\u0442\u0440\u0438\u043a\u0438 \u043f\u043e \u0442\u0438\u043f\u0443 \u0438 \u0438\u043c\u0435\u043d\u0438"
+            ],
+            "Replacement": {
+                "NeedOnlyDelete": false,
+                "NewLines": [
+                    "// \u041f\u043e\u043b\u0443\u0447\u0435\u043d\u0438\u0435 \u0437\u043d\u0430\u0447\u0435\u043d\u0438\u044f \u043c\u0435\u0442\u0440\u0438\u043a\u0438 \u043f\u043e \u0442\u0438\u043f\u0443 \u0438 \u0438\u043c\u0435\u043d\u0438."
+                ],
+                "Inline": null
+            },
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage.go",
+                "Offset": 2135,
+                "Line": 78,
+                "Column": 82
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "goconst",
+            "Text": "string `%d` has 3 occurrences, make it a constant",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\t\t\treturn fmt.Sprintf(\"%d\", val), nil"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage.go",
+                "Offset": 2608,
+                "Line": 92,
+                "Column": 24
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "goconst",
+            "Text": "string `metric '%s' with type '%s' not found` has 2 occurrences, make it a constant",
+            "Severity": "error",
+            "SourceLines": [
+                "\treturn \"\", fmt.Errorf(\"metric '%s' with type '%s' not found\", mName, mType)"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage.go",
+                "Offset": 2659,
+                "Line": 96,
+                "Column": 24
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "godot",
+            "Text": "Comment should end in a period",
+            "Severity": "error",
+            "SourceLines": [
+                "// \u0421\u043f\u0438\u0441\u043e\u043a \u0432\u0441\u0435\u0445 \u043c\u0435\u0442\u0440\u0438\u043a \u0432 html"
+            ],
+            "Replacement": {
+                "NeedOnlyDelete": false,
+                "NewLines": [
+                    "// \u0421\u043f\u0438\u0441\u043e\u043a \u0432\u0441\u0435\u0445 \u043c\u0435\u0442\u0440\u0438\u043a \u0432 html."
+                ],
+                "Inline": null
+            },
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage.go",
+                "Offset": 2716,
+                "Line": 99,
+                "Column": 46
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "goconst",
+            "Text": "string `<!doctype html> <html lang='en'> <head> <meta charset='utf-8'> <title>\u0421\u043f\u0438\u0441\u043e\u043a \u043c\u0435\u0442\u0440\u0438\u043a</title></head>` has 2 occurrences, make it a constant",
+            "Severity": "error",
+            "SourceLines": [
+                "\tbody := \"<!doctype html> <html lang='en'> <head> <meta charset='utf-8'> <title>\u0421\u043f\u0438\u0441\u043e\u043a \u043c\u0435\u0442\u0440\u0438\u043a</title></head>\""
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage.go",
+                "Offset": 2847,
+                "Line": 101,
+                "Column": 10
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "goconst",
+            "Text": "string `<body><header><h1><p>Metrics list</p></h1></header>` has 2 occurrences, make it a constant",
+            "Severity": "error",
+            "SourceLines": [
+                "\tbody += \"<body><header><h1><p>Metrics list</p></h1></header>\""
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage.go",
+                "Offset": 2969,
+                "Line": 102,
+                "Column": 10
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "goconst",
+            "Text": "string `<h1><p>Gauges</p></h1>` has 2 occurrences, make it a constant",
+            "Severity": "error",
+            "SourceLines": [
+                "\tbody += \"<h1><p>Gauges</p></h1>\""
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage.go",
+                "Offset": 3044,
+                "Line": 104,
+                "Column": 10
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "revive",
+            "Text": "increment-decrement: should replace index += 1 with index++",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\tindex += 1"
+            ],
+            "Replacement": null,
+            "LineRange": {
+                "From": 109,
+                "To": 109
+            },
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage.go",
+                "Offset": 3246,
+                "Line": 109,
+                "Column": 3
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "goconst",
+            "Text": "string `<h1><p>Counters</p></h1>` has 2 occurrences, make it a constant",
+            "Severity": "error",
+            "SourceLines": [
+                "\tbody += \"<h1><p>Counters</p></h1>\""
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage.go",
+                "Offset": 3269,
+                "Line": 111,
+                "Column": 10
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "revive",
+            "Text": "increment-decrement: should replace index += 1 with index++",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\tindex += 1"
+            ],
+            "Replacement": null,
+            "LineRange": {
+                "From": 115,
+                "To": 115
+            },
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage.go",
+                "Offset": 3448,
+                "Line": 115,
+                "Column": 3
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "goconst",
+            "Text": "string `</body></html>` has 2 occurrences, make it a constant",
+            "Severity": "error",
+            "SourceLines": [
+                "\tbody += \"</body></html>\""
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage.go",
+                "Offset": 3471,
+                "Line": 117,
+                "Column": 10
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "goconst",
+            "Text": "string `metric's delta indefined` has 2 occurrences, make it a constant",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\t\treturn nil, errors.New(\"metric's delta indefined\")"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage.go",
+                "Offset": 3755,
+                "Line": 129,
+                "Column": 27
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "goconst",
+            "Text": "string `metric's value indefined` has 2 occurrences, make it a constant",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\t\treturn nil, errors.New(\"metric's value indefined\")"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage.go",
+                "Offset": 3893,
+                "Line": 135,
+                "Column": 27
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "goconst",
+            "Text": "string `metric type error, use counter like int64 or gauge like float64` has 2 occurrences, make it a constant",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\treturn nil, errors.New(\"metric type error, use counter like int64 or gauge like float64\")"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage.go",
+                "Offset": 3960,
+                "Line": 138,
+                "Column": 26
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "godot",
+            "Text": "Comment should end in a period",
+            "Severity": "error",
+            "SourceLines": [
+                "// \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435 \u0447\u0435\u0440\u0435\u0437 json"
+            ],
+            "Replacement": {
+                "NeedOnlyDelete": false,
+                "NewLines": [
+                    "// \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435 \u0447\u0435\u0440\u0435\u0437 json."
+                ],
+                "Inline": null
+            },
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage.go",
+                "Offset": 4049,
+                "Line": 143,
+                "Column": 40
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "goconst",
+            "Text": "string `json conver error: %w` has 6 occurrences, make it a constant",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\treturn nil, fmt.Errorf(\"json conver error: %w\", err)"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage.go",
+                "Offset": 4273,
+                "Line": 148,
+                "Column": 26
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "goconst",
+            "Text": "string `convert to json error: %w` has 2 occurrences, make it a constant",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\treturn nil, fmt.Errorf(\"convert to json error: %w\", err)"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage.go",
+                "Offset": 4490,
+                "Line": 158,
+                "Column": 26
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "goconst",
+            "Text": "string `save metric error: %w` has 2 occurrences, make it a constant",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\t\treturn nil, fmt.Errorf(\"save metric error: %w\", err)"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage.go",
+                "Offset": 4617,
+                "Line": 163,
+                "Column": 27
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "godot",
+            "Text": "Comment should end in a period",
+            "Severity": "error",
+            "SourceLines": [
+                "// \u0437\u0430\u043f\u0440\u043e\u0441 \u043c\u0435\u0442\u0440\u0438\u043a \u0447\u0435\u0440\u0435\u0437 json"
+            ],
+            "Replacement": {
+                "NeedOnlyDelete": false,
+                "NewLines": [
+                    "// \u0437\u0430\u043f\u0440\u043e\u0441 \u043c\u0435\u0442\u0440\u0438\u043a \u0447\u0435\u0440\u0435\u0437 json."
+                ],
+                "Inline": null
+            },
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage.go",
+                "Offset": 4675,
+                "Line": 169,
+                "Column": 45
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "revive",
+            "Text": "range-val-address: suspicious assignment of 'val'. range-loop variables always have the same address",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\t\t\tmetric.Delta = &val"
+            ],
+            "Replacement": null,
+            "LineRange": {
+                "From": 184,
+                "To": 184
+            },
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage.go",
+                "Offset": 5212,
+                "Line": 184,
+                "Column": 20
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "revive",
+            "Text": "range-val-address: suspicious assignment of 'val'. range-loop variables always have the same address",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\t\t\tmetric.Value = &val"
+            ],
+            "Replacement": null,
+            "LineRange": {
+                "From": 191,
+                "To": 191
+            },
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage.go",
+                "Offset": 5360,
+                "Line": 191,
+                "Column": 20
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "goconst",
+            "Text": "string `metric type ('%s') error, use counter like int64 or gauge like float64` has 2 occurrences, make it a constant",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\treturn nil, fmt.Errorf(\"metric type ('%s') error, use counter like int64 or gauge like float64\", metric.MType)"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage.go",
+                "Offset": 5446,
+                "Line": 196,
+                "Column": 26
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "godot",
+            "Text": "Comment should end in a period",
+            "Severity": "error",
+            "SourceLines": [
+                "// \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0430 \u043f\u043e\u0434\u043a\u043b\u044e\u0447\u0435\u043d\u0438\u044f \u043a \u0411\u0414"
+            ],
+            "Replacement": {
+                "NeedOnlyDelete": false,
+                "NewLines": [
+                    "// \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0430 \u043f\u043e\u0434\u043a\u043b\u044e\u0447\u0435\u043d\u0438\u044f \u043a \u0411\u0414."
+                ],
+                "Inline": null
+            },
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage.go",
+                "Offset": 5603,
+                "Line": 204,
+                "Column": 51
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "godot",
+            "Text": "Comment should end in a period",
+            "Severity": "error",
+            "SourceLines": [
+                "// \u043e\u0447\u0438\u0441\u0442\u043a\u0430 \u0445\u0440\u0430\u043d\u0438\u043b\u0438\u0449\u0430"
+            ],
+            "Replacement": {
+                "NeedOnlyDelete": false,
+                "NewLines": [
+                    "// \u043e\u0447\u0438\u0441\u0442\u043a\u0430 \u0445\u0440\u0430\u043d\u0438\u043b\u0438\u0449\u0430."
+                ],
+                "Inline": null
+            },
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage.go",
+                "Offset": 5727,
+                "Line": 209,
+                "Column": 37
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "godot",
+            "Text": "Comment should end in a period",
+            "Severity": "error",
+            "SourceLines": [
+                "// \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435 \u0447\u0435\u0440\u0435\u0437 json slice"
+            ],
+            "Replacement": {
+                "NeedOnlyDelete": false,
+                "NewLines": [
+                    "// \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435 \u0447\u0435\u0440\u0435\u0437 json slice."
+                ],
+                "Inline": null
+            },
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage.go",
+                "Offset": 6060,
+                "Line": 224,
+                "Column": 46
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "godot",
+            "Text": "Comment should end in a period",
+            "Severity": "error",
+            "SourceLines": [
+                "// -------------------------------------------------------------------------------------------------"
+            ],
+            "Replacement": {
+                "NeedOnlyDelete": false,
+                "NewLines": [
+                    "// -------------------------------------------------------------------------------------------------."
+                ],
+                "Inline": null
+            },
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage.go",
+                "Offset": 6790,
+                "Line": 252,
+                "Column": 101
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "godot",
+            "Text": "Comment should end in a period",
+            "Severity": "error",
+            "SourceLines": [
+                "// \u0432\u043e\u0441\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435 \u0434\u0430\u043d\u043d\u044b\u0445 \u0438\u0437 \u0445\u0440\u0430\u043d\u0438\u043b\u0438\u0449\u0430"
+            ],
+            "Replacement": {
+                "NeedOnlyDelete": false,
+                "NewLines": [
+                    "// \u0432\u043e\u0441\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435 \u0434\u0430\u043d\u043d\u044b\u0445 \u0438\u0437 \u0445\u0440\u0430\u043d\u0438\u043b\u0438\u0449\u0430."
+                ],
+                "Inline": null
+            },
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage.go",
+                "Offset": 7422,
+                "Line": 271,
+                "Column": 69
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "gosec",
+            "Text": "G302: Expect file permissions to be 0600 or less",
+            "Severity": "error",
+            "SourceLines": [
+                "\tfile, err := os.OpenFile(ms.SavePath, os.O_RDONLY|os.O_CREATE, 0644)"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage.go",
+                "Offset": 0,
+                "Line": 276,
+                "Column": 15
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "wrapcheck",
+            "Text": "error returned from external package is unwrapped: sig: func os.OpenFile(name string, flag int, perm io/fs.FileMode) (*os.File, error)",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\treturn err"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage.go",
+                "Offset": 7661,
+                "Line": 278,
+                "Column": 10
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "errcheck",
+            "Text": "Error return value of `file.Close` is not checked",
+            "Severity": "error",
+            "SourceLines": [
+                "\tdefer file.Close()"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage.go",
+                "Offset": 7719,
+                "Line": 281,
+                "Column": 18
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "errorlint",
+            "Text": "comparing with != will fail on wrapped errors. Use errors.Is to check for a specific error",
+            "Severity": "error",
+            "SourceLines": [
+                "\tif err != nil && err != io.EOF {"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage.go",
+                "Offset": 7766,
+                "Line": 283,
+                "Column": 19
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "wrapcheck",
+            "Text": "error returned from external package is unwrapped: sig: func (*encoding/json.Decoder).Decode(v any) error",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\treturn err"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage.go",
+                "Offset": 7791,
+                "Line": 284,
+                "Column": 10
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "gosec",
+            "Text": "G302: Expect file permissions to be 0600 or less",
+            "Severity": "error",
+            "SourceLines": [
+                "\tfile, err := os.OpenFile(ms.SavePath, os.O_WRONLY|os.O_TRUNC, 0644)"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage.go",
+                "Offset": 0,
+                "Line": 293,
+                "Column": 15
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "wrapcheck",
+            "Text": "error returned from external package is unwrapped: sig: func os.OpenFile(name string, flag int, perm io/fs.FileMode) (*os.File, error)",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\treturn err"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage.go",
+                "Offset": 7985,
+                "Line": 295,
+                "Column": 10
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "errcheck",
+            "Text": "Error return value of `file.Close` is not checked",
+            "Severity": "error",
+            "SourceLines": [
+                "\tdefer file.Close()"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage.go",
+                "Offset": 8009,
+                "Line": 297,
+                "Column": 18
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "wrapcheck",
+            "Text": "error returned from external package is unwrapped: sig: func encoding/json.MarshalIndent(v any, prefix string, indent string) ([]byte, error)",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\treturn err"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage.go",
+                "Offset": 8117,
+                "Line": 302,
+                "Column": 10
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "wrapcheck",
+            "Text": "error returned from external package is unwrapped: sig: func (*os.File).Write(b []byte) (n int, err error)",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\treturn err"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage.go",
+                "Offset": 8177,
+                "Line": 306,
+                "Column": 10
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "lll",
+            "Text": "line is 121 characters",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\ttt := val // \u043f\u0435\u0440\u0435\u043e\u043f\u0440\u0435\u0434\u0435\u043b\u0438\u043b\u0438 \u043f\u0435\u0440\u0435\u043c\u0435\u043d\u043d\u0443\u044e \u0447\u0442\u043e\u0431\u044b \u0438\u0437\u0431\u0435\u0436\u0430\u0442\u044c \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u043d\u0438\u044f \u0441\u0441\u044b\u043b\u043a\u0438 \u043d\u0430 \u043f\u0435\u0440\u0435\u043c\u0435\u043d\u043d\u0443\u044e \u0446\u0438\u043a\u043b\u0430 (\u0435\u0441\u0442\u044c \u0442\u0430\u043a\u0430\u044f \u043e\u0441\u043e\u0431\u0435\u043d\u043d\u043e\u0441\u0442\u044c)"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage_test.go",
+                "Offset": 0,
+                "Line": 30,
+                "Column": 0
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "lll",
+            "Text": "line is 159 characters",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\t{name: \"\u041f\u043e\u043b\u0443\u0447\u0435\u043d\u0438\u0435 Gauges \", fields: fields{Gauges: gTest(), Counters: cTest()}, args: args{mType: gaugeType, mName: \"item\"}, want: \"0.34\", wantError: false},"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage_test.go",
+                "Offset": 0,
+                "Line": 71,
+                "Column": 0
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "lll",
+            "Text": "line is 151 characters",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\t{name: \"\u041d\u0435\u043f\u0440\u0430\u0432\u0438\u043b\u044c\u043d\u044b\u0439 \u0442\u0438\u043f\", fields: fields{Gauges: gTest(), Counters: cTest()}, args: args{mType: \"error\", mName: \"item\"}, want: \"\", wantError: true},"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage_test.go",
+                "Offset": 0,
+                "Line": 72,
+                "Column": 0
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "lll",
+            "Text": "line is 155 characters",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\t{name: \"\u041d\u0435\u043f\u0440\u0430\u0432\u0438\u043b\u044c\u043d\u043e\u0435 \u0438\u043c\u044f\", fields: fields{Gauges: gTest(), Counters: cTest()}, args: args{mType: counterType, mName: \"none\"}, want: \"\", wantError: true},"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage_test.go",
+                "Offset": 0,
+                "Line": 73,
+                "Column": 0
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "dupl",
+            "Text": "140-156 lines are duplicate of `internal/server/storage/mem_storage_test.go:214-230`",
+            "Severity": "error",
+            "SourceLines": [
+                "\tfor _, tt := range tests {",
+                "\t\ttt := tt",
+                "\t\tt.Run(tt.name, func(t *testing.T) {",
+                "\t\t\tms, err := NewMemStorage(false, \"\", 300)",
+                "\t\t\tassert.NoError(t, err, \"error making new memStorage\")",
+                "\t\t\tms.Counters = tt.fields.Counters",
+                "\t\t\tms.Gauges = tt.fields.Gauges",
+                "\t\t\tgot, err := ms.GetMetricJSON(context.Background(), tt.args.data)",
+                "\t\t\tif (err != nil) != tt.wantErr {",
+                "\t\t\t\tt.Errorf(\"memStorage.GetMetricJSON() error = %v, wantErr %v\", err, tt.wantErr)",
+                "\t\t\t\treturn",
+                "\t\t\t}",
+                "\t\t\tif !reflect.DeepEqual(got, tt.want) {",
+                "\t\t\t\tt.Errorf(\"memStorage.GetMetricJSON() = %v, want %v\", got, tt.want)",
+                "\t\t\t}",
+                "\t\t})",
+                "\t}"
+            ],
+            "Replacement": null,
+            "LineRange": {
+                "From": 140,
+                "To": 156
+            },
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage_test.go",
+                "Offset": 0,
+                "Line": 140,
+                "Column": 0
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "dupl",
+            "Text": "214-230 lines are duplicate of `internal/server/storage/mem_storage_test.go:140-156`",
+            "Severity": "error",
+            "SourceLines": [
+                "\tfor _, tt := range tests {",
+                "\t\ttt := tt",
+                "\t\tt.Run(tt.name, func(t *testing.T) {",
+                "\t\t\tms, err := NewMemStorage(false, \"\", 300)",
+                "\t\t\tassert.NoError(t, err, \"error making new memStorage\")",
+                "\t\t\tms.Counters = tt.fields.Counters",
+                "\t\t\tms.Gauges = tt.fields.Gauges",
+                "\t\t\tgot, err := ms.UpdateJSON(context.Background(), tt.args.data)",
+                "\t\t\tif (err != nil) != tt.wantErr {",
+                "\t\t\t\tt.Errorf(\"memStorage.UpdateJSON() error = %v, wantErr %v\", err, tt.wantErr)",
+                "\t\t\t\treturn",
+                "\t\t\t}",
+                "\t\t\tif !reflect.DeepEqual(got, tt.want) {",
+                "\t\t\t\tt.Errorf(\"memStorage.UpdateJSON() = %v, want %v\", got, tt.want)",
+                "\t\t\t}",
+                "\t\t})",
+                "\t}"
+            ],
+            "Replacement": null,
+            "LineRange": {
+                "From": 214,
+                "To": 230
+            },
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage_test.go",
+                "Offset": 0,
+                "Line": 214,
+                "Column": 0
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "containedctx",
+            "Text": "found a struct that contains a context.Context field",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\tctx  context.Context"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage_test.go",
+                "Offset": 7135,
+                "Line": 238,
+                "Column": 3
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "errcheck",
+            "Text": "Error return value of `ms.Update` is not checked",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\t\tms.Update(ctx, m.MType, m.ID, \"1\")"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage_test.go",
+                "Offset": 8531,
+                "Line": 292,
+                "Column": 13
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "errcheck",
+            "Text": "Error return value of `ms.updateOneMetric` is not checked",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\t\tms.updateOneMetric(m)"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage_test.go",
+                "Offset": 8665,
+                "Line": 298,
+                "Column": 22
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "errcheck",
+            "Text": "Error return value of `ms.GetMetric` is not checked",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\t\tms.GetMetric(ctx, m.MType, m.ID)"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage_test.go",
+                "Offset": 8780,
+                "Line": 305,
+                "Column": 16
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "errcheck",
+            "Text": "Error return value of `ms.GetMetricJSON` is not checked",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\t\tms.GetMetricJSON(ctx, []byte(mString))"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage_test.go",
+                "Offset": 8905,
+                "Line": 311,
+                "Column": 20
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "errcheck",
+            "Text": "Error return value of `ms.UpdateJSON` is not checked",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\t\tms.UpdateJSON(ctx, []byte(mString))"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage_test.go",
+                "Offset": 9032,
+                "Line": 317,
+                "Column": 17
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "errcheck",
+            "Text": "Error return value of `ms.UpdateJSONSlice` is not checked",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\t\tms.UpdateJSONSlice(ctx, []byte(mStringSlice))"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage_test.go",
+                "Offset": 9170,
+                "Line": 323,
+                "Column": 22
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "errcheck",
+            "Text": "Error return value of `ms.GetMetricsHTML` is not checked",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\t\tms.GetMetricsHTML(ctx)"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage_test.go",
+                "Offset": 9304,
+                "Line": 329,
+                "Column": 21
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "errcheck",
+            "Text": "Error return value of `ms.Update` is not checked",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\t\tms.Update(ctx, m.MType, m.ID, \"1\")"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage_test.go",
+                "Offset": 9931,
+                "Line": 347,
+                "Column": 13
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "errcheck",
+            "Text": "Error return value of `ms.updateOneMetric` is not checked",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\t\tms.updateOneMetric(ctx, m, ms.con)"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage_test.go",
+                "Offset": 10065,
+                "Line": 353,
+                "Column": 22
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "errcheck",
+            "Text": "Error return value of `ms.GetMetric` is not checked",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\t\tms.GetMetric(ctx, m.MType, m.ID)"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage_test.go",
+                "Offset": 10193,
+                "Line": 360,
+                "Column": 16
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "errcheck",
+            "Text": "Error return value of `ms.GetMetricJSON` is not checked",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\t\tms.GetMetricJSON(ctx, []byte(mString))"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage_test.go",
+                "Offset": 10318,
+                "Line": 366,
+                "Column": 20
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "errcheck",
+            "Text": "Error return value of `ms.UpdateJSON` is not checked",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\t\tms.UpdateJSON(ctx, []byte(mString))"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage_test.go",
+                "Offset": 10445,
+                "Line": 372,
+                "Column": 17
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "errcheck",
+            "Text": "Error return value of `ms.UpdateJSONSlice` is not checked",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\t\tms.UpdateJSONSlice(ctx, []byte(mStringSlice))"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage_test.go",
+                "Offset": 10583,
+                "Line": 378,
+                "Column": 22
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "errcheck",
+            "Text": "Error return value of `ms.GetMetricsHTML` is not checked",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\t\tms.GetMetricsHTML(ctx)"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage_test.go",
+                "Offset": 10717,
+                "Line": 384,
+                "Column": 21
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "gocritic",
+            "Text": "appendCombine: can combine chain of 2 appends into one",
+            "Severity": "error",
+            "SourceLines": [
+                "\twant = append(want, \"1\")"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage_test.go",
+                "Offset": 10863,
+                "Line": 394,
+                "Column": 2
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "gocritic",
+            "Text": "appendCombine: can combine chain of 2 appends into one",
+            "Severity": "error",
+            "SourceLines": [
+                "\twant = append(want, \"1\")"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/mem_storage_test.go",
+                "Offset": 11222,
+                "Line": 408,
+                "Column": 2
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "gomnd",
+            "Text": "mnd: Magic number: 10, in <argument> detected",
+            "Severity": "error",
+            "SourceLines": [
+                "\tcontext, cansel := context.WithTimeout(ctx, 10*time.Second)"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/sql_functions.go",
+                "Offset": 1218,
+                "Line": 50,
+                "Column": 46
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "goconst",
+            "Text": "string `,` has 2 occurrences, make it a constant",
+            "Severity": "error",
+            "SourceLines": [
+                "\tquery := fmt.Sprintf(\"CREATE TABLE  IF NOT EXISTS %s  (%s);\", name, strings.Join(items, \",\"))"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/sql_functions.go",
+                "Offset": 1339,
+                "Line": 52,
+                "Column": 90
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "wrapcheck",
+            "Text": "error returned from external package is unwrapped: sig: func (*database/sql.DB).ExecContext(ctx context.Context, query string, args ...any) (database/sql.Result, error)",
+            "Severity": "error",
+            "SourceLines": [
+                "\treturn err"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/sql_functions.go",
+                "Offset": 1485,
+                "Line": 57,
+                "Column": 9
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "goconst",
+            "Text": "string `pgx` has 2 occurrences, make it a constant",
+            "Severity": "error",
+            "SourceLines": [
+                "\tdb, err := sql.Open(\"pgx\", connectionString)"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/sql_functions.go",
+                "Offset": 1574,
+                "Line": 61,
+                "Column": 22
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "errcheck",
+            "Text": "Error return value of `db.Close` is not checked",
+            "Severity": "error",
+            "SourceLines": [
+                "\tdefer db.Close()"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/sql_functions.go",
+                "Offset": 1689,
+                "Line": 65,
+                "Column": 16
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "gomnd",
+            "Text": "mnd: Magic number: 3, in <argument> detected",
+            "Severity": "error",
+            "SourceLines": [
+                "\tctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/sql_functions.go",
+                "Offset": 1849,
+                "Line": 67,
+                "Column": 59
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "goconst",
+            "Text": "string `check database ping error: %w` has 2 occurrences, make it a constant",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\treturn fmt.Errorf(\"check database ping error: %w\", err)"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/sql_functions.go",
+                "Offset": 1944,
+                "Line": 70,
+                "Column": 21
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "godot",
+            "Text": "Comment should end in a period",
+            "Severity": "error",
+            "SourceLines": [
+                "//----------------------------------------------------------------------------------------------------"
+            ],
+            "Replacement": {
+                "NeedOnlyDelete": false,
+                "NewLines": [
+                    "//----------------------------------------------------------------------------------------------------."
+                ],
+                "Inline": null
+            },
+            "Pos": {
+                "Filename": "internal/server/storage/sql_functions.go",
+                "Offset": 2125,
+                "Line": 83,
+                "Column": 103
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "dupl",
+            "Text": "91-110 lines are duplicate of `internal/server/storage/sql_functions.go:112-131`",
+            "Severity": "error",
+            "SourceLines": [
+                "func (ms *SQLStorage) getCounter(ctx context.Context, name string) (*int64, error) {",
+                "\trows, err := ms.con.QueryContext(ctx, \"Select value from counters where name=$1;\", name)",
+                "\tif err != nil {",
+                "\t\treturn nil, fmt.Errorf(\"select value error: %w\", err)",
+                "\t}",
+                "\tdefer rows.Close()",
+                "\tif rows.Err() != nil {",
+                "\t\treturn nil, fmt.Errorf(\"get counter metric rows error: %w\", err)",
+                "\t}",
+                "\tif !rows.Next() {",
+                "\t\tvalue := int64(0)",
+                "\t\treturn &value, fmt.Errorf(\"counter value (%s) is absent\", name)",
+                "\t}",
+                "\tvar value int64",
+                "\terr = rows.Scan(&value)",
+                "\tif err != nil {",
+                "\t\treturn nil, fmt.Errorf(\"scan counter value (%s) error: %w\", name, err)",
+                "\t}",
+                "\treturn &value, nil",
+                "}"
+            ],
+            "Replacement": null,
+            "LineRange": {
+                "From": 91,
+                "To": 110
+            },
+            "Pos": {
+                "Filename": "internal/server/storage/sql_functions.go",
+                "Offset": 0,
+                "Line": 91,
+                "Column": 0
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "goconst",
+            "Text": "string `select value error: %w` has 2 occurrences, make it a constant",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\treturn nil, fmt.Errorf(\"select value error: %w\", err)"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/sql_functions.go",
+                "Offset": 2840,
+                "Line": 94,
+                "Column": 26
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "errcheck",
+            "Text": "Error return value of `rows.Close` is not checked",
+            "Severity": "error",
+            "SourceLines": [
+                "\tdefer rows.Close()"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/sql_functions.go",
+                "Offset": 2891,
+                "Line": 96,
+                "Column": 18
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "dupl",
+            "Text": "112-131 lines are duplicate of `internal/server/storage/sql_functions.go:91-110`",
+            "Severity": "error",
+            "SourceLines": [
+                "func (ms *SQLStorage) getGauge(ctx context.Context, name string) (*float64, error) {",
+                "\trows, err := ms.con.QueryContext(ctx, \"Select value from gauges where name=$1;\", name)",
+                "\tif err != nil {",
+                "\t\treturn nil, fmt.Errorf(\"select value error: %w\", err)",
+                "\t}",
+                "\tdefer rows.Close()",
+                "\tif rows.Err() != nil {",
+                "\t\treturn nil, fmt.Errorf(\"get gauge metric rows error: %w\", err)",
+                "\t}",
+                "\tif !rows.Next() {",
+                "\t\tvalue := float64(0.0)",
+                "\t\treturn &value, fmt.Errorf(\"gauge value (%s) is absent\", name)",
+                "\t}",
+                "\tvar value float64",
+                "\terr = rows.Scan(&value)",
+                "\tif err != nil {",
+                "\t\treturn nil, fmt.Errorf(\"scan gauge value (%s) error: %w\", name, err)",
+                "\t}",
+                "\treturn &value, nil",
+                "}"
+            ],
+            "Replacement": null,
+            "LineRange": {
+                "From": 112,
+                "To": 131
+            },
+            "Pos": {
+                "Filename": "internal/server/storage/sql_functions.go",
+                "Offset": 0,
+                "Line": 112,
+                "Column": 0
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "errcheck",
+            "Text": "Error return value of `rows.Close` is not checked",
+            "Severity": "error",
+            "SourceLines": [
+                "\tdefer rows.Close()"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/sql_functions.go",
+                "Offset": 3520,
+                "Line": 117,
+                "Column": 18
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "whitespace",
+            "Text": "unnecessary leading newline",
+            "Severity": "error",
+            "SourceLines": [
+                ") (*int64, error) {",
+                ""
+            ],
+            "Replacement": {
+                "NeedOnlyDelete": false,
+                "NewLines": [
+                    ") (*int64, error) {"
+                ],
+                "Inline": null
+            },
+            "LineRange": {
+                "From": 138,
+                "To": 139
+            },
+            "Pos": {
+                "Filename": "internal/server/storage/sql_functions.go",
+                "Offset": 0,
+                "Line": 138,
+                "Column": 0
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "wrapcheck",
+            "Text": "error returned from interface method should be wrapped: sig: func (github.com/gostuding/go-metrics/internal/server/storage.SQLQueryInterface).ExecContext(context.Context, string, ...any) (database/sql.Result, error)",
+            "Severity": "error",
+            "SourceLines": [
+                "\treturn &value, err"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/sql_functions.go",
+                "Offset": 4325,
+                "Line": 146,
+                "Column": 17
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "whitespace",
+            "Text": "unnecessary leading newline",
+            "Severity": "error",
+            "SourceLines": [
+                "\tconnect SQLQueryInterface) (*float64, error) {",
+                ""
+            ],
+            "Replacement": {
+                "NeedOnlyDelete": false,
+                "NewLines": [
+                    "\tconnect SQLQueryInterface) (*float64, error) {"
+                ],
+                "Inline": null
+            },
+            "LineRange": {
+                "From": 153,
+                "To": 154
+            },
+            "Pos": {
+                "Filename": "internal/server/storage/sql_functions.go",
+                "Offset": 0,
+                "Line": 153,
+                "Column": 0
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "wrapcheck",
+            "Text": "error returned from interface method should be wrapped: sig: func (github.com/gostuding/go-metrics/internal/server/storage.SQLQueryInterface).ExecContext(context.Context, string, ...any) (database/sql.Result, error)",
+            "Severity": "error",
+            "SourceLines": [
+                "\treturn &value, err"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/sql_functions.go",
+                "Offset": 4723,
+                "Line": 161,
+                "Column": 17
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "wastedassign",
+            "Text": "assigned to strValue, but reassigned without using the value",
+            "Severity": "error",
+            "SourceLines": [
+                "\tstrValue := \"\""
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/sql_functions.go",
+                "Offset": 4826,
+                "Line": 167,
+                "Column": 2
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "errcheck",
+            "Text": "Error return value of `rows.Close` is not checked",
+            "Severity": "error",
+            "SourceLines": [
+                "\tdefer rows.Close()"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/sql_functions.go",
+                "Offset": 5630,
+                "Line": 194,
+                "Column": 18
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "godot",
+            "Text": "Comment should end in a period",
+            "Severity": "error",
+            "SourceLines": [
+                "// \u041f\u043e\u043b\u0443\u0447\u0435\u043d\u0438\u0435 \u0437\u043d\u0430\u0447\u0435\u043d\u0438\u044f \u043c\u0435\u0442\u0440\u0438\u043a\u0438 \u043f\u043e \u0442\u0438\u043f\u0443 \u0438 \u0438\u043c\u0435\u043d\u0438"
+            ],
+            "Replacement": {
+                "NeedOnlyDelete": false,
+                "NewLines": [
+                    "// \u041f\u043e\u043b\u0443\u0447\u0435\u043d\u0438\u0435 \u0437\u043d\u0430\u0447\u0435\u043d\u0438\u044f \u043c\u0435\u0442\u0440\u0438\u043a\u0438 \u043f\u043e \u0442\u0438\u043f\u0443 \u0438 \u0438\u043c\u0435\u043d\u0438."
+                ],
+                "Inline": null
+            },
+            "Pos": {
+                "Filename": "internal/server/storage/sql_storage.go",
+                "Offset": 1200,
+                "Line": 54,
+                "Column": 82
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "godot",
+            "Text": "Comment should end in a period",
+            "Severity": "error",
+            "SourceLines": [
+                "// \u0421\u043f\u0438\u0441\u043e\u043a \u0432\u0441\u0435\u0445 \u043c\u0435\u0442\u0440\u0438\u043a \u0432 html"
+            ],
+            "Replacement": {
+                "NeedOnlyDelete": false,
+                "NewLines": [
+                    "// \u0421\u043f\u0438\u0441\u043e\u043a \u0432\u0441\u0435\u0445 \u043c\u0435\u0442\u0440\u0438\u043a \u0432 html."
+                ],
+                "Inline": null
+            },
+            "Pos": {
+                "Filename": "internal/server/storage/sql_storage.go",
+                "Offset": 1689,
+                "Line": 68,
+                "Column": 46
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "goconst",
+            "Text": "string `<nav><p>%d. %s</p></nav>` has 2 occurrences, make it a constant",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\tbody += fmt.Sprintf(\"<nav><p>%d. %s</p></nav>\", index+1, value)"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/sql_storage.go",
+                "Offset": 2376,
+                "Line": 83,
+                "Column": 23
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "godot",
+            "Text": "Comment should end in a period",
+            "Severity": "error",
+            "SourceLines": [
+                "// \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435 \u0447\u0435\u0440\u0435\u0437 json"
+            ],
+            "Replacement": {
+                "NeedOnlyDelete": false,
+                "NewLines": [
+                    "// \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435 \u0447\u0435\u0440\u0435\u0437 json."
+                ],
+                "Inline": null
+            },
+            "Pos": {
+                "Filename": "internal/server/storage/sql_storage.go",
+                "Offset": 3341,
+                "Line": 121,
+                "Column": 40
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "godot",
+            "Text": "Comment should end in a period",
+            "Severity": "error",
+            "SourceLines": [
+                "// \u0437\u0430\u043f\u0440\u043e\u0441 \u043c\u0435\u0442\u0440\u0438\u043a \u0447\u0435\u0440\u0435\u0437 json"
+            ],
+            "Replacement": {
+                "NeedOnlyDelete": false,
+                "NewLines": [
+                    "// \u0437\u0430\u043f\u0440\u043e\u0441 \u043c\u0435\u0442\u0440\u0438\u043a \u0447\u0435\u0440\u0435\u0437 json."
+                ],
+                "Inline": null
+            },
+            "Pos": {
+                "Filename": "internal/server/storage/sql_storage.go",
+                "Offset": 3825,
+                "Line": 141,
+                "Column": 45
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "goconst",
+            "Text": "string `matshl metric error: %w` has 2 occurrences, make it a constant",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\t\treturn nil, fmt.Errorf(\"matshl metric error: %w\", err)"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/sql_storage.go",
+                "Offset": 4376,
+                "Line": 161,
+                "Column": 27
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "godot",
+            "Text": "Comment should end in a period",
+            "Severity": "error",
+            "SourceLines": [
+                "// \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0430 \u043f\u043e\u0434\u043a\u043b\u044e\u0447\u0435\u043d\u0438\u044f \u043a \u0411\u0414"
+            ],
+            "Replacement": {
+                "NeedOnlyDelete": false,
+                "NewLines": [
+                    "// \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0430 \u043f\u043e\u0434\u043a\u043b\u044e\u0447\u0435\u043d\u0438\u044f \u043a \u0411\u0414."
+                ],
+                "Inline": null
+            },
+            "Pos": {
+                "Filename": "internal/server/storage/sql_storage.go",
+                "Offset": 5089,
+                "Line": 188,
+                "Column": 51
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "godot",
+            "Text": "Comment should end in a period",
+            "Severity": "error",
+            "SourceLines": [
+                "// \u043e\u0447\u0438\u0441\u0442\u043a\u0430 \u0411\u0414"
+            ],
+            "Replacement": {
+                "NeedOnlyDelete": false,
+                "NewLines": [
+                    "// \u043e\u0447\u0438\u0441\u0442\u043a\u0430 \u0411\u0414."
+                ],
+                "Inline": null
+            },
+            "Pos": {
+                "Filename": "internal/server/storage/sql_storage.go",
+                "Offset": 5323,
+                "Line": 196,
+                "Column": 23
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "gomnd",
+            "Text": "mnd: Magic number: 2, in <argument> detected",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\trs = append(rs, fmt.Sprintf(\"($%d, $%d)\", len(rs)*2+1, len(rs)*2+2))"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/sql_storage.go",
+                "Offset": 5979,
+                "Line": 216,
+                "Column": 68
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "wrapcheck",
+            "Text": "error returned from external package is unwrapped: sig: func (*database/sql.Tx).ExecContext(ctx context.Context, query string, args ...any) (database/sql.Result, error)",
+            "Severity": "error",
+            "SourceLines": [
+                "\treturn err"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/sql_storage.go",
+                "Offset": 6263,
+                "Line": 223,
+                "Column": 9
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "godot",
+            "Text": "Comment should end in a period",
+            "Severity": "error",
+            "SourceLines": [
+                "// \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435 \u0447\u0435\u0440\u0435\u0437 json slice"
+            ],
+            "Replacement": {
+                "NeedOnlyDelete": false,
+                "NewLines": [
+                    "// \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435 \u0447\u0435\u0440\u0435\u0437 json slice."
+                ],
+                "Inline": null
+            },
+            "Pos": {
+                "Filename": "internal/server/storage/sql_storage.go",
+                "Offset": 7167,
+                "Line": 253,
+                "Column": 46
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "errcheck",
+            "Text": "Error return value of `sqtx.Rollback` is not checked",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\tsqtx.Rollback()"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/sql_storage.go",
+                "Offset": 7922,
+                "Line": 274,
+                "Column": 16
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        },
+        {
+            "FromLinter": "errcheck",
+            "Text": "Error return value of `sqtx.Rollback` is not checked",
+            "Severity": "error",
+            "SourceLines": [
+                "\t\tsqtx.Rollback()"
+            ],
+            "Replacement": null,
+            "Pos": {
+                "Filename": "internal/server/storage/sql_storage.go",
+                "Offset": 8045,
+                "Line": 280,
+                "Column": 16
+            },
+            "ExpectNoLint": false,
+            "ExpectedNoLintLinter": ""
+        }
+    ],
+    "Report": {
+        "Linters": [
+            {
+                "Name": "asasalint",
+                "Enabled": true
+            },
+            {
+                "Name": "asciicheck",
+                "Enabled": true
+            },
+            {
+                "Name": "bidichk"
+            },
+            {
+                "Name": "bodyclose",
+                "Enabled": true
+            },
+            {
+                "Name": "containedctx",
+                "Enabled": true
+            },
+            {
+                "Name": "contextcheck"
+            },
+            {
+                "Name": "cyclop"
+            },
+            {
+                "Name": "decorder"
+            },
+            {
+                "Name": "deadcode"
+            },
+            {
+                "Name": "depguard"
+            },
+            {
+                "Name": "dogsled"
+            },
+            {
+                "Name": "dupl",
+                "Enabled": true
+            },
+            {
+                "Name": "dupword",
+                "Enabled": true
+            },
+            {
+                "Name": "durationcheck",
+                "Enabled": true
+            },
+            {
+                "Name": "errcheck",
+                "Enabled": true,
+                "EnabledByDefault": true
+            },
+            {
+                "Name": "errchkjson"
+            },
+            {
+                "Name": "errname",
+                "Enabled": true
+            },
+            {
+                "Name": "errorlint",
+                "Enabled": true
+            },
+            {
+                "Name": "execinquery",
+                "Enabled": true
+            },
+            {
+                "Name": "exhaustive",
+                "Enabled": true
+            },
+            {
+                "Name": "exhaustivestruct"
+            },
+            {
+                "Name": "exhaustruct"
+            },
+            {
+                "Name": "exportloopref"
+            },
+            {
+                "Name": "forbidigo"
+            },
+            {
+                "Name": "forcetypeassert"
+            },
+            {
+                "Name": "funlen"
+            },
+            {
+                "Name": "gci"
+            },
+            {
+                "Name": "ginkgolinter"
+            },
+            {
+                "Name": "gocheckcompilerdirectives",
+                "Enabled": true
+            },
+            {
+                "Name": "gochecknoglobals"
+            },
+            {
+                "Name": "gochecknoinits"
+            },
+            {
+                "Name": "gocognit"
+            },
+            {
+                "Name": "goconst",
+                "Enabled": true
+            },
+            {
+                "Name": "gocritic",
+                "Enabled": true
+            },
+            {
+                "Name": "gocyclo"
+            },
+            {
+                "Name": "godot",
+                "Enabled": true
+            },
+            {
+                "Name": "godox"
+            },
+            {
+                "Name": "goerr113"
+            },
+            {
+                "Name": "gofmt",
+                "Enabled": true
+            },
+            {
+                "Name": "gofumpt"
+            },
+            {
+                "Name": "goheader"
+            },
+            {
+                "Name": "goimports",
+                "Enabled": true
+            },
+            {
+                "Name": "golint"
+            },
+            {
+                "Name": "gomnd",
+                "Enabled": true
+            },
+            {
+                "Name": "gomoddirectives"
+            },
+            {
+                "Name": "gomodguard"
+            },
+            {
+                "Name": "goprintffuncname",
+                "Enabled": true
+            },
+            {
+                "Name": "gosec",
+                "Enabled": true
+            },
+            {
+                "Name": "gosimple",
+                "Enabled": true,
+                "EnabledByDefault": true
+            },
+            {
+                "Name": "gosmopolitan"
+            },
+            {
+                "Name": "govet",
+                "Enabled": true,
+                "EnabledByDefault": true
+            },
+            {
+                "Name": "grouper",
+                "Enabled": true
+            },
+            {
+                "Name": "ifshort"
+            },
+            {
+                "Name": "importas"
+            },
+            {
+                "Name": "ineffassign",
+                "Enabled": true,
+                "EnabledByDefault": true
+            },
+            {
+                "Name": "interfacebloat"
+            },
+            {
+                "Name": "interfacer"
+            },
+            {
+                "Name": "ireturn"
+            },
+            {
+                "Name": "lll",
+                "Enabled": true
+            },
+            {
+                "Name": "loggercheck"
+            },
+            {
+                "Name": "maintidx"
+            },
+            {
+                "Name": "makezero",
+                "Enabled": true
+            },
+            {
+                "Name": "maligned"
+            },
+            {
+                "Name": "mirror"
+            },
+            {
+                "Name": "misspell"
+            },
+            {
+                "Name": "musttag"
+            },
+            {
+                "Name": "nakedret"
+            },
+            {
+                "Name": "nestif"
+            },
+            {
+                "Name": "nilerr",
+                "Enabled": true
+            },
+            {
+                "Name": "nilnil",
+                "Enabled": true
+            },
+            {
+                "Name": "nlreturn"
+            },
+            {
+                "Name": "noctx"
+            },
+            {
+                "Name": "nonamedreturns"
+            },
+            {
+                "Name": "nosnakecase"
+            },
+            {
+                "Name": "nosprintfhostport",
+                "Enabled": true
+            },
+            {
+                "Name": "paralleltest"
+            },
+            {
+                "Name": "prealloc",
+                "Enabled": true
+            },
+            {
+                "Name": "predeclared",
+                "Enabled": true
+            },
+            {
+                "Name": "promlinter"
+            },
+            {
+                "Name": "reassign",
+                "Enabled": true
+            },
+            {
+                "Name": "revive",
+                "Enabled": true
+            },
+            {
+                "Name": "rowserrcheck",
+                "Enabled": true
+            },
+            {
+                "Name": "scopelint"
+            },
+            {
+                "Name": "sqlclosecheck",
+                "Enabled": true
+            },
+            {
+                "Name": "staticcheck",
+                "Enabled": true,
+                "EnabledByDefault": true
+            },
+            {
+                "Name": "structcheck"
+            },
+            {
+                "Name": "stylecheck",
+                "Enabled": true
+            },
+            {
+                "Name": "tagalign"
+            },
+            {
+                "Name": "tagliatelle"
+            },
+            {
+                "Name": "tenv",
+                "Enabled": true
+            },
+            {
+                "Name": "testableexamples",
+                "Enabled": true
+            },
+            {
+                "Name": "testpackage"
+            },
+            {
+                "Name": "thelper",
+                "Enabled": true
+            },
+            {
+                "Name": "tparallel",
+                "Enabled": true
+            },
+            {
+                "Name": "typecheck",
+                "Enabled": true,
+                "EnabledByDefault": true
+            },
+            {
+                "Name": "unconvert",
+                "Enabled": true
+            },
+            {
+                "Name": "unparam",
+                "Enabled": true
+            },
+            {
+                "Name": "unused",
+                "Enabled": true,
+                "EnabledByDefault": true
+            },
+            {
+                "Name": "usestdlibvars",
+                "Enabled": true
+            },
+            {
+                "Name": "varcheck"
+            },
+            {
+                "Name": "varnamelen"
+            },
+            {
+                "Name": "wastedassign",
+                "Enabled": true
+            },
+            {
+                "Name": "whitespace",
+                "Enabled": true
+            },
+            {
+                "Name": "wrapcheck",
+                "Enabled": true
+            },
+            {
+                "Name": "wsl"
+            },
+            {
+                "Name": "nolintlint",
+                "Enabled": true
+            },
+            {
+                "Name": "zerologlint"
+            }
+        ]
+    }
+}

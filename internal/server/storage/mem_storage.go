@@ -14,6 +14,11 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
+var (
+	gaugeType   = "gauge"
+	counterType = "counter"
+)
+
 // Структура для хранения данных о метриках
 type memStorage struct {
 	Gauges       map[string]float64 `json:"gauges"`
@@ -45,7 +50,7 @@ func NewMemStorage(restore bool, filePath string, saveInterval int) (*memStorage
 
 func (ms *memStorage) Update(ctx context.Context, mType string, mName string, mValue string) error {
 	switch mType {
-	case "gauge":
+	case gaugeType:
 		val, err := strconv.ParseFloat(mValue, 64)
 		if err != nil {
 			return fmt.Errorf("gauge value convert error: %w", err)
@@ -53,7 +58,7 @@ func (ms *memStorage) Update(ctx context.Context, mType string, mName string, mV
 		ms.mx.Lock()
 		ms.Gauges[mName] = val
 		ms.mx.Unlock()
-	case "counter":
+	case counterType:
 		val, err := strconv.ParseInt(mValue, 10, 64)
 		if err != nil {
 			return fmt.Errorf("counter value convert error: %w", err)
@@ -75,13 +80,13 @@ func (ms *memStorage) GetMetric(ctx context.Context, mType string, mName string)
 	ms.mx.RLock()
 	defer ms.mx.RUnlock()
 	switch mType {
-	case "gauge":
+	case gaugeType:
 		for key, val := range ms.Gauges {
 			if key == mName {
 				return strconv.FormatFloat(val, 'f', -1, 64), nil
 			}
 		}
-	case "counter":
+	case counterType:
 		for key, val := range ms.Counters {
 			if key == mName {
 				return fmt.Sprintf("%d", val), nil
@@ -115,7 +120,7 @@ func (ms *memStorage) GetMetricsHTML(ctx context.Context) (string, error) {
 
 func (ms *memStorage) updateOneMetric(m metric) (*metric, error) {
 	switch m.MType {
-	case "counter":
+	case counterType:
 		if m.Delta != nil {
 			ms.Counters[m.ID] += *m.Delta
 			delta := ms.Counters[m.ID]
@@ -123,7 +128,7 @@ func (ms *memStorage) updateOneMetric(m metric) (*metric, error) {
 		} else {
 			return nil, errors.New("metric's delta indefined")
 		}
-	case "gauge":
+	case gaugeType:
 		if m.Value != nil {
 			ms.Gauges[m.ID] = *m.Value
 		} else {
@@ -173,14 +178,14 @@ func (ms *memStorage) GetMetricJSON(ctx context.Context, data []byte) ([]byte, e
 	ms.mx.RLock()
 	defer ms.mx.RUnlock()
 	switch metric.MType {
-	case "counter":
+	case counterType:
 		for key, val := range ms.Counters {
 			if key == metric.ID {
 				metric.Delta = &val
 				resp, err = json.Marshal(metric)
 			}
 		}
-	case "gauge":
+	case gaugeType:
 		for key, val := range ms.Gauges {
 			if key == metric.ID {
 				metric.Value = &val
@@ -282,6 +287,9 @@ func (ms *memStorage) restore() error {
 }
 
 func (ms *memStorage) Save() error {
+	if ms.SavePath == "" {
+		return nil
+	}
 	file, err := os.OpenFile(ms.SavePath, os.O_WRONLY|os.O_TRUNC, 0644)
 	if err != nil {
 		return err

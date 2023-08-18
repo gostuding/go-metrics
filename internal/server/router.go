@@ -18,8 +18,12 @@ type Storage interface {
 
 // получние однотипных данных из адреса запроса
 func updateParams(r *http.Request) updateMetricsArgs {
-	return updateMetricsArgs{base: getMetricsArgs{mType: chi.URLParam(r, "mType"), mName: chi.URLParam(r, "mName")}, mValue: chi.URLParam(r, "mValue")}
+	return updateMetricsArgs{
+		base:   getMetricsArgs{mType: chi.URLParam(r, "mType"), mName: chi.URLParam(r, "mName")},
+		mValue: chi.URLParam(r, "mValue"),
+	}
 }
+
 func getParams(r *http.Request) getMetricsArgs {
 	return getMetricsArgs{mType: chi.URLParam(r, "mType"), mName: chi.URLParam(r, "mName")}
 }

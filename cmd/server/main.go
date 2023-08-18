@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/gostuding/go-metrics/internal/server"
@@ -14,7 +15,7 @@ func run(logger *zap.SugaredLogger) error {
 
 	cfg, err := server.GetFlags()
 	if err != nil {
-		return err
+		return fmt.Errorf("get flags error: %w", err)
 	}
 	if cfg.ConnectDBString == "" {
 		strg, strErr = storage.NewMemStorage(cfg.Restore, cfg.FileStorePath, cfg.StoreInterval)
@@ -22,10 +23,9 @@ func run(logger *zap.SugaredLogger) error {
 		strg, strErr = storage.NewSQLStorage(cfg.ConnectDBString, logger)
 	}
 	if strErr != nil {
-		return strErr
+		return fmt.Errorf("storage error: %w", err)
 	}
-	return server.RunServer(cfg, strg, logger)
-
+	return server.RunServer(cfg, strg, logger) //nolint:wrapcheck //<-senselessly
 }
 
 func main() {
@@ -33,7 +33,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	err = run(logger)
 	if err != nil {
 		logger.Fatalln(err)

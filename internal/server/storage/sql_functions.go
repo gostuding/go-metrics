@@ -8,6 +8,11 @@ import (
 	"time"
 )
 
+var (
+	gaugeTableName   = "gauges"
+	counterTableName = "counters"
+)
+
 type sqlColumns map[string]any
 
 func sqlTablesMaps() *map[string]sqlColumns {
@@ -21,8 +26,8 @@ func sqlTablesMaps() *map[string]sqlColumns {
 	gauges["value"] = 0.0
 
 	result := make(map[string]sqlColumns)
-	result["counters"] = counters
-	result["gauges"] = gauges
+	result[counterTableName] = counters
+	result[gaugeTableName] = gauges
 	return &result
 }
 
@@ -125,7 +130,12 @@ func (ms *SQLStorage) getGauge(ctx context.Context, name string) (*float64, erro
 	return &value, nil
 }
 
-func (ms *SQLStorage) updateCounter(ctx context.Context, name string, value int64, connect SQLQueryInterface) (*int64, error) {
+func (ms *SQLStorage) updateCounter(
+	ctx context.Context,
+	name string,
+	value int64,
+	connect SQLQueryInterface,
+) (*int64, error) {
 
 	query := `INSERT INTO counters(name, value) values($1, $2) ON CONFLICT (name) DO 
 	UPDATE SET value=EXCLUDED.value+counters.value;`
@@ -136,13 +146,18 @@ func (ms *SQLStorage) updateCounter(ctx context.Context, name string, value int6
 	return &value, err
 }
 
-func (ms *SQLStorage) updateGauge(ctx context.Context, name string, value float64, connect SQLQueryInterface) (*float64, error) {
+func (ms *SQLStorage) updateGauge(
+	ctx context.Context,
+	name string,
+	value float64,
+	connect SQLQueryInterface) (*float64, error) {
 
-	_, err := connect.ExecContext(ctx, "INSERT INTO gauges(name, value) values($1, $2) ON CONFLICT (name) DO UPDATE SET value=EXCLUDED.value;", name, value)
+	_, err := connect.ExecContext(ctx,
+		`INSERT INTO gauges(name, value) values($1, $2) 
+		ON CONFLICT (name) DO UPDATE SET value=EXCLUDED.value;`, name, value)
 	if err != nil {
 		return &value, fmt.Errorf("gauges update error: %w", err)
 	}
-
 	return &value, err
 }
 
@@ -150,7 +165,7 @@ func scanValue(table string, rows *sql.Rows) (string, error) {
 	var err error
 	var name string
 	strValue := ""
-	if table == "gauges" {
+	if table == gaugeTableName {
 		var value float64
 		err = rows.Scan(&name, &value)
 		strValue = fmt.Sprintf("'%s' = %f", name, value)
@@ -169,16 +184,14 @@ func (ms *SQLStorage) getAllMetricOfType(ctx context.Context, table string) (*[]
 	values := make([]string, 0)
 
 	query := "Select name, value from counters order by name;"
-	if table == "gauges" {
+	if table == gaugeTableName {
 		query = "Select name, value from gauges order by name;"
 	}
-
 	rows, err := ms.con.QueryContext(ctx, query)
 	if err != nil {
 		return &values, fmt.Errorf("get all metrics query error: %w", err)
 	}
 	defer rows.Close()
-
 	if rows.Err() != nil {
 		return &values, fmt.Errorf("get all metrics rows error: %w", err)
 	}
@@ -190,6 +203,5 @@ func (ms *SQLStorage) getAllMetricOfType(ctx context.Context, table string) (*[]
 		}
 		values = append(values, val)
 	}
-
 	return &values, nil
 }

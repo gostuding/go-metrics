@@ -208,8 +208,12 @@ func GetAllMetrics(writer http.ResponseWriter, request *http.Request, storage HT
 }
 
 // обновление в JSON формате
-func UpdateJSON(writer http.ResponseWriter, request *http.Request, storage StorageSetter,
-	logger *zap.SugaredLogger, key []byte) {
+func UpdateJSON(
+	writer http.ResponseWriter,
+	request *http.Request,
+	storage StorageSetter,
+	logger *zap.SugaredLogger,
+	key []byte) {
 	writer.Header().Set("Content-Type", "application/json")
 	data, err := io.ReadAll(request.Body)
 	if err != nil {
@@ -231,8 +235,12 @@ func UpdateJSON(writer http.ResponseWriter, request *http.Request, storage Stora
 }
 
 // получение метрики в JSON формате
-func GetMetricJSON(writer http.ResponseWriter, request *http.Request, storage StorageGetter,
-	logger *zap.SugaredLogger, key []byte) {
+func GetMetricJSON(
+	writer http.ResponseWriter,
+	request *http.Request,
+	storage StorageGetter,
+	logger *zap.SugaredLogger,
+	key []byte) {
 	writer.Header().Set("Content-Type", "application/json")
 	data, err := io.ReadAll(request.Body)
 	if err != nil {
@@ -257,7 +265,10 @@ func GetMetricJSON(writer http.ResponseWriter, request *http.Request, storage St
 }
 
 // проверка подключения к БД
-func Ping(writer http.ResponseWriter, request *http.Request, storage StorageDB, logger *zap.SugaredLogger) {
+func Ping(writer http.ResponseWriter,
+	request *http.Request,
+	storage StorageDB,
+	logger *zap.SugaredLogger) {
 	writer.Header().Set("Content-Type", "")
 	err := storage.PingDB(request.Context())
 	if err != nil {
@@ -270,7 +281,11 @@ func Ping(writer http.ResponseWriter, request *http.Request, storage StorageDB, 
 }
 
 // очистка storage
-func Clear(writer http.ResponseWriter, request *http.Request, storage StorageDB, logger *zap.SugaredLogger) {
+func Clear(
+	writer http.ResponseWriter,
+	request *http.Request,
+	storage StorageDB,
+	logger *zap.SugaredLogger) {
 	writer.Header().Set("Content-Type", "")
 	err := storage.Clear(request.Context())
 	if err != nil {

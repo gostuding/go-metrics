@@ -14,9 +14,8 @@ import (
 )
 
 type SQLStorage struct {
-	ConnectDBString string
-	con             *sql.DB
-	Logger          *zap.SugaredLogger
+	con    *sql.DB
+	Logger *zap.SugaredLogger
 }
 
 func NewSQLStorage(dsn string, logger *zap.SugaredLogger) (*SQLStorage, error) {
@@ -25,23 +24,22 @@ func NewSQLStorage(dsn string, logger *zap.SugaredLogger) (*SQLStorage, error) {
 		return nil, fmt.Errorf("connect database crate error: %w", err)
 	}
 	storage := SQLStorage{
-		con:             db,
-		ConnectDBString: dsn,
-		Logger:          logger,
+		con:    db,
+		Logger: logger,
 	}
 	return &storage, checkDatabaseStructure(dsn)
 }
 
 func (ms *SQLStorage) Update(ctx context.Context, mType string, mName string, mValue string) error {
 	switch mType {
-	case "counter":
+	case counterType:
 		counter, err := strconv.ParseInt(mValue, 10, 64)
 		if err != nil {
 			return fmt.Errorf("counter value convert error: %w", err)
 		}
 		_, err = ms.updateCounter(ctx, mName, counter, ms.con)
 		return err
-	case "gauge":
+	case gaugeType:
 		gauges, err := strconv.ParseFloat(mValue, 64)
 		if err != nil {
 			return fmt.Errorf("gauge value convert error: %w", err)
@@ -56,10 +54,10 @@ func (ms *SQLStorage) Update(ctx context.Context, mType string, mName string, mV
 // Получение значения метрики по типу и имени
 func (ms *SQLStorage) GetMetric(ctx context.Context, mType string, mName string) (string, error) {
 	switch mType {
-	case "gauge":
+	case gaugeType:
 		value, err := ms.getGauge(ctx, mName)
 		return fmt.Sprintf("%f", *value), err
-	case "counter":
+	case counterType:
 		value, err := ms.getCounter(ctx, mName)
 		return fmt.Sprintf("%d", *value), err
 	default:
@@ -69,11 +67,11 @@ func (ms *SQLStorage) GetMetric(ctx context.Context, mType string, mName string)
 
 // Список всех метрик в html
 func (ms *SQLStorage) GetMetricsHTML(ctx context.Context) (string, error) {
-	gauges, err := ms.getAllMetricOfType(ctx, "gauges")
+	gauges, err := ms.getAllMetricOfType(ctx, gaugeTableName)
 	if err != nil {
 		return "", fmt.Errorf("get gauges metrics error: %w", err)
 	}
-	counters, err := ms.getAllMetricOfType(ctx, "counters")
+	counters, err := ms.getAllMetricOfType(ctx, counterTableName)
 	if err != nil {
 		return "", fmt.Errorf("get counters metrics error: %w", err)
 	}
@@ -94,7 +92,7 @@ func (ms *SQLStorage) GetMetricsHTML(ctx context.Context) (string, error) {
 
 func (ms *SQLStorage) updateOneMetric(ctx context.Context, m metric, connect SQLQueryInterface) (*metric, error) {
 	switch m.MType {
-	case "counter":
+	case counterType:
 		if m.Delta != nil {
 			value, err := ms.updateCounter(ctx, m.ID, *m.Delta, connect)
 			if err != nil {
@@ -104,7 +102,7 @@ func (ms *SQLStorage) updateOneMetric(ctx context.Context, m metric, connect SQL
 		} else {
 			return nil, errors.New("metric's delta indefined")
 		}
-	case "gauge":
+	case gaugeType:
 		if m.Value != nil {
 			value, err := ms.updateGauge(ctx, m.ID, *m.Value, connect)
 			if err != nil {
@@ -149,7 +147,7 @@ func (ms *SQLStorage) GetMetricJSON(ctx context.Context, data []byte) ([]byte, e
 	}
 
 	switch metric.MType {
-	case "counter":
+	case counterType:
 		value, err := ms.getCounter(ctx, metric.ID)
 		if err != nil {
 			if value != nil {
@@ -163,7 +161,7 @@ func (ms *SQLStorage) GetMetricJSON(ctx context.Context, data []byte) ([]byte, e
 			return nil, fmt.Errorf("matshl metric error: %w", err)
 		}
 		return resp, nil
-	case "gauge":
+	case gaugeType:
 		value, err := ms.getGauge(ctx, metric.ID)
 		if err != nil {
 			if value != nil {
@@ -231,13 +229,13 @@ func mkMetricsMaps(metrics []metric, logger *zap.SugaredLogger) (map[string]stri
 	gaugeLst := make(map[string]string)
 	for _, item := range metrics {
 		switch item.MType {
-		case "counter":
+		case counterType:
 			if item.Delta == nil {
 				logger.Debug("skip counter metric update. Metric's delta is nil: ", item.ID)
 				continue
 			}
 			countersLst[item.ID] += *item.Delta
-		case "gauge":
+		case gaugeType:
 			if item.Value == nil {
 				logger.Debug("skip gauge metric update. Metric's value is nil: ", item.ID)
 				continue
@@ -260,18 +258,18 @@ func (ms *SQLStorage) UpdateJSONSlice(ctx context.Context, data []byte) ([]byte,
 		return nil, fmt.Errorf("json conver error: %w", err)
 	}
 
-	// запись данных а БД
+	// запись данных в БД
 	sqtx, err := ms.con.Begin()
 	if err != nil {
 		return nil, fmt.Errorf("transaction create error: %w", err)
 	}
 
 	counters, gauges := mkMetricsMaps(metrics, ms.Logger)
-	err = sliceInsert(ctx, sqtx, "counters", counters, "+counters.value")
+	err = sliceInsert(ctx, sqtx, counterTableName, counters, fmt.Sprintf("+%s.value", counterTableName))
 	if err != nil {
 		return nil, fmt.Errorf("insert counters slice error: %w", err)
 	}
-	err = sliceInsert(ctx, sqtx, "gauges", gauges, "")
+	err = sliceInsert(ctx, sqtx, gaugeTableName, gauges, "")
 	if err != nil {
 		sqtx.Rollback()
 		return nil, fmt.Errorf("insert gauges slice error: %w", err)

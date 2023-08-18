@@ -10,11 +10,11 @@ import (
 
 type Config struct {
 	IPAddress       string
-	StoreInterval   int
 	FileStorePath   string
-	Restore         bool
 	ConnectDBString string
 	Key             []byte
+	StoreInterval   int
+	Restore         bool
 }
 
 func stringEnvCheck(val string, name string) string {
@@ -34,7 +34,7 @@ func GetFlags() (*Config, error) {
 	flag.StringVar(&options.ConnectDBString, "d", "", "database connect string")
 	flag.StringVar(&key, "k", "", "Key for SHA256 checks")
 	flag.Parse()
-	//-------------------------------------------------------------------------
+
 	if val := os.Getenv("STORE_INTERVAL"); val != "" {
 		interval, err := strconv.Atoi(val)
 		if err != nil {
@@ -60,6 +60,5 @@ func GetFlags() (*Config, error) {
 			return nil, fmt.Errorf("enviroment RESTORE error. Use 'true' or 'false' value instead of '%s'", val)
 		}
 	}
-	//-------------------------------------------------------------------------
 	return &options, nil
 }

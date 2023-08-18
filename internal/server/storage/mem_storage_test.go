@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 )
@@ -21,9 +22,9 @@ func TestMemStorageAddMetric(t *testing.T) {
 		path    args
 		wantErr bool
 	}{
-		{name: "Добавление значения метрики Counter", path: args{"counter", "item", "2"}, wantErr: false},
+		{name: "Добавление значения метрики Counter", path: args{counterType, "item", "2"}, wantErr: false},
 		{name: "Неправильный путь", path: args{"", "item", "2"}, wantErr: true},
-		{name: "Неправильный тип данных", path: args{"gauge", "item", "2ll"}, wantErr: true},
+		{name: "Неправильный тип данных", path: args{gaugeType, "item", "2ll"}, wantErr: true},
 	}
 	for _, val := range tests {
 		tt := val // переопределили переменную чтобы избежать использования ссылки на переменную цикла (есть такая особенность)
@@ -67,9 +68,9 @@ func TestMemStorageGetMetric(t *testing.T) {
 		want      string
 		wantError bool
 	}{
-		{name: "Получение Gauges ", fields: fields{Gauges: gTest(), Counters: cTest()}, args: args{mType: "gauge", mName: "item"}, want: "0.34", wantError: false},
+		{name: "Получение Gauges ", fields: fields{Gauges: gTest(), Counters: cTest()}, args: args{mType: gaugeType, mName: "item"}, want: "0.34", wantError: false},
 		{name: "Неправильный тип", fields: fields{Gauges: gTest(), Counters: cTest()}, args: args{mType: "error", mName: "item"}, want: "", wantError: true},
-		{name: "Неправильное имя", fields: fields{Gauges: gTest(), Counters: cTest()}, args: args{mType: "counter", mName: "none"}, want: "", wantError: true},
+		{name: "Неправильное имя", fields: fields{Gauges: gTest(), Counters: cTest()}, args: args{mType: counterType, mName: "none"}, want: "", wantError: true},
 	}
 	for _, val := range tests {
 		tt := val
@@ -229,14 +230,59 @@ func TestMemStorage_UpdateJSON(t *testing.T) {
 	}
 }
 
+func Test_memStorage_UpdateJSONSlice(t *testing.T) {
+	ms, err := NewMemStorage(false, "", 1000)
+	assert.NoError(t, err, "create mem storage error")
+	wantBytes := []byte(`[{"id": "1", "type": "gauge", "delta": 1}, {"id": "2", "type": "counter", "value": 1}]`)
+	type args struct {
+		ctx  context.Context
+		data []byte
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    []byte
+		wantErr bool
+	}{
+		{
+			name: "добваление списка метрик",
+			args: args{
+				ctx:  context.Background(),
+				data: wantBytes,
+			},
+			want:    wantBytes,
+			wantErr: false,
+		},
+		{
+			name: "ошибка добваления списка метрик",
+			args: args{
+				ctx:  context.Background(),
+				data: []byte("error"),
+			},
+			want:    []byte(""),
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := ms.UpdateJSONSlice(tt.args.ctx, tt.args.data)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("memStorage.UpdateJSONSlice() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+		})
+	}
+}
+
 func BenchmarkMemStorage(b *testing.B) {
 	ms, err := NewMemStorage(false, "", 300)
 	assert.NoError(b, err, "error making new memStorage")
 	ctx := context.Background()
-	err = ms.Update(ctx, "counter", "test", "0")
+	err = ms.Update(ctx, counterType, "test", "0")
 	assert.NoError(b, err, "add initial metric error")
 	val := int64(1)
-	m := metric{ID: "test", MType: "counter", Delta: &val}
+	m := metric{ID: "test", MType: counterType, Delta: &val}
 	mString := `{"id": "test", "type": "counter", "value": 1}`
 	mStringSlice := strings.Repeat(mString, 2) + `{"id": "test", "type": "gauge", "value": 1.0}`
 
@@ -292,7 +338,7 @@ func BenchmarkSQLStorage(b *testing.B) {
 	assert.NoError(b, err, "create sql storage error")
 	ctx := context.Background()
 	val := int64(1)
-	m := metric{ID: "test", MType: "counter", Delta: &val}
+	m := metric{ID: "test", MType: counterType, Delta: &val}
 	mString := `{"id": "test", "type": "counter", "value": 1}`
 	mStringSlice := strings.Repeat(mString, 2) + `{"id": "test", "type": "gauge", "value": 1.0}`
 
@@ -338,4 +384,74 @@ func BenchmarkSQLStorage(b *testing.B) {
 			ms.GetMetricsHTML(ctx)
 		}
 	})
+}
+
+func Test_getSortedKeysFloat(t *testing.T) {
+	args := make(map[string]float64)
+	args["2"] = 1
+	args["1"] = 2
+	var want []string
+	want = append(want, "1")
+	want = append(want, "2")
+	t.Run("sort test", func(t *testing.T) {
+		if got := getSortedKeysFloat(args); !reflect.DeepEqual(got, want) {
+			t.Errorf("getSortedKeysFloat() = %v, want %v", got, want)
+		}
+	})
+}
+
+func Test_getSortedKeysInt(t *testing.T) {
+	args := make(map[string]int64)
+	args["2"] = 1
+	args["1"] = 2
+	var want []string
+	want = append(want, "1")
+	want = append(want, "2")
+	t.Run("sort test", func(t *testing.T) {
+		if got := getSortedKeysInt(args); !reflect.DeepEqual(got, want) {
+			t.Errorf("getSortedKeysFloat() = %v, want %v", got, want)
+		}
+	})
+}
+
+func Test_memStorage_Clear(t *testing.T) {
+	ms, err := NewMemStorage(false, "", 1000)
+	assert.NoError(t, err, "create storage error")
+	ms.Gauges["1"] = 1
+	t.Run("clear storage", func(t *testing.T) {
+		if err := ms.Clear(context.Background()); (err != nil) != false {
+			t.Errorf("memStorage.Clear() error = %v, wantErr %v", err, false)
+		}
+	})
+}
+
+func Test_memStorage_Save(t *testing.T) {
+	msSuccess, err := NewMemStorage(false, "", 1000)
+	assert.NoError(t, err, "success storage create error")
+	msError, err := NewMemStorage(false, "_1.._1ww_", 1000)
+	assert.NoError(t, err, "error storage create error")
+	tests := []struct {
+		name    string
+		ms      *memStorage
+		wantErr bool
+	}{
+		{
+			name:    "успешное сохранение",
+			ms:      msSuccess,
+			wantErr: false,
+		},
+		{
+			name:    "ошибка сохранения",
+			ms:      msError,
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.ms.Save(); (err != nil) != tt.wantErr {
+				t.Errorf("memStorage.Save() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
 }

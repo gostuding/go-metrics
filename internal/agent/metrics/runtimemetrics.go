@@ -20,17 +20,17 @@ import (
 )
 
 type metricsStorage struct {
-	Supplier     runtime.MemStats
+	IP           string
+	URL          string
 	MetricsSlice map[string]metrics
 	Logger       *zap.SugaredLogger
-	IP           string
-	Port         int
-	GzipCompress bool
-	Key          []byte
-	URL          string
-	mx           sync.RWMutex
 	resiveChan   chan resiveStruct
 	requestChan  chan struct{}
+	Key          []byte
+	mx           sync.RWMutex
+	Port         int
+	GzipCompress bool
+	Supplier     runtime.MemStats
 }
 
 type metrics struct {
