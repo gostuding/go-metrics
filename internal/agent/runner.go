@@ -4,15 +4,15 @@ import (
 	"time"
 )
 
-// интерфейс для отправки и обновления данных
+// Storager interface for metrics collecting.
 type Storager interface {
 	UpdateMetrics()
 	UpdateAditionalMetrics()
 	SendMetricsSlice()
 }
 
-// бесконечный цикл отправки данных
-func StartAgent(args Config, storage Storager) {
+// StartAgent starts gorutines for update and send metrics.
+func StartAgent(args *Config, storage Storager) {
 	pollTicker := time.NewTicker(time.Duration(args.PollInterval) * time.Second)
 	reportTicker := time.NewTicker(time.Duration(args.ReportInterval) * time.Second)
 	defer pollTicker.Stop()

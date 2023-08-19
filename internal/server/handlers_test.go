@@ -4,10 +4,13 @@ import (
 	"context"
 	"errors"
 	"io"
+	"net/http"
 	"reflect"
 	"testing"
 	"time"
 
+	"github.com/golang/mock/gomock"
+	"github.com/gostuding/go-metrics/internal/server/mocks"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
 )
@@ -376,6 +379,222 @@ func Test_isRepeat(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := isRepeat(tt.err, &val); got != tt.want {
 				t.Errorf("isRepeat() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestUpdate(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	storage := mocks.NewMockStorage(ctrl)
+	ctx := context.Background()
+	errType := errors.New("type error")
+	storage.EXPECT().Update(ctx, "gauge", "name", "1").Return(nil)
+	storage.EXPECT().Update(ctx, "gauger", "name", "1,0").Return(errType)
+
+	type args struct {
+		ctx     context.Context
+		storage StorageSetter
+		metric  updateMetricsArgs
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    int
+		wantErr bool
+	}{
+		{
+			name: "Update success",
+			args: args{
+				ctx:     ctx,
+				storage: storage,
+				metric:  updateMetricsArgs{base: getMetricsArgs{mType: "gauge", mName: "name"}, mValue: "1"},
+			},
+			want:    http.StatusOK,
+			wantErr: false,
+		},
+		{
+			name: "Update error",
+			args: args{
+				ctx:     ctx,
+				storage: storage,
+				metric:  updateMetricsArgs{base: getMetricsArgs{mType: "gauger", mName: "name"}, mValue: "1,0"},
+			},
+			want:    http.StatusBadRequest,
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := Update(tt.args.ctx, tt.args.storage, tt.args.metric)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Update() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("Update() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+
+	storage.EXPECT().GetMetric(ctx, "gauge", "name").Return("1", nil)
+	storage.EXPECT().GetMetric(ctx, "gauger", "name").Return("", errType)
+	type argsGetM struct {
+		ctx     context.Context
+		storage StorageGetter
+		metric  getMetricsArgs
+	}
+	testsGetM := []struct {
+		name    string
+		args    argsGetM
+		want    []byte
+		wantErr bool
+	}{
+		{
+			name: "GetMetric success",
+			args: argsGetM{
+				ctx:     ctx,
+				storage: storage,
+				metric:  getMetricsArgs{mType: "gauge", mName: "name"},
+			},
+			want:    []byte("1"),
+			wantErr: false,
+		},
+		{
+			name: "GetMetric error",
+			args: argsGetM{
+				ctx:     ctx,
+				storage: storage,
+				metric:  getMetricsArgs{mType: "gauger", mName: "name"},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+	}
+	for _, tt := range testsGetM {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := GetMetric(tt.args.ctx, tt.args.storage, tt.args.metric)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("GetMetric() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("GetMetric() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+
+	storage.EXPECT().GetMetricsHTML(ctx).Return("all metrics", nil)
+	t.Run("GetMetricsHTML", func(t *testing.T) {
+		_, err := GetAllMetrics(ctx, storage)
+		if err != nil {
+			t.Errorf("GetAllMetrics() error = %v", err)
+			return
+		}
+	})
+
+	storage.EXPECT().PingDB(ctx).Return(nil)
+	t.Run("Ping", func(t *testing.T) {
+		_, err := Ping(ctx, storage)
+		if err != nil {
+			t.Errorf("PingDB() error = %v", err)
+			return
+		}
+	})
+
+	storage.EXPECT().Clear(ctx).Return(nil)
+	t.Run("Clear", func(t *testing.T) {
+		_, err := Clear(ctx, storage)
+		if err != nil {
+			t.Errorf("Clear() error = %v", err)
+			return
+		}
+	})
+
+	storage.EXPECT().UpdateJSON(ctx, []byte("success")).Return([]byte("success"), nil)
+	storage.EXPECT().UpdateJSON(ctx, []byte("error")).Return(nil, errType)
+	type argsUJ struct {
+		ctx     context.Context
+		body    []byte
+		storage StorageSetter
+	}
+	testsUJ := []struct {
+		name    string
+		args    argsUJ
+		want    []byte
+		wantErr bool
+	}{
+		{
+			name:    "Update JSON success",
+			args:    argsUJ{ctx: ctx, body: []byte("success"), storage: storage},
+			want:    []byte("success"),
+			wantErr: false,
+		},
+		{
+			name:    "Update JSON error",
+			args:    argsUJ{ctx: ctx, body: []byte("error"), storage: storage},
+			want:    nil,
+			wantErr: true,
+		},
+	}
+	for _, tt := range testsUJ {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := UpdateJSON(tt.args.ctx, tt.args.body, tt.args.storage)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("UpdateJSON() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("UpdateJSON() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+
+	storage.EXPECT().UpdateJSONSlice(ctx, []byte("slice")).Return([]byte("ok"), nil)
+	storage.EXPECT().UpdateJSONSlice(ctx, []byte("error")).Return(nil, errType)
+	type argsUJS struct {
+		ctx     context.Context
+		data    []byte
+		storage StorageSetter
+	}
+	testsUJS := []struct {
+		name    string
+		args    argsUJS
+		want    []byte
+		wantErr bool
+	}{
+		{
+			name: "Update by slice success",
+			args: argsUJS{
+				ctx:     ctx,
+				data:    []byte("slice"),
+				storage: storage,
+			},
+			want:    []byte("ok"),
+			wantErr: false,
+		},
+		{
+			name: "Update by slice error",
+			args: argsUJS{
+				ctx:     ctx,
+				data:    []byte("error"),
+				storage: storage,
+			},
+			want:    nil,
+			wantErr: true,
+		},
+	}
+	for _, tt := range testsUJS {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := UpdateJSONSLice(tt.args.ctx, tt.args.data, tt.args.storage)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("UpdateJSONSLice() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("UpdateJSONSLice() = %v, want %v", got, tt.want)
 			}
 		})
 	}

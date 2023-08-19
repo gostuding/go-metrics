@@ -1,6 +1,7 @@
 package server
 
 import (
+	"io"
 	"net/http"
 
 	"github.com/go-chi/chi"
@@ -36,28 +37,109 @@ func makeRouter(storage Storage, logger *zap.SugaredLogger, key []byte) http.Han
 		loggerMiddleware(logger), middleware.Recoverer)
 
 	router.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		GetAllMetrics(w, r, storage, logger, key)
+		body, err := GetAllMetrics(r.Context(), storage)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			logger.Warnf("get all metrics error: %w", w)
+		} else {
+			w.Header().Set("Content-Type", "text/html")
+			_, err = w.Write([]byte(body))
+			if err != nil {
+				logger.Warnf("write metrics data to client error: %w", err)
+			}
+		}
 	})
+
 	router.Post("/value/", func(w http.ResponseWriter, r *http.Request) {
 		GetMetricJSON(w, r, storage, logger, key)
 	})
+
 	router.Get("/value/{mType}/{mName}", func(w http.ResponseWriter, r *http.Request) {
-		GetMetric(w, r, storage, getParams(r), logger, key)
+		body, err := GetMetric(r.Context(), storage, getParams(r))
+		if err != nil {
+			w.WriteHeader(http.StatusNotFound)
+			logger.Warnf("get metric error: %w", err)
+		} else {
+			_, err = w.Write([]byte(body))
+			if err != nil {
+				logger.Warnf("write data to client error: %w", err)
+			}
+		}
 	})
+
 	router.Post("/update/{mType}/{mName}/{mValue}", func(w http.ResponseWriter, r *http.Request) {
-		Update(w, r, storage, updateParams(r), logger)
+		m := updateParams(r)
+		status, err := Update(r.Context(), storage, m)
+		w.WriteHeader(status)
+		if err != nil {
+			logger.Warnf(err.Error())
+		} else {
+			logger.Debugf("update metric '%s' success", m.base.mType)
+		}
 	})
+
 	router.Post("/update/", func(w http.ResponseWriter, r *http.Request) {
-		UpdateJSON(w, r, storage, logger, key)
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			logger.Warnf("read request body error: %w", err)
+			return
+		}
+		data, err := UpdateJSON(r.Context(), body, storage)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			logger.Warnf("update metric request error: %w", err)
+		} else {
+			logger.Debug("update metric by json success")
+			w.Header().Set("Content-Type", "application/json")
+			_, err = w.Write(data)
+			if err != nil {
+				logger.Warnf("write data to client error: %w", err)
+			}
+		}
 	})
+
 	router.Post("/updates/", func(w http.ResponseWriter, r *http.Request) {
-		UpdateJSONSLice(w, r, storage, logger, key)
+		w.Header().Set("Content-Type", "text/html")
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			logger.Warnf("read request body error: %w", err)
+			return
+		}
+		data, err := UpdateJSONSLice(r.Context(), body, storage)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			logger.Warnf("update metrics by slice error: %w", err)
+		} else {
+			logger.Debug("update metrics by json list success")
+			_, err = w.Write(data)
+			if err != nil {
+				logger.Warnf("write data to client error: %w", err)
+			}
+		}
+
 	})
+
 	router.Get("/ping", func(w http.ResponseWriter, r *http.Request) {
-		Ping(w, r, storage, logger)
+		status, err := Ping(r.Context(), storage)
+		w.WriteHeader(status)
+		w.Header().Set("Content-Type", "")
+		if err != nil {
+			logger.Warnf("ping error: %w", err)
+		} else {
+			logger.Debug("database ping success")
+		}
+
 	})
+
 	router.Get("/clear", func(w http.ResponseWriter, r *http.Request) {
-		Clear(w, r, storage, logger)
+		w.Header().Set("Content-Type", "")
+		status, err := Clear(r.Context(), storage)
+		w.WriteHeader(status)
+		if err != nil {
+			logger.Warnf("clear request error: %w", err)
+		}
 	})
 
 	router.Mount("/debug", middleware.Profiler())

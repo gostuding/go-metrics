@@ -1,3 +1,4 @@
+// Package metrics is using for collect metrics and sending them to serer.
 package metrics
 
 import (
@@ -19,38 +20,46 @@ import (
 	"go.uber.org/zap"
 )
 
-type metricsStorage struct {
-	IP           string
-	URL          string
-	MetricsSlice map[string]metrics
-	Logger       *zap.SugaredLogger
-	resiveChan   chan resiveStruct
-	requestChan  chan struct{}
-	Key          []byte
-	mx           sync.RWMutex
-	Port         int
-	GzipCompress bool
-	Supplier     runtime.MemStats
-}
+type (
+	//metricsStorage is object for use as Storager interface.
+	metricsStorage struct {
+		URL          string             // URL for requests send to server
+		MetricsSlice map[string]metrics //metrics storage
+		Logger       *zap.SugaredLogger //logger
+		resiveChan   chan resiveStruct  //chan for read requests results
+		requestChan  chan struct{}      //chan for make requests
+		Key          []byte             //check hash key
+		mx           sync.RWMutex       //mutex
+		GzipCompress bool               //flag to use gzip compress
+		Supplier     runtime.MemStats   //metrics data supplier
+	}
 
-type metrics struct {
-	ID    string   `json:"id"`              // имя метрики
-	MType string   `json:"type"`            // параметр, принимающий значение gauge или counter
-	Delta *int64   `json:"delta,omitempty"` // значение метрики в случае передачи counter
-	Value *float64 `json:"value,omitempty"` // значение метрики в случае передачи gauge
-}
+	//metrics is one metric struct
+	metrics struct {
+		ID    string   `json:"id"`              // metrics name
+		MType string   `json:"type"`            // metrics type: gauge or counter
+		Delta *int64   `json:"delta,omitempty"` // counter value
+		Value *float64 `json:"value,omitempty"` // gauge value
+	}
 
-type resiveStruct struct {
-	Metric *metrics
-	Err    error
-}
+	//resiveStruct
+	resiveStruct struct {
+		Metric *metrics
+		Err    error
+	}
+)
 
-func NewMemoryStorage(logger *zap.Logger, ip string, key []byte, port int, compress bool, rateLimit int) *metricsStorage {
+// NewMemoryStorage creates memory storage for metrics.
+func NewMemoryStorage(
+	logger *zap.Logger,
+	ip string,
+	key []byte,
+	port int,
+	compress bool,
+	rateLimit int) *metricsStorage {
 	mS := metricsStorage{
 		MetricsSlice: make(map[string]metrics),
 		Logger:       logger.Sugar(),
-		IP:           ip,
-		Port:         port,
 		GzipCompress: compress,
 		Key:          key,
 		URL:          fmt.Sprintf("http://%s:%d/updates/", ip, port),
@@ -149,6 +158,7 @@ func (ms *metricsStorage) addMetric(name string, value any) {
 	}
 }
 
+// UpdateAditionalMetrics collects metrics from mem.VirtualMemoryStat.
 func (ms *metricsStorage) UpdateAditionalMetrics() {
 	memory, err := mem.VirtualMemory()
 	if err != nil {
@@ -169,6 +179,7 @@ func (ms *metricsStorage) UpdateAditionalMetrics() {
 	ms.mx.Unlock()
 }
 
+// UpdateMetrics collects metrics from runtime.MemStats.
 func (ms *metricsStorage) UpdateMetrics() {
 	var rStats runtime.MemStats
 	runtime.ReadMemStats(&rStats)
@@ -180,9 +191,9 @@ func (ms *metricsStorage) UpdateMetrics() {
 		}
 	}
 	ms.mx.Unlock()
-	ms.Logger.Debugln("Update finished")
 }
 
+// SendMetricsSlice sends metrics by JSON list.
 func (ms *metricsStorage) SendMetricsSlice() {
 	mSlice := make([]metrics, 0)
 

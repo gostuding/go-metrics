@@ -18,8 +18,9 @@ type Config struct {
 }
 
 func stringEnvCheck(val string, name string) string {
-	if value := os.Getenv(name); value != "" {
-		return value
+	v, ok := os.LookupEnv(name)
+	if ok {
+		return v
 	}
 	return val
 }
