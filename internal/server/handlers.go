@@ -279,7 +279,8 @@ func GetMetricJSON(
 }
 
 // проверка подключения к БД
-func Ping(writer http.ResponseWriter,
+func Ping(
+	writer http.ResponseWriter,
 	request *http.Request,
 	storage StorageDB,
 	logger *zap.SugaredLogger) {
@@ -312,7 +313,8 @@ func Clear(
 }
 
 // обновление списком json
-func UpdateJSONSLice(writer http.ResponseWriter,
+func UpdateJSONSLice(
+	writer http.ResponseWriter,
 	request *http.Request,
 	storage StorageSetter,
 	logger *zap.SugaredLogger,
