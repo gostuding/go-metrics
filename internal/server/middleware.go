@@ -210,7 +210,10 @@ func checkBodyHash(r *http.Request, key []byte) (*[]byte, error) {
 	return &data, nil
 }
 
-func hashCheckMiddleware(key []byte, logger *zap.SugaredLogger, writeHeaderStatus bool) func(h http.Handler) http.Handler {
+func hashCheckMiddleware(
+	key []byte,
+	logger *zap.SugaredLogger,
+	writeHeaderStatus bool) func(h http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			if len(key) > 0 && r.Method == "POST" {

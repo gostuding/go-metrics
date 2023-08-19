@@ -165,7 +165,12 @@ type updateMetricsArgs struct {
 }
 
 // Обработка запроса на добавление или изменение метрики
-func Update(writer http.ResponseWriter, request *http.Request, storage StorageSetter, metric updateMetricsArgs, logger *zap.SugaredLogger) {
+func Update(
+	writer http.ResponseWriter,
+	request *http.Request,
+	storage StorageSetter,
+	metric updateMetricsArgs,
+	logger *zap.SugaredLogger) {
 	err := ssseRepeater(storage.Update, request.Context(), metric.base.mType, metric.base.mName, metric.mValue)
 	if err != nil {
 		writer.WriteHeader(http.StatusBadRequest)
@@ -177,8 +182,13 @@ func Update(writer http.ResponseWriter, request *http.Request, storage StorageSe
 }
 
 // Обработка запроса значения метрики
-func GetMetric(writer http.ResponseWriter, request *http.Request, storage StorageGetter, metric getMetricsArgs,
-	logger *zap.SugaredLogger, key []byte) {
+func GetMetric(
+	writer http.ResponseWriter,
+	request *http.Request,
+	storage StorageGetter,
+	metric getMetricsArgs,
+	logger *zap.SugaredLogger,
+	key []byte) {
 	body, err := sseRepeater(storage.GetMetric, request.Context(), metric.mType, metric.mName)
 	if err != nil {
 		writer.WriteHeader(http.StatusNotFound)
@@ -192,8 +202,12 @@ func GetMetric(writer http.ResponseWriter, request *http.Request, storage Storag
 }
 
 // Запрос всех метрик в html
-func GetAllMetrics(writer http.ResponseWriter, request *http.Request, storage HTMLGetter,
-	logger *zap.SugaredLogger, key []byte) {
+func GetAllMetrics(
+	writer http.ResponseWriter,
+	request *http.Request,
+	storage HTMLGetter,
+	logger *zap.SugaredLogger,
+	key []byte) {
 	writer.Header().Set("Content-Type", "text/html")
 	body, err := seRepeater(storage.GetMetricsHTML, request.Context())
 	if err != nil {

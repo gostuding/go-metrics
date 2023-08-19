@@ -351,3 +351,32 @@ func Test_ssseRepeater(t *testing.T) {
 		})
 	}
 }
+
+func Test_isRepeat(t *testing.T) {
+	val := 1
+	pgError := pgconn.PgError{Code: pgerrcode.ConnectionException}
+	tests := []struct {
+		name string
+		err  error
+		want bool
+	}{
+		{
+			name: "ошибка PSQL",
+			err:  &pgError,
+			want: true,
+		},
+		{
+			name: "другая ошибка",
+			err:  errors.New("OTHER"),
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			if got := isRepeat(tt.err, &val); got != tt.want {
+				t.Errorf("isRepeat() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
