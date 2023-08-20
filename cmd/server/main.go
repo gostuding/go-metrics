@@ -1,4 +1,3 @@
-// Модуль main запускает сервер.
 package main
 
 import (

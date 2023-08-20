@@ -15,28 +15,33 @@ import (
 )
 
 var (
-	gaugeType   = "gauge"
-	counterType = "counter"
+	gaugeType   = "gauge"   // name for gauge type
+	counterType = "counter" // name for counter type
 )
 
-// Структура для хранения данных о метриках
-type memStorage struct {
-	Gauges       map[string]float64 `json:"gauges"`
-	Counters     map[string]int64   `json:"counters"`
-	Restore      bool               `json:"-"`
-	SavePath     string             `json:"-"`
-	SaveInterval int                `json:"-"`
-	mx           sync.RWMutex       `json:"-"`
-}
+type (
+	//memStorage contains metrics data in memory.
+	memStorage struct {
+		Gauges       map[string]float64 `json:"gauges"`   //gauge metrics
+		Counters     map[string]int64   `json:"counters"` //counter metrics
+		Restore      bool               `json:"-"`        //flag for restore data from file
+		SavePath     string             `json:"-"`        //path to file for save data
+		SaveInterval int                `json:"-"`        //save data interval
+		mx           sync.RWMutex       `json:"-"`        //mutex for storage
+	}
 
-// струтктура не экспоритуемая, т.к. сейчас это не нужно
-type metric struct {
-	ID    string   `json:"id"`              // имя метрики
-	MType string   `json:"type"`            // параметр, принимающий значение gauge или counter
-	Delta *int64   `json:"delta,omitempty"` // значение метрики в случае передачи counter
-	Value *float64 `json:"value,omitempty"` // значение метрики в случае передачи gauge
-}
+	//metric contains data about one metric.
+	metric struct {
+		ID    string   `json:"id"`              // name
+		MType string   `json:"type"`            // can be 'gauge' or 'counter'
+		Delta *int64   `json:"delta,omitempty"` // counter value
+		Value *float64 `json:"value,omitempty"` // gauge value
+	}
+)
 
+// NewMemStorage creates memStorage.
+// If the restore flag is set, the data will be restored from the file,
+// or the corresponding error will be returned.
 func NewMemStorage(restore bool, filePath string, saveInterval int) (*memStorage, error) {
 	storage := memStorage{
 		Gauges:       make(map[string]float64),
@@ -48,7 +53,14 @@ func NewMemStorage(restore bool, filePath string, saveInterval int) (*memStorage
 	return &storage, storage.restore()
 }
 
-func (ms *memStorage) Update(ctx context.Context, mType string, mName string, mValue string) error {
+// Update creates or updates metric value in storage.
+// Context doesn't have mean. Used to satisfy the interface.
+func (ms *memStorage) Update(
+	ctx context.Context,
+	mType string,
+	mName string,
+	mValue string,
+) error {
 	switch mType {
 	case gaugeType:
 		val, err := strconv.ParseFloat(mValue, 64)
@@ -75,8 +87,13 @@ func (ms *memStorage) Update(ctx context.Context, mType string, mName string, mV
 	return nil
 }
 
-// Получение значения метрики по типу и имени
-func (ms *memStorage) GetMetric(ctx context.Context, mType string, mName string) (string, error) {
+// GetMetric returns the metric value as string.
+// Context doesn't have mean. Used to satisfy the interface.
+func (ms *memStorage) GetMetric(
+	ctx context.Context,
+	mType string,
+	mName string,
+) (string, error) {
 	ms.mx.RLock()
 	defer ms.mx.RUnlock()
 	switch mType {
@@ -96,7 +113,8 @@ func (ms *memStorage) GetMetric(ctx context.Context, mType string, mName string)
 	return "", fmt.Errorf("metric '%s' with type '%s' not found", mName, mType)
 }
 
-// Список всех метрик в html
+// GetMetricsHTML returns all metrics values as HTML string.
+// Context doesn't have mean. Used to satisfy the interface.
 func (ms *memStorage) GetMetricsHTML(ctx context.Context) (string, error) {
 	body := "<!doctype html> <html lang='en'> <head> <meta charset='utf-8'> <title>Список метрик</title></head>"
 	body += "<body><header><h1><p>Metrics list</p></h1></header>"
@@ -118,6 +136,7 @@ func (ms *memStorage) GetMetricsHTML(ctx context.Context) (string, error) {
 	return body, nil
 }
 
+// updateOneMetric is private func for update storage.
 func (ms *memStorage) updateOneMetric(m metric) (*metric, error) {
 	switch m.MType {
 	case counterType:
@@ -140,7 +159,9 @@ func (ms *memStorage) updateOneMetric(m metric) (*metric, error) {
 	return &m, nil
 }
 
-// обновление через json
+// UpdateJSON creates or updates metric value in storage.
+// Gets []byte with JSON.
+// Context doesn't have mean. Used to satisfy the interface.
 func (ms *memStorage) UpdateJSON(ctx context.Context, data []byte) ([]byte, error) {
 	var metric metric
 	err := json.Unmarshal(data, &metric)
@@ -166,7 +187,9 @@ func (ms *memStorage) UpdateJSON(ctx context.Context, data []byte) ([]byte, erro
 	return resp, nil
 }
 
-// запрос метрик через json
+// GetMetricJSON returns the metric value as string.
+// Gets []byte with JSON.
+// Context doesn't have mean. Used to satisfy the interface.
 func (ms *memStorage) GetMetricJSON(ctx context.Context, data []byte) ([]byte, error) {
 	var metric metric
 	err := json.Unmarshal(data, &metric)
@@ -201,12 +224,15 @@ func (ms *memStorage) GetMetricJSON(ctx context.Context, data []byte) ([]byte, e
 	return resp, nil
 }
 
-// проверка подключения к БД
+// PingDB doesn't have mean. Used to satisfy the interface.
+// Context doesn't have mean. Used to satisfy the interface.
+// Always returns nil.
 func (ms *memStorage) PingDB(ctx context.Context) error {
 	return nil
 }
 
-// очистка хранилища
+// Clear deletes all data from the storage.
+// Context doesn't have mean. Used to satisfy the interface.
 func (ms *memStorage) Clear(ctx context.Context) error {
 	ms.mx.Lock()
 	for k := range ms.Counters {
@@ -221,7 +247,9 @@ func (ms *memStorage) Clear(ctx context.Context) error {
 	return ms.Save()
 }
 
-// обновление через json slice
+// UpdateJSONSlice updates the repository with metrics that are obtained
+// by translating the received JSON into a list of metrics.
+// Context doesn't have mean. Used to satisfy the interface.
 func (ms *memStorage) UpdateJSONSlice(ctx context.Context, data []byte) ([]byte, error) {
 	var metrics []metric
 	err := json.Unmarshal(data, &metrics)
@@ -247,45 +275,7 @@ func (ms *memStorage) UpdateJSONSlice(ctx context.Context, data []byte) ([]byte,
 	return []byte(resp), nil
 }
 
-// -------------------------------------------------------------------------------------------------
-// внутренние функции хранилища
-// -------------------------------------------------------------------------------------------------
-func getSortedKeysFloat(items map[string]float64) []string {
-	keys := make([]string, 0, len(items))
-	for k := range items {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	return keys
-}
-
-func getSortedKeysInt(items map[string]int64) []string {
-	keys := make([]string, 0, len(items))
-	for k := range items {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	return keys
-}
-
-// восстановление данных из хранилища
-func (ms *memStorage) restore() error {
-	if !ms.Restore {
-		return nil
-	}
-	file, err := os.OpenFile(ms.SavePath, os.O_RDONLY|os.O_CREATE, 0644)
-	if err != nil {
-		return err
-	}
-	decoder := json.NewDecoder(file)
-	defer file.Close()
-	err = decoder.Decode(ms)
-	if err != nil && err != io.EOF {
-		return err
-	}
-	return nil
-}
-
+// Save writes storage data to file.
 func (ms *memStorage) Save() error {
 	if ms.SavePath == "" {
 		return nil
@@ -303,6 +293,44 @@ func (ms *memStorage) Save() error {
 	}
 	_, err = file.Write(data)
 	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// getSortedKeysFloat private func. Returns sorted list of map keys.
+func getSortedKeysFloat(items map[string]float64) []string {
+	keys := make([]string, 0, len(items))
+	for k := range items {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+// getSortedKeysInt private func. Returns sorted list of map keys.
+func getSortedKeysInt(items map[string]int64) []string {
+	keys := make([]string, 0, len(items))
+	for k := range items {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+// restore is private func. Restores storage data from file.
+func (ms *memStorage) restore() error {
+	if !ms.Restore {
+		return nil
+	}
+	file, err := os.OpenFile(ms.SavePath, os.O_RDONLY|os.O_CREATE, 0644)
+	if err != nil {
+		return err
+	}
+	decoder := json.NewDecoder(file)
+	defer file.Close()
+	err = decoder.Decode(ms)
+	if err != nil && err != io.EOF {
 		return err
 	}
 	return nil

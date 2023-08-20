@@ -6,7 +6,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// инициализация логера и определение его типа как Sugar
+// InitLogger is create new logger with Suger type.
 func InitLogger() (*zap.SugaredLogger, error) {
 	logger, err := zap.NewDevelopment()
 	if err != nil {

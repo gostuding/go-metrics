@@ -56,7 +56,8 @@ func NewMemoryStorage(
 	key []byte,
 	port int,
 	compress bool,
-	rateLimit int) *metricsStorage {
+	rateLimit int,
+) *metricsStorage {
 	mS := metricsStorage{
 		MetricsSlice: make(map[string]metrics),
 		Logger:       logger.Sugar(),
@@ -84,6 +85,8 @@ func NewMemoryStorage(
 	return &mS
 }
 
+// makeMetric is private func for create metrics object from id:value values.
+// It defines type of metrics from value's type (int64 or float64).
 func makeMetric(id string, value any) (*metrics, error) {
 	switch value.(type) {
 	case int, uint32, int64, uint64:
@@ -111,6 +114,7 @@ func makeMetric(id string, value any) (*metrics, error) {
 	}
 }
 
+// makeMap is private func for create metrics map[string]any from runtime.MemStats.
 func makeMap(r *runtime.MemStats, pollCount *int64) map[string]any {
 	mass := make(map[string]any)
 	mass["Alloc"] = r.Alloc
@@ -149,6 +153,7 @@ func makeMap(r *runtime.MemStats, pollCount *int64) map[string]any {
 	return mass
 }
 
+// addMetric is private func and adds one metrics to MetricsSLice.
 func (ms *metricsStorage) addMetric(name string, value any) {
 	metric, err := makeMetric(name, value)
 	if err != nil {
@@ -218,6 +223,7 @@ func (ms *metricsStorage) SendMetricsSlice() {
 	}
 }
 
+// sendJSONToServer is private func for send requests to server.
 func (ms *metricsStorage) sendJSONToServer(body []byte, metric *metrics) {
 	defer func() {
 		<-ms.requestChan

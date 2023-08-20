@@ -14,6 +14,7 @@ import (
 )
 
 type (
+	// interface for set data in storage
 	StorageSetter interface {
 		Update(context.Context, string, string, string) error
 		UpdateJSON(context.Context, []byte) ([]byte, error)
@@ -21,48 +22,45 @@ type (
 		Save() error
 	}
 
-	// Интерфейс получения значения метрики
+	// interface for get data from storage
 	StorageGetter interface {
 		GetMetric(context.Context, string, string) (string, error)
 		GetMetricJSON(context.Context, []byte) ([]byte, error)
+		GetMetricsHTML(context.Context) (string, error)
 	}
 
-	// интерфейс для работы с БД
+	// additions storage work interface
 	StorageDB interface {
 		PingDB(context.Context) error
 		Clear(context.Context) error
 	}
 
-	// Интерфейс для вывод значений в виде HTML
-	HTMLGetter interface {
-		GetMetricsHTML(context.Context) (string, error)
-	}
-
-	// -----------------------------------------------------------------------------------
-	// Функции для повторения действий при ошибках
-	// -----------------------------------------------------------------------------------
+	// ptivate type. repeate funcs type
 	fbe func(context.Context, []byte) ([]byte, error)
 
+	// ptivate type. repeate funcs type
 	fse func(context.Context) (string, error)
 
+	// ptivate type. repeate funcs type
 	fsse func(context.Context, string, string) (string, error)
 
+	// ptivate type. repeate funcs type
 	fssse func(context.Context, string, string, string) error
 
-	// -----------------------------------------------------------------------------------
-	// Определение функций, которые используют интерфейсы
-	// -----------------------------------------------------------------------------------
+	// private interface. Is using for args number insreace.
 	getMetricsArgs struct {
 		mType string
 		mName string
 	}
 
+	// private interface. Is using for args number insreace.
 	updateMetricsArgs struct {
 		base   getMetricsArgs
 		mValue string
 	}
 )
 
+// private func
 func isRepeat(err error, t *int) bool {
 	var pgErr *pgconn.PgError
 	if errors.As(err, &pgErr) && pgerrcode.IsConnectionException(pgErr.Code) {
@@ -74,6 +72,7 @@ func isRepeat(err error, t *int) bool {
 	return true
 }
 
+// private func
 func bytesErrorRepeater(f fbe, ctx context.Context, data []byte) ([]byte, error) {
 	value, err := f(ctx, data)
 	if err != nil {
@@ -96,6 +95,7 @@ func bytesErrorRepeater(f fbe, ctx context.Context, data []byte) ([]byte, error)
 	return value, err
 }
 
+// private func
 func seRepeater(f fse, ctx context.Context) (string, error) {
 	value, err := f(ctx)
 	if err != nil {
@@ -118,6 +118,7 @@ func seRepeater(f fse, ctx context.Context) (string, error) {
 	return value, err
 }
 
+// private func
 func sseRepeater(f fsse, ctx context.Context, t string, n string) (string, error) {
 	value, err := f(ctx, t, n)
 	if err != nil {
@@ -140,6 +141,7 @@ func sseRepeater(f fsse, ctx context.Context, t string, n string) (string, error
 	return value, err
 }
 
+// private func
 func ssseRepeater(f fssse, ctx context.Context, t string, n string, v string) error {
 	err := f(ctx, t, n, v)
 	if err != nil {
@@ -162,7 +164,7 @@ func ssseRepeater(f fssse, ctx context.Context, t string, n string, v string) er
 	return err
 }
 
-// Обработка запроса на добавление или изменение метрики
+// Update is processing an update metric request.
 func Update(
 	ctx context.Context,
 	storage StorageSetter,
@@ -175,7 +177,7 @@ func Update(
 	return http.StatusOK, nil
 }
 
-// Обработка запроса значения метрики
+// GetMetric is processing an get one metric request.
 func GetMetric(
 	ctx context.Context,
 	storage StorageGetter,
@@ -188,10 +190,10 @@ func GetMetric(
 	return []byte(body), nil
 }
 
-// Запрос всех метрик в html
+// GetAllMetrics is processing an get all metrics request.
 func GetAllMetrics(
 	ctx context.Context,
-	storage HTMLGetter,
+	storage StorageGetter,
 ) ([]byte, error) {
 	body, err := seRepeater(storage.GetMetricsHTML, ctx)
 	if err != nil {
@@ -200,7 +202,7 @@ func GetAllMetrics(
 	return []byte(body), nil
 }
 
-// обновление в JSON формате
+// UpdateJSON is processing an update metric by JSON request.
 func UpdateJSON(
 	ctx context.Context,
 	body []byte,
@@ -213,13 +215,14 @@ func UpdateJSON(
 	return data, nil
 }
 
-// получение метрики в JSON формате
+// GetMetricJSON is processing an get metric by JSON request.
 func GetMetricJSON(
 	writer http.ResponseWriter,
 	request *http.Request,
 	storage StorageGetter,
 	logger *zap.SugaredLogger,
-	key []byte) {
+	key []byte,
+) {
 	writer.Header().Set("Content-Type", "application/json")
 	data, err := io.ReadAll(request.Body)
 	if err != nil {
@@ -243,7 +246,7 @@ func GetMetricJSON(
 	}
 }
 
-// проверка подключения к БД
+// Ping is checks connection to database.
 func Ping(
 	ctx context.Context,
 	storage StorageDB,
@@ -255,7 +258,7 @@ func Ping(
 	return http.StatusOK, nil
 }
 
-// очистка storage
+// Clear is processing storage clearing.
 func Clear(
 	ctx context.Context,
 	storage StorageDB,
@@ -267,7 +270,7 @@ func Clear(
 	return http.StatusOK, nil
 }
 
-// обновление списком json
+// UpdateJSONSLice is processing an update metrics by JSON slice request.
 func UpdateJSONSLice(
 	ctx context.Context,
 	data []byte,

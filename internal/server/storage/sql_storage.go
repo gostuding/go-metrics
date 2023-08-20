@@ -13,11 +13,13 @@ import (
 	"go.uber.org/zap"
 )
 
+// SQLStorage contains metrics data in database.
 type SQLStorage struct {
 	con    *sql.DB
 	Logger *zap.SugaredLogger
 }
 
+// NewSQLStorage creates SQLStorage.
 func NewSQLStorage(dsn string, logger *zap.SugaredLogger) (*SQLStorage, error) {
 	db, err := sql.Open("pgx", dsn)
 	if err != nil {
@@ -30,7 +32,13 @@ func NewSQLStorage(dsn string, logger *zap.SugaredLogger) (*SQLStorage, error) {
 	return &storage, checkDatabaseStructure(dsn)
 }
 
-func (ms *SQLStorage) Update(ctx context.Context, mType string, mName string, mValue string) error {
+// Update creates or updates metric value in storage.
+func (ms *SQLStorage) Update(
+	ctx context.Context,
+	mType string,
+	mName string,
+	mValue string,
+) error {
 	switch mType {
 	case counterType:
 		counter, err := strconv.ParseInt(mValue, 10, 64)
@@ -51,8 +59,12 @@ func (ms *SQLStorage) Update(ctx context.Context, mType string, mName string, mV
 	}
 }
 
-// Получение значения метрики по типу и имени
-func (ms *SQLStorage) GetMetric(ctx context.Context, mType string, mName string) (string, error) {
+// GetMetric returns the metric value as string.
+func (ms *SQLStorage) GetMetric(
+	ctx context.Context,
+	mType string,
+	mName string,
+) (string, error) {
 	switch mType {
 	case gaugeType:
 		value, err := ms.getGauge(ctx, mName)
@@ -65,7 +77,7 @@ func (ms *SQLStorage) GetMetric(ctx context.Context, mType string, mName string)
 	}
 }
 
-// Список всех метрик в html
+// GetMetricsHTML returns all metrics values as HTML string.
 func (ms *SQLStorage) GetMetricsHTML(ctx context.Context) (string, error) {
 	gauges, err := ms.getAllMetricOfType(ctx, gaugeTableName)
 	if err != nil {
@@ -90,6 +102,7 @@ func (ms *SQLStorage) GetMetricsHTML(ctx context.Context) (string, error) {
 	return body, nil
 }
 
+// updateOneMetric is private func for update storage.
 func (ms *SQLStorage) updateOneMetric(ctx context.Context, m metric, connect SQLQueryInterface) (*metric, error) {
 	switch m.MType {
 	case counterType:
@@ -118,7 +131,7 @@ func (ms *SQLStorage) updateOneMetric(ctx context.Context, m metric, connect SQL
 	return &m, nil
 }
 
-// обновление через json
+// UpdateJSON creates or updates metric value in storage.
 func (ms *SQLStorage) UpdateJSON(ctx context.Context, data []byte) ([]byte, error) {
 	var metric metric
 	err := json.Unmarshal(data, &metric)
@@ -138,7 +151,7 @@ func (ms *SQLStorage) UpdateJSON(ctx context.Context, data []byte) ([]byte, erro
 	return resp, nil
 }
 
-// запрос метрик через json
+// GetMetricJSON returns the metric value as string.
 func (ms *SQLStorage) GetMetricJSON(ctx context.Context, data []byte) ([]byte, error) {
 	var metric metric
 	err := json.Unmarshal(data, &metric)
@@ -180,12 +193,12 @@ func (ms *SQLStorage) GetMetricJSON(ctx context.Context, data []byte) ([]byte, e
 	}
 }
 
+// Save doesn't have mean. Used to satisfy the interface.
 func (ms *SQLStorage) Save() error {
-	// метод - заглушка, проверка подключения к БД, т.к. все данные хранятся в БД
 	return ms.PingDB(context.Background())
 }
 
-// проверка подключения к БД
+// PingDB checks connection to database server.
 func (ms *SQLStorage) PingDB(ctx context.Context) error {
 	if err := ms.con.PingContext(ctx); err != nil {
 		return fmt.Errorf("check database ping error: %w", err)
@@ -193,7 +206,7 @@ func (ms *SQLStorage) PingDB(ctx context.Context) error {
 	return nil
 }
 
-// очистка БД
+// Clear deletes all metrics data from the database.
 func (ms *SQLStorage) Clear(ctx context.Context) error {
 	_, err := ms.con.ExecContext(ctx, "Delete from gauges;")
 	if err != nil {
@@ -250,7 +263,8 @@ func mkMetricsMaps(metrics []metric, logger *zap.SugaredLogger) (map[string]stri
 	return countersString, gaugeLst
 }
 
-// обновление через json slice
+// UpdateJSONSlice updates the repository with metrics that are obtained
+// by translating the received JSON into a list of metrics.
 func (ms *SQLStorage) UpdateJSONSlice(ctx context.Context, data []byte) ([]byte, error) {
 	var metrics []metric
 	err := json.Unmarshal(data, &metrics)

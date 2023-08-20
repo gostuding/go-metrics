@@ -8,13 +8,14 @@ import (
 	"strings"
 )
 
+// Config is struct, which contains server options.
 type Config struct {
-	IPAddress       string
-	FileStorePath   string
-	ConnectDBString string
-	Key             []byte
-	StoreInterval   int
-	Restore         bool
+	IPAddress       string // server addres in format 'ip:port'.
+	FileStorePath   string // file path if used memory storage type.
+	ConnectDBString string // dsn for database connect if used sql storage type.
+	Key             []byte // key for requests hash check
+	StoreInterval   int    // save storage interval. Used only in memory storage type.
+	Restore         bool   // flag to restore storage. Used only in memory type.
 }
 
 func stringEnvCheck(val string, name string) string {

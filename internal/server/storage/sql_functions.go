@@ -9,12 +9,24 @@ import (
 )
 
 var (
-	gaugeTableName   = "gauges"
-	counterTableName = "counters"
+	gaugeTableName   = "gauges"   // table name in database
+	counterTableName = "counters" // table name in database
 )
 
-type sqlColumns map[string]any
+type (
+	// sqlColumns map with database columns names.
+	// Column type determinates by the value type
+	sqlColumns map[string]any
 
+	// SQL interface.
+	SQLQueryInterface interface {
+		QueryContext(context.Context, string, ...any) (*sql.Rows, error)
+		ExecContext(context.Context, string, ...any) (sql.Result, error)
+		QueryRowContext(context.Context, string, ...any) *sql.Row
+	}
+)
+
+// sqlTablesMaps is private func. Creates sqlColumns for create tables.
 func sqlTablesMaps() *map[string]sqlColumns {
 	counters, gauges := make(sqlColumns), make(sqlColumns)
 	counters["ID"] = 0
@@ -31,7 +43,13 @@ func sqlTablesMaps() *map[string]sqlColumns {
 	return &result
 }
 
-func createTable(ctx context.Context, name string, values map[string]any, sql *sql.DB) error {
+// createTable is private func. Checks if the table with name exist in database.
+func createTable(
+	ctx context.Context,
+	name string,
+	values map[string]any,
+	sql *sql.DB,
+) error {
 	items := make([]string, 0)
 	for key, val := range values {
 		switch val.(type) {
@@ -57,6 +75,7 @@ func createTable(ctx context.Context, name string, values map[string]any, sql *s
 	return err
 }
 
+// checkDatabaseStructure is private func. Checks structure accoding to sqlTablesMaps.
 func checkDatabaseStructure(connectionString string) error {
 	db, err := sql.Open("pgx", connectionString)
 	if err != nil {
@@ -78,16 +97,7 @@ func checkDatabaseStructure(connectionString string) error {
 	return nil
 }
 
-//----------------------------------------------------------------------------------------------------
-// функции для работы с хранилищем
-//----------------------------------------------------------------------------------------------------
-
-type SQLQueryInterface interface {
-	QueryContext(context.Context, string, ...any) (*sql.Rows, error)
-	ExecContext(context.Context, string, ...any) (sql.Result, error)
-	QueryRowContext(context.Context, string, ...any) *sql.Row
-}
-
+// getCounter is private func. Returns counter value from database.
 func (ms *SQLStorage) getCounter(ctx context.Context, name string) (*int64, error) {
 	rows, err := ms.con.QueryContext(ctx, "Select value from counters where name=$1;", name)
 	if err != nil {
@@ -109,6 +119,7 @@ func (ms *SQLStorage) getCounter(ctx context.Context, name string) (*int64, erro
 	return &value, nil
 }
 
+// getGauge is private func. Returns gauge value from database.
 func (ms *SQLStorage) getGauge(ctx context.Context, name string) (*float64, error) {
 	rows, err := ms.con.QueryContext(ctx, "Select value from gauges where name=$1;", name)
 	if err != nil {
@@ -130,6 +141,7 @@ func (ms *SQLStorage) getGauge(ctx context.Context, name string) (*float64, erro
 	return &value, nil
 }
 
+// updateCounter is private func. Updates or creates counter value in database.
 func (ms *SQLStorage) updateCounter(
 	ctx context.Context,
 	name string,
@@ -146,11 +158,13 @@ func (ms *SQLStorage) updateCounter(
 	return &value, err
 }
 
+// updateGauge is private func. Updates or creates gauge value in database.
 func (ms *SQLStorage) updateGauge(
 	ctx context.Context,
 	name string,
 	value float64,
-	connect SQLQueryInterface) (*float64, error) {
+	connect SQLQueryInterface,
+) (*float64, error) {
 
 	_, err := connect.ExecContext(ctx,
 		`INSERT INTO gauges(name, value) values($1, $2) 

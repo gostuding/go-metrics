@@ -11,7 +11,9 @@ import (
 	"go.uber.org/zap"
 )
 
-// запуск сервера на прослушку
+// RunServer func runrs server. If the storage type is memory,
+// runs too gorutines for save storage data by interval and
+// save storage before finish work.
 func RunServer(options *Config, storage Storage, logger *zap.SugaredLogger) error {
 	if options == nil {
 		return fmt.Errorf("server options error")
@@ -24,6 +26,7 @@ func RunServer(options *Config, storage Storage, logger *zap.SugaredLogger) erro
 	return http.ListenAndServe(options.IPAddress, makeRouter(storage, logger, options.Key))
 }
 
+// saveStorageInterval is private gorutine for save memory storage data by interval.
 func saveStorageInterval(interval int, storage Storage, logger *zap.SugaredLogger) {
 	if interval < 1 {
 		logger.Infoln("save storage runtime mode", interval)
@@ -43,6 +46,7 @@ func saveStorageInterval(interval int, storage Storage, logger *zap.SugaredLogge
 	}
 }
 
+// saveStorageBeforeFinish is private gorutine for save memory storage before work finish.
 func saveStorageBeforeFinish(storage Storage, logger *zap.SugaredLogger) {
 	signalChanel := make(chan os.Signal, 1)
 	signal.Notify(signalChanel, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)

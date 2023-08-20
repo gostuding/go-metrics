@@ -9,15 +9,14 @@ import (
 	"go.uber.org/zap"
 )
 
-// интерфейс для обработки запросов
+// Storage is interface for work with storage.
 type Storage interface {
 	StorageSetter
 	StorageGetter
-	HTMLGetter
 	StorageDB
 }
 
-// получние однотипных данных из адреса запроса
+// private func.
 func updateParams(r *http.Request) updateMetricsArgs {
 	return updateMetricsArgs{
 		base:   getMetricsArgs{mType: chi.URLParam(r, "mType"), mName: chi.URLParam(r, "mName")},
@@ -25,11 +24,12 @@ func updateParams(r *http.Request) updateMetricsArgs {
 	}
 }
 
+// private func.
 func getParams(r *http.Request) getMetricsArgs {
 	return getMetricsArgs{mType: chi.URLParam(r, "mType"), mName: chi.URLParam(r, "mName")}
 }
 
-// формирование доступных адресов
+// private func. Create posible hendlers for server.
 func makeRouter(storage Storage, logger *zap.SugaredLogger, key []byte) http.Handler {
 	router := chi.NewRouter()
 
