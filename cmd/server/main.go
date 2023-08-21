@@ -13,23 +13,24 @@ func run(logger *zap.SugaredLogger) error {
 	var strg server.Storage
 	var strErr error
 
-	cfg, err := server.GetFlags()
+	cfg, err := server.NewConfig()
 	if err != nil {
-		return fmt.Errorf("get flags error: %w", err)
+		return fmt.Errorf("create config error: %w", err)
 	}
 	if cfg.ConnectDBString == "" {
 		strg, strErr = storage.NewMemStorage(cfg.Restore, cfg.FileStorePath, cfg.StoreInterval)
 	} else {
-		strg, strErr = storage.NewSQLStorage(cfg.ConnectDBString, logger)
+		strg, strErr = storage.NewSQLStorage(cfg.ConnectDBString)
 	}
 	if strErr != nil {
 		return fmt.Errorf("storage error: %w", err)
 	}
-	return server.RunServer(cfg, strg, logger) //nolint:wrapcheck //<-senselessly
+	srv := server.NewServer(cfg, logger, strg)
+	return srv.RunServer() //nolint:wrapcheck //<-senselessly
 }
 
 func main() {
-	logger, err := server.InitLogger()
+	logger, err := server.NewLogger()
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -14,11 +14,10 @@ import (
 	"go.uber.org/zap"
 )
 
-// структура для подмены интерфейса http.ResponseWriter
 type myLogWriter struct {
-	http.ResponseWriter     // интерфейс http.ResponseWriter
-	status              int // статус ответа
-	size                int // размер ответа
+	http.ResponseWriter
+	status int
+	size   int
 }
 
 func newLogWriter(w http.ResponseWriter) *myLogWriter {
@@ -26,13 +25,13 @@ func newLogWriter(w http.ResponseWriter) *myLogWriter {
 }
 
 func (r *myLogWriter) Write(b []byte) (int, error) {
-	size, err := r.ResponseWriter.Write(b) // запись данных через стандартный ResponseWriter
+	size, err := r.ResponseWriter.Write(b)
 	r.size += size
-	return size, err // получаем размер записанных данных
+	return size, err
 }
 
 func (r *myLogWriter) WriteHeader(statusCode int) {
-	r.status = statusCode // запоминаем код статуса
+	r.status = statusCode
 	r.ResponseWriter.WriteHeader(statusCode)
 }
 
@@ -40,11 +39,10 @@ func (r *myLogWriter) Header() http.Header {
 	return r.ResponseWriter.Header()
 }
 
-// структура для создания middleware gzip
 type myGzipWriter struct {
-	http.ResponseWriter // интерфейс http.ResponseWriter
-	isWriting           bool
-	logger              *zap.SugaredLogger
+	http.ResponseWriter
+	isWriting bool
+	logger    *zap.SugaredLogger
 }
 
 func newGzipWriter(r http.ResponseWriter, logger *zap.SugaredLogger) *myGzipWriter {
@@ -72,7 +70,7 @@ func (r *myGzipWriter) Write(b []byte) (int, error) {
 
 func (r *myGzipWriter) WriteHeader(statusCode int) {
 	contentType := r.Header().Get("Content-Type") == "application/json" || r.Header().Get("Content-Type") == "text/html"
-	if statusCode == 200 && contentType { // проверяем здесь, т.к. после этого заголовок уже не изменить
+	if statusCode == 200 && contentType {
 		r.Header().Set("Content-Encoding", "gzip")
 	}
 	r.ResponseWriter.WriteHeader(statusCode)
@@ -82,7 +80,6 @@ func (r *myGzipWriter) Header() http.Header {
 	return r.ResponseWriter.Header()
 }
 
-// структура для чтения данных из Body через gzip
 type gzipReader struct {
 	r    io.ReadCloser
 	gzip *gzip.Reader
@@ -97,7 +94,7 @@ func newGzipReader(r io.ReadCloser) (*gzipReader, error) {
 }
 
 func (c gzipReader) Read(p []byte) (n int, err error) {
-	return c.gzip.Read(p) // чтени данных и их распаковка
+	return c.gzip.Read(p)
 }
 
 func (c *gzipReader) Close() error {
@@ -107,27 +104,23 @@ func (c *gzipReader) Close() error {
 	return c.gzip.Close()
 }
 
-// ----------------------------------------------------------------------
 func gzipMiddleware(logger *zap.SugaredLogger) func(h http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
-			//------------------------------------------
-			if strings.Contains(r.Header.Get("Content-Encoding"), "gzip") { // если стоит gzip, то надо распаковывать
+			if strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {
 				cr, err := newGzipReader(r.Body)
 				if err != nil {
 					w.WriteHeader(http.StatusInternalServerError)
 					logger.Warnf("gzip reader create error: %w", err)
 					return
 				}
-				r.Body = cr // подмена интерфейса для чтения данных запроса
+				r.Body = cr
 				defer cr.Close()
 			}
-			//-----------------------------------------
 			if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
-				//выполнение запроса с нашим ResponseWriter
-				next.ServeHTTP(newGzipWriter(w, logger), r) // внедряем реализацию http.ResponseWriter
+				next.ServeHTTP(newGzipWriter(w, logger), r)
 			} else {
-				next.ServeHTTP(w, r) // выполняем без изменения
+				next.ServeHTTP(w, r)
 			}
 		}
 		return http.HandlerFunc(fn)
@@ -138,10 +131,8 @@ func loggerMiddleware(logger *zap.SugaredLogger) func(h http.Handler) http.Handl
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			rWriter := newLogWriter(w)
-			//выполнение запроса с нашим ResponseWriter
 			start := time.Now()
-			next.ServeHTTP(rWriter, r) // внедряем реализацию http.ResponseWriter
-			// логирование запроса
+			next.ServeHTTP(rWriter, r)
 			logger.Infow(
 				"Server logger",
 				"type", "request",
@@ -149,7 +140,6 @@ func loggerMiddleware(logger *zap.SugaredLogger) func(h http.Handler) http.Handl
 				"method", r.Method,
 				"duration", time.Since(start),
 			)
-			// логирование ответа
 			defer logger.Infow(
 				"Server logger",
 				"type", "responce",
@@ -162,7 +152,6 @@ func loggerMiddleware(logger *zap.SugaredLogger) func(h http.Handler) http.Handl
 	}
 }
 
-// ----------------------------------------------------------------------
 type hashWriter struct {
 	http.ResponseWriter
 	key  []byte

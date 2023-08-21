@@ -83,7 +83,7 @@ func envToString(envName string, def string) string {
 	return value
 }
 
-// GetFlags return's configuration object for agent.
+// NewConfig return's configuration object for agent.
 // The list of parameters are taken from startup variables and environment variables.
 //
 // Enviroment values:
@@ -92,7 +92,7 @@ func envToString(envName string, def string) string {
 //	REPORT_INTERVAL - send request interval in seconds
 //	POLL_INTERVAL - update metrics interval in seconds
 //	RATE_LIMIT - max requests count
-func GetFlags() (*Config, error) {
+func NewConfig() (*Config, error) {
 	agentArgs := Config{
 		IP:             "",
 		Port:           8080,
@@ -103,13 +103,15 @@ func GetFlags() (*Config, error) {
 		RateLimit:      5,
 	}
 	var key string
-	flag.Var(&agentArgs, "a", "Net address like 'host:port'")
-	flag.IntVar(&agentArgs.PollInterval, "p", agentArgs.PollInterval, "Poll metricks interval")
-	flag.IntVar(&agentArgs.ReportInterval, "r", agentArgs.ReportInterval, "Report metricks interval")
-	flag.IntVar(&agentArgs.RateLimit, "l", agentArgs.RateLimit, "Rate limit")
-	flag.BoolVar(&agentArgs.GzipCompress, "gzip", agentArgs.GzipCompress, "Use gzip compress in requests")
-	flag.StringVar(&key, "k", "", "Key for SHA256")
-	flag.Parse()
+	if !flag.Parsed() {
+		flag.Var(&agentArgs, "a", "Net address like 'host:port'")
+		flag.IntVar(&agentArgs.PollInterval, "p", agentArgs.PollInterval, "Poll metricks interval")
+		flag.IntVar(&agentArgs.ReportInterval, "r", agentArgs.ReportInterval, "Report metricks interval")
+		flag.IntVar(&agentArgs.RateLimit, "l", agentArgs.RateLimit, "Rate limit")
+		flag.BoolVar(&agentArgs.GzipCompress, "gzip", agentArgs.GzipCompress, "Use gzip compress in requests")
+		flag.StringVar(&key, "k", "", "Key for SHA256")
+		flag.Parse()
+	}
 
 	if address := os.Getenv("ADDRESS"); address != "" {
 		err := agentArgs.Set(address)

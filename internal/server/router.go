@@ -9,13 +9,6 @@ import (
 	"go.uber.org/zap"
 )
 
-// Storage is interface for work with storage.
-type Storage interface {
-	StorageSetter
-	StorageGetter
-	StorageDB
-}
-
 // private func.
 func updateParams(r *http.Request) updateMetricsArgs {
 	return updateMetricsArgs{
@@ -51,7 +44,22 @@ func makeRouter(storage Storage, logger *zap.SugaredLogger, key []byte) http.Han
 	})
 
 	router.Post("/value/", func(w http.ResponseWriter, r *http.Request) {
-		GetMetricJSON(w, r, storage, logger, key)
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			logger.Warnf("get metric json, read request body error: %w", err)
+			return
+		}
+		body, status, err := GetMetricJSON(r.Context(), storage, body)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(status)
+		if err != nil {
+			logger.Warnf("get metric by json error: %w", err)
+		}
+		_, err = w.Write([]byte(body))
+		if err != nil {
+			logger.Warnf("write data to client error: %w", err)
+		}
 	})
 
 	router.Get("/value/{mType}/{mName}", func(w http.ResponseWriter, r *http.Request) {

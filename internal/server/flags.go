@@ -26,16 +26,27 @@ func stringEnvCheck(val string, name string) string {
 	return val
 }
 
-func GetFlags() (*Config, error) {
-	var options Config
+// NewConfig reads startup parameters and runtime environment variables.
+// Returns Config object with server options.
+func NewConfig() (*Config, error) {
+	options := Config{
+		IPAddress:       ":8080",
+		FileStorePath:   "/tmp/metrics-db.json",
+		ConnectDBString: "",
+		Key:             []byte("default"),
+		StoreInterval:   300,
+		Restore:         true,
+	}
 	var key string
-	flag.StringVar(&options.IPAddress, "a", ":8080", "address and port to run server like address:port")
-	flag.IntVar(&options.StoreInterval, "i", 300, "store interval in seconds")
-	flag.StringVar(&options.FileStorePath, "f", "/tmp/metrics-db.json", "file path for save the storage")
-	flag.BoolVar(&options.Restore, "r", true, "restore storage on start server")
-	flag.StringVar(&options.ConnectDBString, "d", "", "database connect string")
-	flag.StringVar(&key, "k", "", "Key for SHA256 checks")
-	flag.Parse()
+	if !flag.Parsed() {
+		flag.StringVar(&options.IPAddress, "a", options.IPAddress, "address and port to run server like address:port")
+		flag.IntVar(&options.StoreInterval, "i", options.StoreInterval, "store interval in seconds")
+		flag.StringVar(&options.FileStorePath, "f", options.FileStorePath, "file path for save the storage")
+		flag.BoolVar(&options.Restore, "r", options.Restore, "restore storage on start server")
+		flag.StringVar(&options.ConnectDBString, "d", options.ConnectDBString, "database connect string")
+		flag.StringVar(&key, "k", "", "Key for SHA256 checks")
+		flag.Parse()
+	}
 
 	if val := os.Getenv("STORE_INTERVAL"); val != "" {
 		interval, err := strconv.Atoi(val)

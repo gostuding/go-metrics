@@ -7,7 +7,7 @@ import (
 )
 
 // InitLogger is create new logger with Suger type.
-func InitLogger() (*zap.SugaredLogger, error) {
+func NewLogger() (*zap.SugaredLogger, error) {
 	logger, err := zap.NewDevelopment()
 	if err != nil {
 		return nil, fmt.Errorf("logger init error: %w", err)

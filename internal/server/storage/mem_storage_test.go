@@ -1,14 +1,16 @@
 package storage
 
 import (
-	"context"
 	"reflect"
 	"strings"
 	"testing"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/stretchr/testify/assert"
-	"go.uber.org/zap"
+)
+
+const (
+	testsDefDSN = "host=localhost user=postgres database=metrics"
 )
 
 func TestMemStorageAddMetric(t *testing.T) {
@@ -29,9 +31,9 @@ func TestMemStorageAddMetric(t *testing.T) {
 	for _, val := range tests {
 		tt := val // переопределили переменную чтобы избежать использования ссылки на переменную цикла (есть такая особенность)
 		t.Run(tt.name, func(t *testing.T) {
-			ms, err := NewMemStorage(false, "", 300)
-			assert.NoError(t, err, "error making new memStorage")
-			err = ms.Update(context.Background(), tt.path.mType, tt.path.mName, tt.path.mValue)
+			ms, err := NewMemStorage(restoreStorage, defFileName, saveInterval)
+			assert.NoError(t, err, "error making new MemStorage")
+			err = ms.Update(ctx, tt.path.mType, tt.path.mName, tt.path.mValue)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Update() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -75,11 +77,11 @@ func TestMemStorageGetMetric(t *testing.T) {
 	for _, val := range tests {
 		tt := val
 		t.Run(tt.name, func(t *testing.T) {
-			ms, err := NewMemStorage(false, "", 300)
-			assert.NoError(t, err, "error making new memStorage")
+			ms, err := NewMemStorage(restoreStorage, defFileName, saveInterval)
+			assert.NoError(t, err, "error making new MemStorage")
 			ms.Counters = tt.fields.Counters
 			ms.Gauges = tt.fields.Gauges
-			got, err := ms.GetMetric(context.Background(), tt.args.mType, tt.args.mName)
+			got, err := ms.GetMetric(ctx, tt.args.mType, tt.args.mName)
 			if got != tt.want {
 				t.Errorf("function GetMetric() got = %v, want %v", got, tt.want)
 			}
@@ -140,17 +142,17 @@ func TestMemStorage_GetMetricJSON(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			ms, err := NewMemStorage(false, "", 300)
-			assert.NoError(t, err, "error making new memStorage")
+			ms, err := NewMemStorage(restoreStorage, defFileName, saveInterval)
+			assert.NoError(t, err, "error making new MemStorage")
 			ms.Counters = tt.fields.Counters
 			ms.Gauges = tt.fields.Gauges
-			got, err := ms.GetMetricJSON(context.Background(), tt.args.data)
+			got, err := ms.GetMetricJSON(ctx, tt.args.data)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("memStorage.GetMetricJSON() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("MemStorage.GetMetricJSON() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("memStorage.GetMetricJSON() = %v, want %v", got, tt.want)
+				t.Errorf("MemStorage.GetMetricJSON() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -215,70 +217,62 @@ func TestMemStorage_UpdateJSON(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			ms, err := NewMemStorage(false, "", 300)
-			assert.NoError(t, err, "error making new memStorage")
+			assert.NoError(t, err, "error making new MemStorage")
 			ms.Counters = tt.fields.Counters
 			ms.Gauges = tt.fields.Gauges
-			got, err := ms.UpdateJSON(context.Background(), tt.args.data)
+			got, err := ms.UpdateJSON(ctx, tt.args.data)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("memStorage.UpdateJSON() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("MemStorage.UpdateJSON() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("memStorage.UpdateJSON() = %v, want %v", got, tt.want)
+				t.Errorf("MemStorage.UpdateJSON() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
 func Test_memStorage_UpdateJSONSlice(t *testing.T) {
-	ms, err := NewMemStorage(false, "", 1000)
+	ms, err := NewMemStorage(restoreStorage, defFileName, saveInterval)
 	assert.NoError(t, err, "create mem storage error")
-	wantBytes := []byte(`[{"id": "1", "type": "gauge", "delta": 1}, {"id": "2", "type": "counter", "value": 1}]`)
-	type args struct {
-		ctx  context.Context
-		data []byte
-	}
 	tests := []struct {
 		name    string
-		args    args
-		want    []byte
+		args    []byte
+		want    string
 		wantErr bool
 	}{
 		{
-			name: "добваление списка метрик",
-			args: args{
-				ctx:  context.Background(),
-				data: wantBytes,
-			},
-			want:    wantBytes,
+			name:    "добваление списка метрик",
+			args:    []byte(`[{"id": "1", "type": "gauge", "value": 1}, {"id": "2", "type": "counter", "delta": 1}]`),
+			want:    `1. '1' update SUCCESS2. '2' update SUCCESS`,
 			wantErr: false,
 		},
 		{
-			name: "ошибка добваления списка метрик",
-			args: args{
-				ctx:  context.Background(),
-				data: []byte("error"),
-			},
-			want:    []byte(""),
+			name:    "ошибка добваления списка метрик",
+			args:    []byte("error"),
+			want:    "",
 			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := ms.UpdateJSONSlice(tt.args.ctx, tt.args.data)
+			got, err := ms.UpdateJSONSlice(ctx, tt.args)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("memStorage.UpdateJSONSlice() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("MemStorage.UpdateJSONSlice() error = %v, wantErr %v", err, tt.wantErr)
 				return
+			}
+			res := strings.Replace(string(got), " \n", "", -1)
+			if tt.want != res {
+				t.Errorf("MemStorage.UpdateJSONSlice() want = '%s', got '%s'", tt.want, res)
 			}
 		})
 	}
 }
 
 func BenchmarkMemStorage(b *testing.B) {
-	ms, err := NewMemStorage(false, "", 300)
-	assert.NoError(b, err, "error making new memStorage")
-	ctx := context.Background()
+	ms, err := NewMemStorage(restoreStorage, defFileName, saveInterval)
+	assert.NoError(b, err, "error making new MemStorage")
 	err = ms.Update(ctx, counterType, "test", "0")
 	assert.NoError(b, err, "add initial metric error")
 	val := int64(1)
@@ -332,11 +326,8 @@ func BenchmarkMemStorage(b *testing.B) {
 }
 
 func BenchmarkSQLStorage(b *testing.B) {
-	logger, err := zap.NewDevelopment()
-	assert.NoError(b, err, "create logger error")
-	ms, err := NewSQLStorage("host=localhost user=postgres database=metrics", logger.Sugar())
+	ms, err := NewSQLStorage(testsDefDSN)
 	assert.NoError(b, err, "create sql storage error")
-	ctx := context.Background()
 	val := int64(1)
 	m := metric{ID: "test", MType: counterType, Delta: &val}
 	mString := `{"id": "test", "type": "counter", "value": 1}`
@@ -409,30 +400,30 @@ func Test_getSortedKeysInt(t *testing.T) {
 	want = append(want, "2")
 	t.Run("sort test", func(t *testing.T) {
 		if got := getSortedKeysInt(args); !reflect.DeepEqual(got, want) {
-			t.Errorf("getSortedKeysFloat() = %v, want %v", got, want)
+			t.Errorf("getSortedKeysInt() = %v, want %v", got, want)
 		}
 	})
 }
 
 func Test_memStorage_Clear(t *testing.T) {
-	ms, err := NewMemStorage(false, "", 1000)
+	ms, err := NewMemStorage(restoreStorage, defFileName, saveInterval)
 	assert.NoError(t, err, "create storage error")
 	ms.Gauges["1"] = 1
 	t.Run("clear storage", func(t *testing.T) {
-		if err := ms.Clear(context.Background()); (err != nil) != false {
-			t.Errorf("memStorage.Clear() error = %v, wantErr %v", err, false)
+		if err := ms.Clear(ctx); (err != nil) != false {
+			t.Errorf("MemStorage.Clear() error = %v, wantErr %v", err, false)
 		}
 	})
 }
 
 func Test_memStorage_Save(t *testing.T) {
-	msSuccess, err := NewMemStorage(false, "", 1000)
+	msSuccess, err := NewMemStorage(restoreStorage, defFileName, saveInterval)
 	assert.NoError(t, err, "success storage create error")
-	msError, err := NewMemStorage(false, "_1.._1ww_", 1000)
+	msError, err := NewMemStorage(restoreStorage, "/_1.._1ww_", saveInterval)
 	assert.NoError(t, err, "error storage create error")
 	tests := []struct {
 		name    string
-		ms      *memStorage
+		ms      *MemStorage
 		wantErr bool
 	}{
 		{
@@ -450,8 +441,32 @@ func Test_memStorage_Save(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			if err := tt.ms.Save(); (err != nil) != tt.wantErr {
-				t.Errorf("memStorage.Save() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("MemStorage.Save() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
+}
+
+func TestMemStorage_restore(t *testing.T) {
+	t.Run("MemStorage restore test", func(t *testing.T) {
+		mem, err := NewMemStorage(false, defFileName, 0)
+		if err != nil {
+			t.Errorf("create storage error: %v", err)
+			return
+		}
+		err = mem.Update(ctx, cType, "test", "1")
+		if err != nil {
+			t.Errorf("add metric in storage error: %v", err)
+			return
+		}
+		mem, err = NewMemStorage(true, defFileName, saveInterval)
+		if err != nil {
+			t.Errorf("restore storage error: %v", err)
+			return
+		}
+		if len(mem.Counters) != 1 || len(mem.Gauges) > 0 {
+			t.Errorf("restore count metrics size error: counter: %d, gauges: %d", len(mem.Counters), len(mem.Gauges))
+			return
+		}
+	})
 }

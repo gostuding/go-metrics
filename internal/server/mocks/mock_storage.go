@@ -6,35 +6,34 @@ package mocks
 
 import (
 	context "context"
-	reflect "reflect"
-
 	gomock "github.com/golang/mock/gomock"
+	reflect "reflect"
 )
 
-// MockStorage is a mock of Storage interface.
+// MockStorage is a mock of Storage interface
 type MockStorage struct {
 	ctrl     *gomock.Controller
 	recorder *MockStorageMockRecorder
 }
 
-// MockStorageMockRecorder is the mock recorder for MockStorage.
+// MockStorageMockRecorder is the mock recorder for MockStorage
 type MockStorageMockRecorder struct {
 	mock *MockStorage
 }
 
-// NewMockStorage creates a new mock instance.
+// NewMockStorage creates a new mock instance
 func NewMockStorage(ctrl *gomock.Controller) *MockStorage {
 	mock := &MockStorage{ctrl: ctrl}
 	mock.recorder = &MockStorageMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use.
+// EXPECT returns an object that allows the caller to indicate expected use
 func (m *MockStorage) EXPECT() *MockStorageMockRecorder {
 	return m.recorder
 }
 
-// Clear mocks base method.
+// Clear mocks base method
 func (m *MockStorage) Clear(arg0 context.Context) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Clear", arg0)
@@ -42,13 +41,13 @@ func (m *MockStorage) Clear(arg0 context.Context) error {
 	return ret0
 }
 
-// Clear indicates an expected call of Clear.
+// Clear indicates an expected call of Clear
 func (mr *MockStorageMockRecorder) Clear(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Clear", reflect.TypeOf((*MockStorage)(nil).Clear), arg0)
 }
 
-// GetMetric mocks base method.
+// GetMetric mocks base method
 func (m *MockStorage) GetMetric(arg0 context.Context, arg1, arg2 string) (string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetMetric", arg0, arg1, arg2)
@@ -57,13 +56,13 @@ func (m *MockStorage) GetMetric(arg0 context.Context, arg1, arg2 string) (string
 	return ret0, ret1
 }
 
-// GetMetric indicates an expected call of GetMetric.
+// GetMetric indicates an expected call of GetMetric
 func (mr *MockStorageMockRecorder) GetMetric(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMetric", reflect.TypeOf((*MockStorage)(nil).GetMetric), arg0, arg1, arg2)
 }
 
-// GetMetricJSON mocks base method.
+// GetMetricJSON mocks base method
 func (m *MockStorage) GetMetricJSON(arg0 context.Context, arg1 []byte) ([]byte, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetMetricJSON", arg0, arg1)
@@ -72,13 +71,13 @@ func (m *MockStorage) GetMetricJSON(arg0 context.Context, arg1 []byte) ([]byte, 
 	return ret0, ret1
 }
 
-// GetMetricJSON indicates an expected call of GetMetricJSON.
+// GetMetricJSON indicates an expected call of GetMetricJSON
 func (mr *MockStorageMockRecorder) GetMetricJSON(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMetricJSON", reflect.TypeOf((*MockStorage)(nil).GetMetricJSON), arg0, arg1)
 }
 
-// GetMetricsHTML mocks base method.
+// GetMetricsHTML mocks base method
 func (m *MockStorage) GetMetricsHTML(arg0 context.Context) (string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetMetricsHTML", arg0)
@@ -87,13 +86,13 @@ func (m *MockStorage) GetMetricsHTML(arg0 context.Context) (string, error) {
 	return ret0, ret1
 }
 
-// GetMetricsHTML indicates an expected call of GetMetricsHTML.
+// GetMetricsHTML indicates an expected call of GetMetricsHTML
 func (mr *MockStorageMockRecorder) GetMetricsHTML(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMetricsHTML", reflect.TypeOf((*MockStorage)(nil).GetMetricsHTML), arg0)
 }
 
-// PingDB mocks base method.
+// PingDB mocks base method
 func (m *MockStorage) PingDB(arg0 context.Context) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "PingDB", arg0)
@@ -101,13 +100,13 @@ func (m *MockStorage) PingDB(arg0 context.Context) error {
 	return ret0
 }
 
-// PingDB indicates an expected call of PingDB.
+// PingDB indicates an expected call of PingDB
 func (mr *MockStorageMockRecorder) PingDB(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PingDB", reflect.TypeOf((*MockStorage)(nil).PingDB), arg0)
 }
 
-// Save mocks base method.
+// Save mocks base method
 func (m *MockStorage) Save() error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Save")
@@ -115,13 +114,27 @@ func (m *MockStorage) Save() error {
 	return ret0
 }
 
-// Save indicates an expected call of Save.
+// Save indicates an expected call of Save
 func (mr *MockStorageMockRecorder) Save() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Save", reflect.TypeOf((*MockStorage)(nil).Save))
 }
 
-// Update mocks base method.
+// Stop mocks base method
+func (m *MockStorage) Stop() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Stop")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Stop indicates an expected call of Stop
+func (mr *MockStorageMockRecorder) Stop() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Stop", reflect.TypeOf((*MockStorage)(nil).Stop))
+}
+
+// Update mocks base method
 func (m *MockStorage) Update(arg0 context.Context, arg1, arg2, arg3 string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Update", arg0, arg1, arg2, arg3)
@@ -129,13 +142,13 @@ func (m *MockStorage) Update(arg0 context.Context, arg1, arg2, arg3 string) erro
 	return ret0
 }
 
-// Update indicates an expected call of Update.
+// Update indicates an expected call of Update
 func (mr *MockStorageMockRecorder) Update(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockStorage)(nil).Update), arg0, arg1, arg2, arg3)
 }
 
-// UpdateJSON mocks base method.
+// UpdateJSON mocks base method
 func (m *MockStorage) UpdateJSON(arg0 context.Context, arg1 []byte) ([]byte, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateJSON", arg0, arg1)
@@ -144,13 +157,13 @@ func (m *MockStorage) UpdateJSON(arg0 context.Context, arg1 []byte) ([]byte, err
 	return ret0, ret1
 }
 
-// UpdateJSON indicates an expected call of UpdateJSON.
+// UpdateJSON indicates an expected call of UpdateJSON
 func (mr *MockStorageMockRecorder) UpdateJSON(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateJSON", reflect.TypeOf((*MockStorage)(nil).UpdateJSON), arg0, arg1)
 }
 
-// UpdateJSONSlice mocks base method.
+// UpdateJSONSlice mocks base method
 func (m *MockStorage) UpdateJSONSlice(arg0 context.Context, arg1 []byte) ([]byte, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateJSONSlice", arg0, arg1)
@@ -159,7 +172,7 @@ func (m *MockStorage) UpdateJSONSlice(arg0 context.Context, arg1 []byte) ([]byte
 	return ret0, ret1
 }
 
-// UpdateJSONSlice indicates an expected call of UpdateJSONSlice.
+// UpdateJSONSlice indicates an expected call of UpdateJSONSlice
 func (mr *MockStorageMockRecorder) UpdateJSONSlice(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateJSONSlice", reflect.TypeOf((*MockStorage)(nil).UpdateJSONSlice), arg0, arg1)

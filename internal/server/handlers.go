@@ -4,13 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"time"
 
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
-	"go.uber.org/zap"
 )
 
 type (
@@ -33,6 +31,7 @@ type (
 	StorageDB interface {
 		PingDB(context.Context) error
 		Clear(context.Context) error
+		Stop() error
 	}
 
 	// ptivate type. repeate funcs type
@@ -217,33 +216,19 @@ func UpdateJSON(
 
 // GetMetricJSON is processing an get metric by JSON request.
 func GetMetricJSON(
-	writer http.ResponseWriter,
-	request *http.Request,
+	ctx context.Context,
 	storage StorageGetter,
-	logger *zap.SugaredLogger,
-	key []byte,
-) {
-	writer.Header().Set("Content-Type", "application/json")
-	data, err := io.ReadAll(request.Body)
+	body []byte,
+) ([]byte, int, error) {
+	data, err := bytesErrorRepeater(storage.GetMetricJSON, ctx, body)
 	if err != nil {
-		writer.WriteHeader(http.StatusBadRequest)
-		logger.Warnf("get metric json, read request body error: %w", err)
-		return
-	}
-	body, err := bytesErrorRepeater(storage.GetMetricJSON, request.Context(), data)
-	if err != nil {
-		if body != nil {
-			writer.WriteHeader(http.StatusNotFound)
+		if data != nil {
+			return nil, http.StatusNotFound, fmt.Errorf("metric not found error")
 		} else {
-			writer.WriteHeader(http.StatusBadRequest)
+			return nil, http.StatusBadRequest, err
 		}
-		logger.Warnf("get metric json error: %w", err)
-		return
 	}
-	_, err = writer.Write(body)
-	if err != nil {
-		logger.Warnf("get metric json, write data to client error: %w", err)
-	}
+	return data, http.StatusOK, nil
 }
 
 // Ping is checks connection to database.

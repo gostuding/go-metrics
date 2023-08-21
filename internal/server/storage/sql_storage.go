@@ -10,24 +10,21 @@ import (
 	"strings"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
-	"go.uber.org/zap"
 )
 
 // SQLStorage contains metrics data in database.
 type SQLStorage struct {
-	con    *sql.DB
-	Logger *zap.SugaredLogger
+	con *sql.DB
 }
 
 // NewSQLStorage creates SQLStorage.
-func NewSQLStorage(dsn string, logger *zap.SugaredLogger) (*SQLStorage, error) {
+func NewSQLStorage(dsn string) (*SQLStorage, error) {
 	db, err := sql.Open("pgx", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("connect database crate error: %w", err)
 	}
 	storage := SQLStorage{
-		con:    db,
-		Logger: logger,
+		con: db,
 	}
 	return &storage, checkDatabaseStructure(dsn)
 }
@@ -236,21 +233,18 @@ func sliceInsert(ctx context.Context, sqtx *sql.Tx, tbl string, mp map[string]st
 	return err
 }
 
-func mkMetricsMaps(metrics []metric, logger *zap.SugaredLogger) (map[string]string, map[string]string) {
-	// сбор дубликатов метрик и суммирование для counters
+func mkMetricsMaps(metrics []metric) (map[string]string, map[string]string) {
 	countersLst := make(map[string]int64)
 	gaugeLst := make(map[string]string)
 	for _, item := range metrics {
 		switch item.MType {
 		case counterType:
 			if item.Delta == nil {
-				logger.Debug("skip counter metric update. Metric's delta is nil: ", item.ID)
 				continue
 			}
 			countersLst[item.ID] += *item.Delta
 		case gaugeType:
 			if item.Value == nil {
-				logger.Debug("skip gauge metric update. Metric's value is nil: ", item.ID)
 				continue
 			}
 			gaugeLst[item.ID] = strconv.FormatFloat(*item.Value, 'f', -1, 64)
@@ -265,7 +259,10 @@ func mkMetricsMaps(metrics []metric, logger *zap.SugaredLogger) (map[string]stri
 
 // UpdateJSONSlice updates the repository with metrics that are obtained
 // by translating the received JSON into a list of metrics.
-func (ms *SQLStorage) UpdateJSONSlice(ctx context.Context, data []byte) ([]byte, error) {
+func (ms *SQLStorage) UpdateJSONSlice(
+	ctx context.Context,
+	data []byte,
+) ([]byte, error) {
 	var metrics []metric
 	err := json.Unmarshal(data, &metrics)
 	if err != nil {
@@ -278,7 +275,7 @@ func (ms *SQLStorage) UpdateJSONSlice(ctx context.Context, data []byte) ([]byte,
 		return nil, fmt.Errorf("transaction create error: %w", err)
 	}
 
-	counters, gauges := mkMetricsMaps(metrics, ms.Logger)
+	counters, gauges := mkMetricsMaps(metrics)
 	err = sliceInsert(ctx, sqtx, counterTableName, counters, fmt.Sprintf("+%s.value", counterTableName))
 	if err != nil {
 		return nil, fmt.Errorf("insert counters slice error: %w", err)
@@ -295,4 +292,9 @@ func (ms *SQLStorage) UpdateJSONSlice(ctx context.Context, data []byte) ([]byte,
 		return nil, fmt.Errorf("transaction commit error: %w", err)
 	}
 	return nil, nil
+}
+
+// Stop is closing connection to database.
+func (ms *SQLStorage) Stop() error {
+	return ms.con.Close()
 }
