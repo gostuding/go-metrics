@@ -45,7 +45,7 @@ func Test_seRepeater(t *testing.T) {
 			name: "Ошибка подключения",
 			args: args{
 				f: func(context.Context) (string, error) {
-					var pgErr *pgconn.PgError = &pgconn.PgError{}
+					pgErr := &pgconn.PgError{}
 					pgErr.Code = pgerrcode.ConnectionException
 					return "pgErr", pgErr
 				},
@@ -58,7 +58,7 @@ func Test_seRepeater(t *testing.T) {
 			name: "Контекст отмены операции",
 			args: args{
 				f: func(context.Context) (string, error) {
-					var pgErr *pgconn.PgError = &pgconn.PgError{}
+					pgErr := &pgconn.PgError{}
 					pgErr.Code = pgerrcode.ConnectionException
 					return "pgErr", pgErr
 				},
@@ -126,7 +126,7 @@ func Test_bytesErrorRepeater(t *testing.T) {
 			name: "Ошибка подключения",
 			args: args{
 				f: func(ctx context.Context, data []byte) ([]byte, error) {
-					var pgErr *pgconn.PgError = &pgconn.PgError{Code: pgerrcode.ConnectionException}
+					pgErr := &pgconn.PgError{Code: pgerrcode.ConnectionException}
 					return data, pgErr
 				},
 				ctx:  context.Background(),
@@ -139,7 +139,7 @@ func Test_bytesErrorRepeater(t *testing.T) {
 			name: "Контекст отмены операции",
 			args: args{
 				f: func(ctx context.Context, data []byte) ([]byte, error) {
-					var pgErr *pgconn.PgError = &pgconn.PgError{Code: pgerrcode.ConnectionException}
+					pgErr := &pgconn.PgError{Code: pgerrcode.ConnectionException}
 					return data, pgErr
 				},
 				data: []byte("pgErr"),
@@ -209,7 +209,7 @@ func Test_sseRepeater(t *testing.T) {
 			name: "Ошибка подключения",
 			args: args{
 				f: func(ctx context.Context, t, n string) (string, error) {
-					var pgErr *pgconn.PgError = &pgconn.PgError{Code: pgerrcode.ConnectionException}
+					pgErr := &pgconn.PgError{Code: pgerrcode.ConnectionException}
 					return t, pgErr
 				},
 				ctx: context.Background(),
@@ -223,7 +223,7 @@ func Test_sseRepeater(t *testing.T) {
 			name: "Контекст отмены операции",
 			args: args{
 				f: func(ctx context.Context, t, n string) (string, error) {
-					var pgErr *pgconn.PgError = &pgconn.PgError{Code: pgerrcode.ConnectionException}
+					pgErr := &pgconn.PgError{Code: pgerrcode.ConnectionException}
 					return t, pgErr
 				},
 				ctx: ctxTimeout,
@@ -297,7 +297,7 @@ func Test_ssseRepeater(t *testing.T) {
 			name: "Ошибка подключения",
 			args: args{
 				f: func(ctx context.Context, t, n, v string) error {
-					var pgErr *pgconn.PgError = &pgconn.PgError{Code: pgerrcode.ConnectionException}
+					pgErr := &pgconn.PgError{Code: pgerrcode.ConnectionException}
 					return pgErr
 				},
 				ctx: context.Background(),
@@ -312,7 +312,7 @@ func Test_ssseRepeater(t *testing.T) {
 			name: "Контекст отмены операции",
 			args: args{
 				f: func(ctx context.Context, t, n, v string) error {
-					var pgErr *pgconn.PgError = &pgconn.PgError{Code: pgerrcode.ConnectionException}
+					pgErr := &pgconn.PgError{Code: pgerrcode.ConnectionException}
 					return pgErr
 				},
 				ctx: ctxTimeout,
