@@ -28,7 +28,6 @@ func createMemServer(IP string) (*Server, error) {
 }
 
 func getRandServerAddress() string {
-	rand.Seed(time.Now().UnixNano())
 	return fmt.Sprintf(":%d", (rand.Intn(1000) + 10000))
 }
 
