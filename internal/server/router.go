@@ -134,7 +134,7 @@ func makeRouter(storage Storage, logger *zap.SugaredLogger, key []byte) http.Han
 		w.WriteHeader(status)
 		w.Header().Set("Content-Type", "")
 		if err != nil {
-			logger.Warnf("ping error: %w", err)
+			logger.Warnf(err.Error())
 		} else {
 			logger.Debug("database ping success")
 		}

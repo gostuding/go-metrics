@@ -12,7 +12,7 @@ var (
 	defFileName    = filepath.Join(os.TempDir(), "Memory.strg")
 	restoreStorage = false
 	saveInterval   = 300
-	dsnString      = "host=localhost user=postgres database=metricsTest"
+	dsnString      = "host=localhost user=postgres database=metrics" // Connection strin for SQLStore's test. Corrects it for your database.
 	gType          = "gauge"
 	cType          = "counter"
 	defMetricName  = "mName"
@@ -35,6 +35,8 @@ func Example() {
 	err = mem.Save()
 	if err != nil {
 		fmt.Printf("Save memory storage error: %v", err)
+	} else {
+		fmt.Println("Memory storage save success")
 	}
 
 	// Create SQL Storage example.
@@ -51,5 +53,11 @@ func Example() {
 	err = sqlStrg.Stop()
 	if err != nil {
 		fmt.Printf("Stop sql storage error: %v", err)
+	} else {
+		fmt.Println("SQL storage stop success")
 	}
+
+	// Output:
+	// Memory storage save success
+	// SQL storage stop success
 }

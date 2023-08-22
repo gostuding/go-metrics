@@ -9,15 +9,23 @@ import (
 	"strconv"
 )
 
+// Default values for Config.
+const (
+	defPort           = 8080
+	defPoolInterval   = 2
+	defReportInterval = 10
+	defRateLimit      = 5
+)
+
 // Config contains agent's configuration.
 type Config struct {
-	IP             string //server's ip address
-	Key            []byte //key for hashing requests body
-	RateLimit      int    //max requests in time
-	Port           int    //server's port
-	PollInterval   int    //poll requests interval
-	ReportInterval int    //send to server interval
-	GzipCompress   bool   //flag to compress requests or not
+	IP             string // server's ip address
+	Key            []byte // key for hashing requests body
+	RateLimit      int    // max requests in time
+	Port           int    // server's port
+	PollInterval   int    // poll requests interval
+	ReportInterval int    // send to server interval
+	GzipCompress   bool   // flag to compress requests or not
 }
 
 // String convert Config to string.
@@ -95,12 +103,12 @@ func envToString(envName string, def string) string {
 func NewConfig() (*Config, error) {
 	agentArgs := Config{
 		IP:             "",
-		Port:           8080,
-		PollInterval:   2,
-		ReportInterval: 10,
+		Port:           defPort,
+		PollInterval:   defPoolInterval,
+		ReportInterval: defReportInterval,
 		GzipCompress:   true,
 		Key:            nil,
-		RateLimit:      5,
+		RateLimit:      defRateLimit,
 	}
 	var key string
 	if !flag.Parsed() {

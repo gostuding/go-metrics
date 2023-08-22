@@ -82,7 +82,7 @@ func Test_seRepeater(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := seRepeater(tt.args.f, tt.args.ctx)
+			got, err := seRepeater(tt.args.ctx, tt.args.f)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("seRepeater() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -164,7 +164,7 @@ func Test_bytesErrorRepeater(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := bytesErrorRepeater(tt.args.f, tt.args.ctx, tt.args.data)
+			got, err := bytesErrorRepeater(tt.args.ctx, tt.args.f, tt.args.data)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("bytesErrorRepeater() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -250,7 +250,7 @@ func Test_sseRepeater(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := sseRepeater(tt.args.f, tt.args.ctx, tt.args.t, tt.args.n)
+			got, err := sseRepeater(tt.args.ctx, tt.args.f, tt.args.t, tt.args.n)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("sseRepeater() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -341,7 +341,7 @@ func Test_ssseRepeater(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			errValue := ssseRepeater(tt.args.f, tt.args.ctx, tt.args.t, tt.args.n, tt.args.v)
+			errValue := ssseRepeater(tt.args.ctx, tt.args.f, tt.args.t, tt.args.n, tt.args.v)
 			if tt.wantErr && errValue == nil {
 				t.Errorf("ssseRepeater() want error, but get nil")
 			}

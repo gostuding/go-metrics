@@ -29,7 +29,7 @@ func TestMemStorageAddMetric(t *testing.T) {
 		{name: "Неправильный тип данных", path: args{gaugeType, "item", "2ll"}, wantErr: true},
 	}
 	for _, val := range tests {
-		tt := val // переопределили переменную чтобы избежать использования ссылки на переменную цикла (есть такая особенность)
+		tt := val
 		t.Run(tt.name, func(t *testing.T) {
 			ms, err := NewMemStorage(restoreStorage, defFileName, saveInterval)
 			assert.NoError(t, err, "error making new MemStorage")
@@ -70,9 +70,43 @@ func TestMemStorageGetMetric(t *testing.T) {
 		want      string
 		wantError bool
 	}{
-		{name: "Получение Gauges ", fields: fields{Gauges: gTest(), Counters: cTest()}, args: args{mType: gaugeType, mName: "item"}, want: "0.34", wantError: false},
-		{name: "Неправильный тип", fields: fields{Gauges: gTest(), Counters: cTest()}, args: args{mType: "error", mName: "item"}, want: "", wantError: true},
-		{name: "Неправильное имя", fields: fields{Gauges: gTest(), Counters: cTest()}, args: args{mType: counterType, mName: "none"}, want: "", wantError: true},
+		{
+			name: "Получение Gauges ",
+			fields: fields{
+				Gauges:   gTest(),
+				Counters: cTest()},
+			args: args{
+				mType: gaugeType,
+				mName: "item",
+			},
+			want:      "0.34",
+			wantError: false,
+		},
+		{
+			name: "Неправильный тип",
+			fields: fields{
+				Gauges:   gTest(),
+				Counters: cTest()},
+			args: args{
+				mType: "error",
+				mName: "item",
+			},
+			want:      "",
+			wantError: true,
+		},
+		{
+			name: "Неправильное имя",
+			fields: fields{
+				Gauges:   gTest(),
+				Counters: cTest(),
+			},
+			args: args{
+				mType: counterType,
+				mName: "none",
+			},
+			want:      "",
+			wantError: true,
+		},
 	}
 	for _, val := range tests {
 		tt := val
@@ -262,7 +296,7 @@ func Test_memStorage_UpdateJSONSlice(t *testing.T) {
 				t.Errorf("MemStorage.UpdateJSONSlice() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			res := strings.Replace(string(got), " \n", "", -1)
+			res := strings.ReplaceAll(string(got), " \n", "")
 			if tt.want != res {
 				t.Errorf("MemStorage.UpdateJSONSlice() want = '%s', got '%s'", tt.want, res)
 			}
@@ -382,8 +416,7 @@ func Test_getSortedKeysFloat(t *testing.T) {
 	args["2"] = 1
 	args["1"] = 2
 	var want []string
-	want = append(want, "1")
-	want = append(want, "2")
+	want = append(want, "1", "2")
 	t.Run("sort test", func(t *testing.T) {
 		if got := getSortedKeysFloat(args); !reflect.DeepEqual(got, want) {
 			t.Errorf("getSortedKeysFloat() = %v, want %v", got, want)
@@ -396,8 +429,7 @@ func Test_getSortedKeysInt(t *testing.T) {
 	args["2"] = 1
 	args["1"] = 2
 	var want []string
-	want = append(want, "1")
-	want = append(want, "2")
+	want = append(want, "1", "2")
 	t.Run("sort test", func(t *testing.T) {
 		if got := getSortedKeysInt(args); !reflect.DeepEqual(got, want) {
 			t.Errorf("getSortedKeysInt() = %v, want %v", got, want)

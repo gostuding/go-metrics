@@ -69,14 +69,19 @@ func ExampleServer_RunServer() {
 		return
 	}
 	srv := NewServer(cfg, logger, storage)
-	defer func() { srv.StopServer() }()
+	defer srv.StopServer() //nolint:errcheck //<-senselessly
 	// Run server in gorutine for not block main thread
 	go func() {
+		fmt.Println("Run server success")
 		if err = srv.RunServer(); err != nil {
+			fmt.Printf("Run error: %v", err)
 			logger.Warnf("Run server errro: %w", err)
 		}
 	}()
 	time.Sleep(time.Second)
+
+	// Output:
+	// Run server success
 }
 
 func ExampleServer_StopServer() {
@@ -93,14 +98,19 @@ func ExampleServer_StopServer() {
 		}
 	}()
 
-	//...
+	// ...
 	// Do anything.
 	time.Sleep(time.Second)
-	//...
+	// ...
 
 	// Stop server work
 	err = srv.StopServer()
 	if err != nil {
 		fmt.Printf("stop server error: %v", err)
+	} else {
+		fmt.Println("Stop server success")
 	}
+
+	// Output:
+	// Stop server success
 }

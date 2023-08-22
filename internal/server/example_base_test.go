@@ -34,6 +34,7 @@ func Example() {
 	srv := NewServer(cfg, logger, storage)
 	// Run server in gorutine for not block main thread
 	go func() {
+		fmt.Println("Run server")
 		if err = srv.RunServer(); err != nil {
 			logger.Warnf("Run server errro: %w", err)
 		}
@@ -43,5 +44,11 @@ func Example() {
 	err = srv.StopServer()
 	if err != nil {
 		fmt.Printf("stop server error: %v", err)
+	} else {
+		fmt.Println("Server finish success")
 	}
+
+	// Output:
+	// Run server
+	// Server finish success
 }

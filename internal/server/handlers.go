@@ -11,8 +11,8 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
+// StorageSetter is interface for set data in storage.
 type (
-	// interface for set data in storage
 	StorageSetter interface {
 		Update(context.Context, string, string, string) error
 		UpdateJSON(context.Context, []byte) ([]byte, error)
@@ -20,46 +20,65 @@ type (
 		Save() error
 	}
 
-	// interface for get data from storage
+	// StorageGetter is interface for get data from storage.
 	StorageGetter interface {
 		GetMetric(context.Context, string, string) (string, error)
 		GetMetricJSON(context.Context, []byte) ([]byte, error)
 		GetMetricsHTML(context.Context) (string, error)
 	}
 
-	// additions storage work interface
+	// StorageDB is additions storage work interface.
 	StorageDB interface {
 		PingDB(context.Context) error
 		Clear(context.Context) error
 		Stop() error
 	}
 
-	// ptivate type. repeate funcs type
+	// Private type. Repeate funcs type.
 	fbe func(context.Context, []byte) ([]byte, error)
 
-	// ptivate type. repeate funcs type
+	// Private type. Repeate funcs type.
 	fse func(context.Context) (string, error)
 
-	// ptivate type. repeate funcs type
+	// Private type. Repeate funcs type.
 	fsse func(context.Context, string, string) (string, error)
 
-	// ptivate type. repeate funcs type
+	// Private type. Repeate funcs type.
 	fssse func(context.Context, string, string, string) error
 
-	// private interface. Is using for args number insreace.
+	// Private interface. Is using for args number insreace.
 	getMetricsArgs struct {
 		mType string
 		mName string
 	}
 
-	// private interface. Is using for args number insreace.
+	// Private interface. Is using for args number insreace.
 	updateMetricsArgs struct {
 		base   getMetricsArgs
 		mValue string
 	}
 )
 
-// private func
+const (
+	contextErrType = iota
+	updateMetricErrorType
+	pingErrorType
+)
+
+func getError(errType any, values ...any) error {
+	switch errType {
+	case contextErrType:
+		return fmt.Errorf("context error: %w", values...)
+	case updateMetricErrorType:
+		return fmt.Errorf("update metric error: %w", values...)
+	case pingErrorType:
+		return fmt.Errorf("ping error: %w", values...)
+	default:
+		return fmt.Errorf("error undefined: %w", values...)
+	}
+}
+
+// Private func.
 func isRepeat(err error, t *int) bool {
 	var pgErr *pgconn.PgError
 	if errors.As(err, &pgErr) && pgerrcode.IsConnectionException(pgErr.Code) {
@@ -71,8 +90,8 @@ func isRepeat(err error, t *int) bool {
 	return true
 }
 
-// private func
-func bytesErrorRepeater(f fbe, ctx context.Context, data []byte) ([]byte, error) {
+// Private func.
+func bytesErrorRepeater(ctx context.Context, f fbe, data []byte) ([]byte, error) {
 	value, err := f(ctx, data)
 	if err != nil {
 		waitTime := 1
@@ -94,22 +113,22 @@ func bytesErrorRepeater(f fbe, ctx context.Context, data []byte) ([]byte, error)
 	return value, err
 }
 
-// private func
-func seRepeater(f fse, ctx context.Context) (string, error) {
+// Private func.
+func seRepeater(ctx context.Context, f fse) (string, error) {
 	value, err := f(ctx)
 	if err != nil {
 		waitTime := 1
 		for i := 0; i < 3; i++ {
 			select {
 			case <-ctx.Done():
-				return "", fmt.Errorf("context error: %w", ctx.Err())
+				return "", getError(contextErrType, ctx.Err())
 			default:
 				if !isRepeat(err, &waitTime) {
 					return value, err
 				}
 				value, err = f(ctx)
 				if err == nil {
-					return value, err
+					return value, nil
 				}
 			}
 		}
@@ -117,22 +136,22 @@ func seRepeater(f fse, ctx context.Context) (string, error) {
 	return value, err
 }
 
-// private func
-func sseRepeater(f fsse, ctx context.Context, t string, n string) (string, error) {
+// Private func.
+func sseRepeater(ctx context.Context, f fsse, t string, n string) (string, error) {
 	value, err := f(ctx, t, n)
 	if err != nil {
 		waitTime := 1
 		for i := 0; i < 3; i++ {
 			select {
 			case <-ctx.Done():
-				return "", fmt.Errorf("context error: %w", ctx.Err())
+				return "", getError(contextErrType, ctx.Err())
 			default:
 				if !isRepeat(err, &waitTime) {
 					return value, err
 				}
 				value, err = f(ctx, t, n)
 				if err == nil {
-					return value, err
+					return value, nil
 				}
 			}
 		}
@@ -140,15 +159,15 @@ func sseRepeater(f fsse, ctx context.Context, t string, n string) (string, error
 	return value, err
 }
 
-// private func
-func ssseRepeater(f fssse, ctx context.Context, t string, n string, v string) error {
+// Private func.
+func ssseRepeater(ctx context.Context, f fssse, t string, n string, v string) error {
 	err := f(ctx, t, n, v)
 	if err != nil {
 		waitTime := 1
 		for i := 0; i < 3; i++ {
 			select {
 			case <-ctx.Done():
-				return fmt.Errorf("context error: %w", ctx.Err())
+				return getError(contextErrType, ctx.Err())
 			default:
 				if !isRepeat(err, &waitTime) {
 					return err
@@ -169,9 +188,9 @@ func Update(
 	storage StorageSetter,
 	metric updateMetricsArgs,
 ) (int, error) {
-	err := ssseRepeater(storage.Update, ctx, metric.base.mType, metric.base.mName, metric.mValue)
+	err := ssseRepeater(ctx, storage.Update, metric.base.mType, metric.base.mName, metric.mValue)
 	if err != nil {
-		return http.StatusBadRequest, fmt.Errorf("update metric error: %w", err)
+		return http.StatusBadRequest, getError(updateMetricErrorType, err)
 	}
 	return http.StatusOK, nil
 }
@@ -182,7 +201,7 @@ func GetMetric(
 	storage StorageGetter,
 	metric getMetricsArgs,
 ) ([]byte, error) {
-	body, err := sseRepeater(storage.GetMetric, ctx, metric.mType, metric.mName)
+	body, err := sseRepeater(ctx, storage.GetMetric, metric.mType, metric.mName)
 	if err != nil {
 		return nil, fmt.Errorf("metric not found error: %w", err)
 	}
@@ -194,7 +213,7 @@ func GetAllMetrics(
 	ctx context.Context,
 	storage StorageGetter,
 ) ([]byte, error) {
-	body, err := seRepeater(storage.GetMetricsHTML, ctx)
+	body, err := seRepeater(ctx, storage.GetMetricsHTML)
 	if err != nil {
 		return nil, fmt.Errorf("get metrics in storage error: %w", err)
 	}
@@ -207,9 +226,9 @@ func UpdateJSON(
 	body []byte,
 	storage StorageSetter,
 ) ([]byte, error) {
-	data, err := bytesErrorRepeater(storage.UpdateJSON, ctx, body)
+	data, err := bytesErrorRepeater(ctx, storage.UpdateJSON, body)
 	if err != nil {
-		return nil, fmt.Errorf("update metric error: %w", err)
+		return nil, getError(updateMetricErrorType, err)
 	}
 	return data, nil
 }
@@ -220,7 +239,7 @@ func GetMetricJSON(
 	storage StorageGetter,
 	body []byte,
 ) ([]byte, int, error) {
-	data, err := bytesErrorRepeater(storage.GetMetricJSON, ctx, body)
+	data, err := bytesErrorRepeater(ctx, storage.GetMetricJSON, body)
 	if err != nil {
 		if data != nil {
 			return nil, http.StatusNotFound, fmt.Errorf("metric not found error")
@@ -238,7 +257,7 @@ func Ping(
 ) (int, error) {
 	err := storage.PingDB(ctx)
 	if err != nil {
-		return http.StatusInternalServerError, fmt.Errorf("ping error: %w", err)
+		return http.StatusInternalServerError, getError(pingErrorType, err)
 	}
 	return http.StatusOK, nil
 }
@@ -261,7 +280,7 @@ func UpdateJSONSLice(
 	data []byte,
 	storage StorageSetter,
 ) ([]byte, error) {
-	body, err := bytesErrorRepeater(storage.UpdateJSONSlice, ctx, data)
+	body, err := bytesErrorRepeater(ctx, storage.UpdateJSONSlice, data)
 	if err != nil {
 		return nil, fmt.Errorf("update metrics list error: %w", err)
 	}

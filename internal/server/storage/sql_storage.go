@@ -19,7 +19,7 @@ type SQLStorage struct {
 
 // NewSQLStorage creates SQLStorage.
 func NewSQLStorage(dsn string) (*SQLStorage, error) {
-	db, err := sql.Open("pgx", dsn)
+	db, err := sql.Open(databaseType, dsn)
 	if err != nil {
 		return nil, fmt.Errorf("connect database crate error: %w", err)
 	}
@@ -168,7 +168,7 @@ func (ms *SQLStorage) GetMetricJSON(ctx context.Context, data []byte) ([]byte, e
 		metric.Delta = value
 		resp, err := json.Marshal(metric)
 		if err != nil {
-			return nil, fmt.Errorf("matshl metric error: %w", err)
+			return nil, fmt.Errorf("marshal counter metric error: %w", err)
 		}
 		return resp, nil
 	case gaugeType:
@@ -182,7 +182,7 @@ func (ms *SQLStorage) GetMetricJSON(ctx context.Context, data []byte) ([]byte, e
 		metric.Value = value
 		resp, err := json.Marshal(metric)
 		if err != nil {
-			return nil, fmt.Errorf("matshl metric error: %w", err)
+			return nil, fmt.Errorf("marshal gauge metric error: %w", err)
 		}
 		return resp, nil
 	default:
@@ -223,14 +223,17 @@ func sliceInsert(ctx context.Context, sqtx *sql.Tx, tbl string, mp map[string]st
 	rs := make([]string, 0)
 	values := make([]any, 0)
 	for key, val := range mp {
-		rs = append(rs, fmt.Sprintf("($%d, $%d)", len(rs)*2+1, len(rs)*2+2))
+		rs = append(rs, fmt.Sprintf("($%d, $%d)", len(rs)*2+1, len(rs)*2+2)) //nolint:gomnd //<-def values
 		values = append(values, key)
 		values = append(values, val)
 	}
 	query := "INSERT INTO " + tbl + " (name, value) values " + strings.Join(rs, ",") +
 		" ON CONFLICT (name) DO UPDATE SET value=EXCLUDED.value" + excl + ";"
 	_, err := sqtx.ExecContext(ctx, query, values...)
-	return err
+	if err != nil {
+		return fmt.Errorf("sliceInsert error: %w", err)
+	}
+	return nil
 }
 
 func mkMetricsMaps(metrics []metric) (map[string]string, map[string]string) {
@@ -271,6 +274,7 @@ func (ms *SQLStorage) UpdateJSONSlice(
 
 	// запись данных в БД
 	sqtx, err := ms.con.Begin()
+	defer sqtx.Rollback() //nolint:errcheck //<-senselessly
 	if err != nil {
 		return nil, fmt.Errorf("transaction create error: %w", err)
 	}
@@ -282,13 +286,11 @@ func (ms *SQLStorage) UpdateJSONSlice(
 	}
 	err = sliceInsert(ctx, sqtx, gaugeTableName, gauges, "")
 	if err != nil {
-		sqtx.Rollback()
 		return nil, fmt.Errorf("insert gauges slice error: %w", err)
 	}
 
 	err = sqtx.Commit()
 	if err != nil {
-		sqtx.Rollback()
 		return nil, fmt.Errorf("transaction commit error: %w", err)
 	}
 	return nil, nil
@@ -296,5 +298,9 @@ func (ms *SQLStorage) UpdateJSONSlice(
 
 // Stop is closing connection to database.
 func (ms *SQLStorage) Stop() error {
-	return ms.con.Close()
+	err := ms.con.Close()
+	if err != nil {
+		return fmt.Errorf("database connection close error: %w", err)
+	}
+	return nil
 }

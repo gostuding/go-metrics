@@ -6,7 +6,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// InitLogger is create new logger with Suger type.
+// NewLogger is create new logger with Suger type.
 func NewLogger() (*zap.SugaredLogger, error) {
 	logger, err := zap.NewDevelopment()
 	if err != nil {

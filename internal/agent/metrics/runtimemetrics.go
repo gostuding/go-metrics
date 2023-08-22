@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"math/rand"
+	"net"
 	"net/http"
 	"runtime"
 	"strconv"
@@ -21,28 +22,28 @@ import (
 )
 
 type (
-	//metricsStorage is object for use as Storager interface.
+	// MetricsStorage is object for use as Storager interface.
 	metricsStorage struct {
 		URL          string             // URL for requests send to server
-		MetricsSlice map[string]metrics //metrics storage
-		Logger       *zap.SugaredLogger //logger
-		resiveChan   chan resiveStruct  //chan for read requests results
-		requestChan  chan struct{}      //chan for make requests
-		Key          []byte             //check hash key
-		mx           sync.RWMutex       //mutex
-		GzipCompress bool               //flag to use gzip compress
-		Supplier     runtime.MemStats   //metrics data supplier
+		MetricsSlice map[string]metrics // metrics storage
+		Logger       *zap.SugaredLogger // logger
+		resiveChan   chan resiveStruct  // chan for read requests results
+		requestChan  chan struct{}      // chan for make requests
+		Key          []byte             // check hash key
+		mx           sync.RWMutex       // mutex
+		GzipCompress bool               // flag to use gzip compress
+		Supplier     runtime.MemStats   // metrics data supplier
 	}
 
-	//metrics is one metric struct
+	// Metrics is one metric struct.
 	metrics struct {
+		Value *float64 `json:"value,omitempty"` // gauge value
+		Delta *int64   `json:"delta,omitempty"` // counter value
 		ID    string   `json:"id"`              // metrics name
 		MType string   `json:"type"`            // metrics type: gauge or counter
-		Delta *int64   `json:"delta,omitempty"` // counter value
-		Value *float64 `json:"value,omitempty"` // gauge value
 	}
 
-	//resiveStruct
+	// ResiveStruct is internal struct.
 	resiveStruct struct {
 		Metric *metrics
 		Err    error
@@ -63,7 +64,7 @@ func NewMemoryStorage(
 		Logger:       logger.Sugar(),
 		GzipCompress: compress,
 		Key:          key,
-		URL:          fmt.Sprintf("http://%s:%d/updates/", ip, port),
+		URL:          fmt.Sprintf("http://%s/updates/", net.JoinHostPort(ip, fmt.Sprint(port))),
 		resiveChan:   make(chan resiveStruct, rateLimit),
 		requestChan:  make(chan struct{}, rateLimit),
 	}
@@ -85,7 +86,7 @@ func NewMemoryStorage(
 	return &mS
 }
 
-// makeMetric is private func for create metrics object from id:value values.
+// MakeMetric is private func for create metrics object from id:value values.
 // It defines type of metrics from value's type (int64 or float64).
 func makeMetric(id string, value any) (*metrics, error) {
 	switch value.(type) {
@@ -114,7 +115,7 @@ func makeMetric(id string, value any) (*metrics, error) {
 	}
 }
 
-// makeMap is private func for create metrics map[string]any from runtime.MemStats.
+// MakeMap is private func for create metrics map[string]any from runtime.MemStats.
 func makeMap(r *runtime.MemStats, pollCount *int64) map[string]any {
 	mass := make(map[string]any)
 	mass["Alloc"] = r.Alloc
@@ -153,7 +154,7 @@ func makeMap(r *runtime.MemStats, pollCount *int64) map[string]any {
 	return mass
 }
 
-// addMetric is private func and adds one metrics to MetricsSLice.
+// AddMetric is private func and adds one metrics to MetricsSLice.
 func (ms *metricsStorage) addMetric(name string, value any) {
 	metric, err := makeMetric(name, value)
 	if err != nil {
@@ -223,14 +224,14 @@ func (ms *metricsStorage) SendMetricsSlice() {
 	}
 }
 
-// sendJSONToServer is private func for send requests to server.
+// SendJSONToServer is private func for send requests to server.
 func (ms *metricsStorage) sendJSONToServer(body []byte, metric *metrics) {
 	defer func() {
 		<-ms.requestChan
 	}()
 
 	client := http.Client{}
-	req, err := http.NewRequest("POST", ms.URL, nil)
+	req, err := http.NewRequest(http.MethodPost, ms.URL, nil)
 	if err != nil {
 		ms.resiveChan <- resiveStruct{Err: fmt.Errorf("request create error: %w", err), Metric: metric}
 		return
@@ -266,7 +267,7 @@ func (ms *metricsStorage) sendJSONToServer(body []byte, metric *metrics) {
 		ms.resiveChan <- resiveStruct{Err: fmt.Errorf("send error: '%w'", err), Metric: metric}
 		return
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck // <- senselessly
 	if resp.StatusCode != http.StatusOK {
 		ms.resiveChan <- resiveStruct{Err: fmt.Errorf("statusCode error: %d", resp.StatusCode), Metric: metric}
 		return

@@ -21,11 +21,21 @@ func Example() {
 	// Run agent gorutine for not block main thread
 	go agent.StartAgent()
 	// Do any actions ...
-	//...
+	// ...
 	time.Sleep(time.Second)
 
 	// Stop agent.
 	agent.StopAgent()
+
+	// Check agent is run.
+	if agent.IsRun() {
+		fmt.Println("Agent is steel run")
+	} else {
+		fmt.Println("Agent stopped")
+	}
+
+	// Output:
+	// Agent stopped
 }
 
 func ExampleNewConfig() {
@@ -35,9 +45,8 @@ func ExampleNewConfig() {
 	}
 	fmt.Println(cfg)
 
-	//Output:
+	// Output:
 	// :8080 -r 2 -p 10
-
 }
 
 func ExampleNewAgent() {

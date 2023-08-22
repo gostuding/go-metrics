@@ -10,8 +10,8 @@ import (
 	"go.uber.org/zap"
 )
 
+// Struct for send data to server.
 type (
-	// Struct for send data to server.
 	Agent struct {
 		cfg      *Config // configuration
 		logger   *zap.Logger

@@ -118,22 +118,22 @@ func (ms *MemStorage) GetMetric(
 // Context doesn't have mean. Used to satisfy the interface.
 func (ms *MemStorage) GetMetricsHTML(ctx context.Context) (string, error) {
 	body := "<!doctype html> <html lang='en'> <head> <meta charset='utf-8'> <title>Список метрик</title></head>"
-	body += "<body><header><h1><p>Metrics list</p></h1></header>"
+	body += "<body><header><h1><p>Metrics list</p></h1></header>" //nolint:goconst
 	index := 1
-	body += "<h1><p>Gauges</p></h1>"
+	body += "<h1><p>Gauges</p></h1>" //nolint:goconst
 	ms.mx.RLock()
 	defer ms.mx.RUnlock()
 	for _, key := range getSortedKeysFloat(ms.Gauges) {
 		body += fmt.Sprintf("<nav><p>%d. '%s'= %f</p></nav>", index, key, ms.Gauges[key])
-		index += 1
+		index++
 	}
-	body += "<h1><p>Counters</p></h1>"
+	body += "<h1><p>Counters</p></h1>" //nolint:goconst
 	index = 1
 	for _, key := range getSortedKeysInt(ms.Counters) {
 		body += fmt.Sprintf("<nav><p>%d. '%s'= %d</p></nav>", index, key, ms.Counters[key])
-		index += 1
+		index++
 	}
-	body += "</body></html>"
+	body += "</body></html>" //nolint:goconst
 	return body, nil
 }
 
@@ -146,13 +146,13 @@ func (ms *MemStorage) updateOneMetric(m metric) (*metric, error) {
 			delta := ms.Counters[m.ID]
 			m.Delta = &delta
 		} else {
-			return nil, errors.New("metric's delta indefined")
+			return nil, errors.New("delta indefined")
 		}
 	case gaugeType:
 		if m.Value != nil {
 			ms.Gauges[m.ID] = *m.Value
 		} else {
-			return nil, errors.New("metric's value indefined")
+			return nil, errors.New("value indefined")
 		}
 	default:
 		return nil, errors.New("metric type error, use counter like int64 or gauge like float64")
@@ -167,7 +167,7 @@ func (ms *MemStorage) UpdateJSON(ctx context.Context, data []byte) ([]byte, erro
 	var metric metric
 	err := json.Unmarshal(data, &metric)
 	if err != nil {
-		return nil, fmt.Errorf("json conver error: %w", err)
+		return nil, fmt.Errorf("conver error: %w", err)
 	}
 	ms.mx.Lock()
 	item, err := ms.updateOneMetric(metric)
@@ -177,7 +177,7 @@ func (ms *MemStorage) UpdateJSON(ctx context.Context, data []byte) ([]byte, erro
 	}
 	resp, err := json.Marshal(item)
 	if err != nil {
-		return nil, fmt.Errorf("convert to json error: %w", err)
+		return nil, fmt.Errorf("marshal to json error: %w", err)
 	}
 
 	if ms.SaveInterval == 0 {
@@ -204,6 +204,7 @@ func (ms *MemStorage) GetMetricJSON(ctx context.Context, data []byte) ([]byte, e
 	switch metric.MType {
 	case counterType:
 		for key, val := range ms.Counters {
+			val := val
 			if key == metric.ID {
 				metric.Delta = &val
 				resp, err = json.Marshal(metric)
@@ -211,13 +212,14 @@ func (ms *MemStorage) GetMetricJSON(ctx context.Context, data []byte) ([]byte, e
 		}
 	case gaugeType:
 		for key, val := range ms.Gauges {
+			val := val
 			if key == metric.ID {
 				metric.Value = &val
 				resp, err = json.Marshal(metric)
 			}
 		}
 	default:
-		return nil, fmt.Errorf("metric type ('%s') error, use counter like int64 or gauge like float64", metric.MType)
+		return nil, fmt.Errorf("metric type ('%s') error", metric.MType)
 	}
 	if err != nil {
 		return []byte(""), err
@@ -283,18 +285,18 @@ func (ms *MemStorage) Save() error {
 	}
 	file, err := os.OpenFile(ms.SavePath, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, fileOpenMode)
 	if err != nil {
-		return err
+		return fmt.Errorf("open file for save error: %w", err)
 	}
-	defer file.Close()
+	defer file.Close() //nolint:errcheck //<-senselessly
 	ms.mx.Lock()
 	data, err := json.MarshalIndent(ms, "", "    ")
 	ms.mx.Unlock()
 	if err != nil {
-		return err
+		return fmt.Errorf("marshal values error: %w", err)
 	}
 	_, err = file.Write(data)
 	if err != nil {
-		return err
+		return fmt.Errorf("write file error: %w", err)
 	}
 	return nil
 }
@@ -326,13 +328,13 @@ func (ms *MemStorage) restore() error {
 	}
 	file, err := os.OpenFile(ms.SavePath, os.O_RDONLY|os.O_CREATE, fileOpenMode)
 	if err != nil {
-		return err
+		return fmt.Errorf("open file error: %w", err)
 	}
 	decoder := json.NewDecoder(file)
-	defer file.Close()
+	defer file.Close() //nolint:errcheck //<-senselessly
 	err = decoder.Decode(ms)
-	if err != nil && err != io.EOF {
-		return err
+	if err != nil && errors.Is(err, io.EOF) {
+		return fmt.Errorf("decode error: %w", err)
 	}
 	return nil
 }

@@ -27,7 +27,7 @@ func newLogWriter(w http.ResponseWriter) *myLogWriter {
 func (r *myLogWriter) Write(b []byte) (int, error) {
 	size, err := r.ResponseWriter.Write(b)
 	r.size += size
-	return size, err
+	return size, err //nolint:wrapcheck //<-not need
 }
 
 func (r *myLogWriter) WriteHeader(statusCode int) {
@@ -41,8 +41,8 @@ func (r *myLogWriter) Header() http.Header {
 
 type myGzipWriter struct {
 	http.ResponseWriter
-	isWriting bool
 	logger    *zap.SugaredLogger
+	isWriting bool
 }
 
 func newGzipWriter(r http.ResponseWriter, logger *zap.SugaredLogger) *myGzipWriter {
@@ -55,12 +55,10 @@ func (r *myGzipWriter) Write(b []byte) (int, error) {
 		compressor := gzip.NewWriter(r)
 		size, err := compressor.Write(b)
 		if err != nil {
-			r.logger.Warnf("compress respons body error: %w \n", err)
-			return 0, err
+			return 0, fmt.Errorf("compress respons body error: %w", err)
 		}
 		if err = compressor.Close(); err != nil {
-			r.logger.Warnf("compress close error: %w \n", err)
-			return 0, err
+			return 0, fmt.Errorf("compress close error: %w", err)
 		}
 		r.isWriting = false
 		return size, err

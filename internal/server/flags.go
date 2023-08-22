@@ -6,6 +6,16 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
+	"path/filepath"
+)
+
+// Defaulf constans for Config.
+const (
+	defaultAddress       = ":8080"           // Server address
+	defaultFileName      = "metrics-db.json" // MemStorage file name
+	defaultKey           = "default"         // Key for hash
+	defaultStoreInterval = 300               // Save MemStore interval
 )
 
 // Config is struct, which contains server options.
@@ -30,11 +40,11 @@ func stringEnvCheck(val string, name string) string {
 // Returns Config object with server options.
 func NewConfig() (*Config, error) {
 	options := Config{
-		IPAddress:       ":8080",
-		FileStorePath:   "/tmp/metrics-db.json",
+		IPAddress:       defaultAddress,
+		FileStorePath:   filepath.Join(os.TempDir(), defaultFileName),
 		ConnectDBString: "",
-		Key:             []byte("default"),
-		StoreInterval:   300,
+		Key:             []byte(defaultKey),
+		StoreInterval:   defaultStoreInterval,
 		Restore:         true,
 	}
 	var key string
@@ -48,10 +58,10 @@ func NewConfig() (*Config, error) {
 		flag.Parse()
 	}
 
-	if val := os.Getenv("STORE_INTERVAL"); val != "" {
+	if val, ok := os.LookupEnv("STORE_INTERVAL"); ok {
 		interval, err := strconv.Atoi(val)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("STORE INTERVAL enviroment incorrect: %w", err)
 		}
 		options.StoreInterval = interval
 	}
