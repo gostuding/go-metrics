@@ -40,19 +40,19 @@ func (ms *SQLStorage) Update(
 	case counterType:
 		counter, err := strconv.ParseInt(mValue, 10, 64)
 		if err != nil {
-			return fmt.Errorf("counter value convert error: %w", err)
+			return makeError(converError, counterType, err)
 		}
 		_, err = ms.updateCounter(ctx, mName, counter, ms.con)
 		return err
 	case gaugeType:
 		gauges, err := strconv.ParseFloat(mValue, 64)
 		if err != nil {
-			return fmt.Errorf("gauge value convert error: %w", err)
+			return makeError(converError, gaugeType, err)
 		}
 		_, err = ms.updateGauge(ctx, mName, gauges, ms.con)
 		return err
 	default:
-		return errors.New("metric type incorrect. Availible types are: guage or counter")
+		return makeError(metricTypeIncorrect)
 	}
 }
 
@@ -70,7 +70,7 @@ func (ms *SQLStorage) GetMetric(
 		value, err := ms.getCounter(ctx, mName)
 		return fmt.Sprintf("%d", *value), err
 	default:
-		return "", fmt.Errorf("metric '%s' with type '%s' not found", mName, mType)
+		return "", makeError(metricNotFoud, mName, mType)
 	}
 }
 
@@ -84,19 +84,7 @@ func (ms *SQLStorage) GetMetricsHTML(ctx context.Context) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("get counters metrics error: %w", err)
 	}
-
-	body := "<!doctype html> <html lang='en'> <head> <meta charset='utf-8'> <title>Список метрик</title></head>"
-	body += "<body><header><h1><p>Metrics list</p></h1></header>"
-	body += "<h1><p>Gauges</p></h1>"
-	for index, value := range *gauges {
-		body += fmt.Sprintf("<nav><p>%d. %s</p></nav>", index+1, value)
-	}
-	body += "<h1><p>Counters</p></h1>"
-	for index, value := range *counters {
-		body += fmt.Sprintf("<nav><p>%d. %s</p></nav>", index+1, value)
-	}
-	body += "</body></html>"
-	return body, nil
+	return makeHTML(gauges, counters), nil
 }
 
 // updateOneMetric is private func for update storage.
@@ -123,7 +111,7 @@ func (ms *SQLStorage) updateOneMetric(ctx context.Context, m metric, connect SQL
 			return nil, errors.New("metric's value indefined")
 		}
 	default:
-		return nil, errors.New("metric type error, use counter like int64 or gauge like float64")
+		return nil, makeError(metricTypeError)
 	}
 	return &m, nil
 }
@@ -133,7 +121,7 @@ func (ms *SQLStorage) UpdateJSON(ctx context.Context, data []byte) ([]byte, erro
 	var metric metric
 	err := json.Unmarshal(data, &metric)
 	if err != nil {
-		return nil, fmt.Errorf("json conver error: %w", err)
+		return nil, makeError(jsonConverError, err)
 	}
 
 	item, err := ms.updateOneMetric(ctx, metric, ms.con)
@@ -153,9 +141,8 @@ func (ms *SQLStorage) GetMetricJSON(ctx context.Context, data []byte) ([]byte, e
 	var metric metric
 	err := json.Unmarshal(data, &metric)
 	if err != nil {
-		return nil, fmt.Errorf("json conver error: %w", err)
+		return nil, makeError(jsonConverError, err)
 	}
-
 	switch metric.MType {
 	case counterType:
 		value, err := ms.getCounter(ctx, metric.ID)
@@ -227,7 +214,7 @@ func sliceInsert(ctx context.Context, sqtx *sql.Tx, tbl string, mp map[string]st
 		values = append(values, key)
 		values = append(values, val)
 	}
-	query := "INSERT INTO " + tbl + " (name, value) values " + strings.Join(rs, ",") +
+	query := "INSERT INTO " + tbl + " (name, value) values " + strings.Join(rs, sqlValueSpliter) +
 		" ON CONFLICT (name) DO UPDATE SET value=EXCLUDED.value" + excl + ";"
 	_, err := sqtx.ExecContext(ctx, query, values...)
 	if err != nil {
@@ -255,7 +242,7 @@ func mkMetricsMaps(metrics []metric) (map[string]string, map[string]string) {
 	}
 	countersString := make(map[string]string)
 	for key, value := range countersLst {
-		countersString[key] = fmt.Sprintf("%d", value)
+		countersString[key] = strconv.FormatInt(value, 10)
 	}
 	return countersString, gaugeLst
 }
@@ -269,7 +256,7 @@ func (ms *SQLStorage) UpdateJSONSlice(
 	var metrics []metric
 	err := json.Unmarshal(data, &metrics)
 	if err != nil {
-		return nil, fmt.Errorf("json conver error: %w", err)
+		return nil, makeError(jsonConverError, err)
 	}
 
 	// запись данных в БД

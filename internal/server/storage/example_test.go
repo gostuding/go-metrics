@@ -3,7 +3,7 @@ package storage
 import (
 	"context"
 	"fmt"
-	"log"
+	"strings"
 )
 
 func init() {
@@ -70,7 +70,7 @@ func ExampleMemStorage_UpdateJSON() {
 	fmt.Println(string(val))
 
 	// Output:
-	// {"id":"metric name","type":"counter","delta":1}
+	// {"delta":1,"id":"metric name","type":"counter"}
 }
 
 func ExampleMemStorage_UpdateJSONSlice() {
@@ -80,7 +80,10 @@ func ExampleMemStorage_UpdateJSONSlice() {
 		fmt.Printf("update storage by JSON slice (%s) error: %v", jSlice, err)
 		return
 	}
-	fmt.Println(string(val))
+	fmt.Print(strings.Count(string(val), "SUCCESS"))
+
+	// Output:
+	// 2
 }
 
 func ExampleMemStorage_GetMetricJSON() {
@@ -101,7 +104,7 @@ func ExampleMemStorage_GetMetricJSON() {
 	fmt.Println(string(val))
 
 	// Output:
-	// {"id":"metric name","type":"gauge","value":1}
+	// {"value":1,"id":"metric name","type":"gauge"}
 }
 
 func ExampleMemStorage_Save() {
@@ -159,51 +162,67 @@ func ExampleSQLStorage_Update() {
 		fmt.Printf("update %s error: %v", cType, err)
 		return
 	}
+	fmt.Println("update success")
+
+	// Output:
+	// update success
 }
 
 func ExampleSQLStorage_GetMetric() {
-	if err := sqlStorage.PingDB(ctx); err != nil {
-		fmt.Println("SQLStorage ping error")
+	mValue := "1.1"
+	mName := "metric name 1"
+	err := sqlStorage.Clear(ctx)
+	if err != nil {
+		fmt.Printf("storage clear error: %v", err)
 		return
 	}
-	mValue := "1"
-	mName := "counter metric name"
 	// Add one counter metric.
-	err := sqlStorage.Update(ctx, counterType, mName, mValue)
+	err = sqlStorage.Update(ctx, gaugeType, mName, mValue)
 	if err != nil {
-		fmt.Printf("update %s error: %v", counterType, err)
+		fmt.Printf("update %s error: %v", gaugeType, err)
 		return
 	}
 	// Get added metric value.
-	val, err := sqlStorage.GetMetric(ctx, counterType, mName)
+	val, err := sqlStorage.GetMetric(ctx, gaugeType, mName)
 	if err != nil {
-		fmt.Printf("get value of %s error: %v", counterType, err)
+		fmt.Printf("get value of %s error: %v", gaugeType, err)
 		return
 	}
 	fmt.Println(val)
+
+	// Output:
+	// 1.100000
 }
 
 func ExampleSQLStorage_UpdateJSON() {
-	if err := sqlStorage.PingDB(ctx); err != nil {
-		log.Fatalf("SQLStorage ping error")
+	if err := sqlStorage.Clear(ctx); err != nil {
+		fmt.Printf("storage clear error: %v", err)
+		return
 	}
-	jsonConterValue := `{"id": "metric name", "type": "counter", "delta": 1}`
+	jsonConterValue := `{"id": "metric update json name", "type": "gauge", "value": 1}`
 	// Add metrics to storage.
-	_, err := sqlStorage.UpdateJSON(ctx, []byte(jsonConterValue))
+	val, err := sqlStorage.UpdateJSON(ctx, []byte(jsonConterValue))
 	if err != nil {
-		log.Fatalf("update storage by JSON (%s) error: %v", jsonConterValue, err)
+		fmt.Printf("update storage by JSON (%s) error: %v", jsonConterValue, err)
+	} else {
+		fmt.Println(string(val))
 	}
+
+	// Output:
+	// {"value":1,"id":"metric update json name","type":"gauge"}
 }
 
 func ExampleSQLStorage_UpdateJSONSlice() {
-	if err := sqlStorage.PingDB(ctx); err != nil {
-		log.Fatalf("SQLStorage connection error")
-	}
 	jSlice := `[{"id": "metric name", "type": "counter", "delta": 1}, {"id": "metric name", "type": "gauge", "value": 1}]`
 	_, err := sqlStorage.UpdateJSONSlice(ctx, []byte(jSlice))
 	if err != nil {
-		log.Fatalf("update storage by JSON slice (%s) error: %v", jSlice, err)
+		fmt.Printf("update storage by JSON slice (%s) error: %v", jSlice, err)
+	} else {
+		fmt.Println("Update json slice success")
 	}
+
+	// Output:
+	// Update json slice success
 }
 
 func ExampleSQLStorage_GetMetricJSON() {
@@ -211,20 +230,31 @@ func ExampleSQLStorage_GetMetricJSON() {
 	jsonAddValue := `{"id": "metric name", "type": "gauge", "value": 1}`
 	_, err := sqlStorage.UpdateJSON(ctx, []byte(jsonAddValue))
 	if err != nil {
-		log.Fatalf("update storage by JSON (%s) error: %v", jsonAddValue, err)
+		fmt.Printf("update storage by JSON (%s) error: %v", jsonAddValue, err)
+		return
 	}
 	// Get the metric from storage
 	jsonGetValue := `{"id": "metric name", "type": "gauge"}`
-	_, err = sqlStorage.GetMetricJSON(ctx, []byte(jsonGetValue))
+	val, err := sqlStorage.GetMetricJSON(ctx, []byte(jsonGetValue))
 	if err != nil {
-		log.Fatalf("get metric by JSON (%s) error: %v", jsonGetValue, err)
+		fmt.Printf("get metric by JSON (%s) error: %v", jsonGetValue, err)
+	} else {
+		fmt.Println(string(val))
 	}
+
+	// Output:
+	// {"value":1,"id":"metric name","type":"gauge"}
 }
 
 func ExampleSQLStorage_PingDB() {
 	// Checks connection to database
 	err := sqlStorage.PingDB(ctx)
 	if err != nil {
-		log.Fatalf("database connection error: %v", err)
+		fmt.Printf("database connection error: %v", err)
+	} else {
+		fmt.Println("ping success")
 	}
+
+	// Output:
+	// ping success
 }

@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"hash"
 	"io"
 	"math/rand"
 	"net"
@@ -230,6 +231,8 @@ func (ms *metricsStorage) sendJSONToServer(body []byte, metric *metrics) {
 		<-ms.requestChan
 	}()
 
+	var hashVarName = "HashSHA256"
+
 	client := http.Client{}
 	req, err := http.NewRequest(http.MethodPost, ms.URL, nil)
 	if err != nil {
@@ -260,7 +263,7 @@ func (ms *metricsStorage) sendJSONToServer(body []byte, metric *metrics) {
 			ms.resiveChan <- resiveStruct{Err: fmt.Errorf("write hash summ error: '%w'", err), Metric: metric}
 			return
 		}
-		req.Header.Add("HashSHA256", fmt.Sprintf("%x", h.Sum(nil)))
+		req.Header.Add(hashVarName, hashToString(h))
 	}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -284,10 +287,15 @@ func (ms *metricsStorage) sendJSONToServer(body []byte, metric *metrics) {
 			ms.resiveChan <- resiveStruct{Err: fmt.Errorf("responce read hash summ error: '%w'", err), Metric: metric}
 			return
 		}
-		if resp.Header.Get("HashSHA256") != fmt.Sprintf("%x", hash.Sum(nil)) {
+		if resp.Header.Get(hashVarName) != hashToString(hash) {
 			ms.resiveChan <- resiveStruct{Err: errors.New("check responce hash summ error"), Metric: metric}
 			return
 		}
 	}
 	ms.resiveChan <- resiveStruct{Err: nil, Metric: metric}
+}
+
+// Internal function.
+func hashToString(h hash.Hash) string {
+	return fmt.Sprintf("%x", h.Sum(nil))
 }

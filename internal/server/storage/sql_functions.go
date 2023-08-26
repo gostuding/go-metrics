@@ -13,6 +13,7 @@ var (
 	counterTableName   = "counters" // table name in database
 	databaseType       = "pgx"
 	createTableTimeout = 1
+	sqlValueSpliter    = ","
 )
 
 // SqlColumns map with database columns names.
@@ -69,7 +70,7 @@ func createTable(
 	}
 	context, cansel := context.WithTimeout(ctx, time.Duration(createTableTimeout)*time.Second)
 	defer cansel()
-	query := fmt.Sprintf("CREATE TABLE  IF NOT EXISTS %s  (%s);", name, strings.Join(items, ","))
+	query := fmt.Sprintf("CREATE TABLE  IF NOT EXISTS %s  (%s);", name, strings.Join(items, sqlValueSpliter))
 	_, err := sql.ExecContext(context, query)
 	if err != nil {
 		return fmt.Errorf("create new table ('%s') error: %w ", name, err)
@@ -102,7 +103,7 @@ func checkDatabaseStructure(connectionString string) error {
 func (ms *SQLStorage) getCounter(ctx context.Context, name string) (*int64, error) {
 	rows, err := ms.con.QueryContext(ctx, "Select value from counters where name=$1;", name)
 	if err != nil {
-		return nil, fmt.Errorf("get value error: %w", err)
+		return nil, fmt.Errorf("get conter value error: %w", err)
 	}
 	defer rows.Close() //nolint:errcheck //<-senselessly
 	if rows.Err() != nil {
@@ -122,19 +123,18 @@ func (ms *SQLStorage) getCounter(ctx context.Context, name string) (*int64, erro
 
 // GetGauge is private func. Returns gauge value from database.
 func (ms *SQLStorage) getGauge(ctx context.Context, name string) (*float64, error) {
+	value := float64(0.0)
 	rows, err := ms.con.QueryContext(ctx, "Select value from gauges where name=$1;", name)
 	if err != nil {
-		return nil, fmt.Errorf("select value error: %w", err)
+		return nil, fmt.Errorf("select gauge value error: %w", err)
 	}
 	defer rows.Close() //nolint:errcheck //<-senselessly
 	if rows.Err() != nil {
 		return nil, fmt.Errorf("get gauge metric rows error: %w", err)
 	}
 	if !rows.Next() {
-		value := float64(0.0)
 		return &value, fmt.Errorf("gauge value (%s) is absent", name)
 	}
-	var value float64
 	err = rows.Scan(&value)
 	if err != nil {
 		return nil, fmt.Errorf("scan gauge value (%s) error: %w", name, err)

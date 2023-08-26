@@ -18,7 +18,7 @@ import (
 func Test_seRepeater(t *testing.T) {
 	type args struct {
 		f   fse
-		ctx context.Context
+		ctx context.Context //nolint:containedctx //<-need for tests implement
 	}
 
 	ctxTimeout, cansel := context.WithTimeout(context.Background(), 3*time.Second)
@@ -97,7 +97,7 @@ func Test_seRepeater(t *testing.T) {
 func Test_bytesErrorRepeater(t *testing.T) {
 	type args struct {
 		f    fbe
-		ctx  context.Context
+		ctx  context.Context //nolint:containedctx //<-need for tests implement
 		data []byte
 	}
 
@@ -179,7 +179,7 @@ func Test_bytesErrorRepeater(t *testing.T) {
 func Test_sseRepeater(t *testing.T) {
 	type args struct {
 		f   fsse
-		ctx context.Context
+		ctx context.Context //nolint:containedctx //<-need for tests implement
 		t   string
 		n   string
 	}
@@ -265,7 +265,7 @@ func Test_sseRepeater(t *testing.T) {
 func Test_ssseRepeater(t *testing.T) {
 	type args struct {
 		f   fssse
-		ctx context.Context
+		ctx context.Context //nolint:containedctx //<-need for tests implement
 		t   string
 		n   string
 		v   string
@@ -393,7 +393,6 @@ func TestUpdate(t *testing.T) {
 	storage.EXPECT().Update(ctx, "gauger", "name", "1,0").Return(errType)
 
 	type args struct {
-		ctx     context.Context
 		storage StorageSetter
 		metric  updateMetricsArgs
 	}
@@ -406,7 +405,6 @@ func TestUpdate(t *testing.T) {
 		{
 			name: "Update success",
 			args: args{
-				ctx:     ctx,
 				storage: storage,
 				metric:  updateMetricsArgs{base: getMetricsArgs{mType: "gauge", mName: "name"}, mValue: "1"},
 			},
@@ -416,7 +414,6 @@ func TestUpdate(t *testing.T) {
 		{
 			name: "Update error",
 			args: args{
-				ctx:     ctx,
 				storage: storage,
 				metric:  updateMetricsArgs{base: getMetricsArgs{mType: "gauger", mName: "name"}, mValue: "1,0"},
 			},
@@ -427,7 +424,7 @@ func TestUpdate(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := Update(tt.args.ctx, tt.args.storage, tt.args.metric)
+			got, err := Update(ctx, tt.args.storage, tt.args.metric)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Update() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -441,7 +438,6 @@ func TestUpdate(t *testing.T) {
 	storage.EXPECT().GetMetric(ctx, "gauge", "name").Return("1", nil)
 	storage.EXPECT().GetMetric(ctx, "gauger", "name").Return("", errType)
 	type argsGetM struct {
-		ctx     context.Context
 		storage StorageGetter
 		metric  getMetricsArgs
 	}
@@ -454,7 +450,6 @@ func TestUpdate(t *testing.T) {
 		{
 			name: "GetMetric success",
 			args: argsGetM{
-				ctx:     ctx,
 				storage: storage,
 				metric:  getMetricsArgs{mType: "gauge", mName: "name"},
 			},
@@ -464,7 +459,6 @@ func TestUpdate(t *testing.T) {
 		{
 			name: "GetMetric error",
 			args: argsGetM{
-				ctx:     ctx,
 				storage: storage,
 				metric:  getMetricsArgs{mType: "gauger", mName: "name"},
 			},
@@ -475,7 +469,7 @@ func TestUpdate(t *testing.T) {
 	for _, tt := range testsGetM {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetMetric(tt.args.ctx, tt.args.storage, tt.args.metric)
+			got, err := GetMetric(ctx, tt.args.storage, tt.args.metric)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetMetric() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -516,7 +510,6 @@ func TestUpdate(t *testing.T) {
 	storage.EXPECT().UpdateJSON(ctx, []byte("success")).Return([]byte("success"), nil)
 	storage.EXPECT().UpdateJSON(ctx, []byte("error")).Return(nil, errType)
 	type argsUJ struct {
-		ctx     context.Context
 		body    []byte
 		storage StorageSetter
 	}
@@ -528,20 +521,20 @@ func TestUpdate(t *testing.T) {
 	}{
 		{
 			name:    "Update JSON success",
-			args:    argsUJ{ctx: ctx, body: []byte("success"), storage: storage},
+			args:    argsUJ{body: []byte("success"), storage: storage},
 			want:    []byte("success"),
 			wantErr: false,
 		},
 		{
 			name:    "Update JSON error",
-			args:    argsUJ{ctx: ctx, body: []byte("error"), storage: storage},
+			args:    argsUJ{body: []byte("error"), storage: storage},
 			want:    nil,
 			wantErr: true,
 		},
 	}
 	for _, tt := range testsUJ {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := UpdateJSON(tt.args.ctx, tt.args.body, tt.args.storage)
+			got, err := UpdateJSON(ctx, tt.args.body, tt.args.storage)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("UpdateJSON() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -555,7 +548,6 @@ func TestUpdate(t *testing.T) {
 	storage.EXPECT().UpdateJSONSlice(ctx, []byte("slice")).Return([]byte("ok"), nil)
 	storage.EXPECT().UpdateJSONSlice(ctx, []byte("error")).Return(nil, errType)
 	type argsUJS struct {
-		ctx     context.Context
 		data    []byte
 		storage StorageSetter
 	}
@@ -568,7 +560,6 @@ func TestUpdate(t *testing.T) {
 		{
 			name: "Update by slice success",
 			args: argsUJS{
-				ctx:     ctx,
 				data:    []byte("slice"),
 				storage: storage,
 			},
@@ -578,7 +569,6 @@ func TestUpdate(t *testing.T) {
 		{
 			name: "Update by slice error",
 			args: argsUJS{
-				ctx:     ctx,
 				data:    []byte("error"),
 				storage: storage,
 			},
@@ -588,7 +578,7 @@ func TestUpdate(t *testing.T) {
 	}
 	for _, tt := range testsUJS {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := UpdateJSONSLice(tt.args.ctx, tt.args.data, tt.args.storage)
+			got, err := UpdateJSONSLice(ctx, tt.args.data, tt.args.storage)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("UpdateJSONSLice() error = %v, wantErr %v", err, tt.wantErr)
 				return

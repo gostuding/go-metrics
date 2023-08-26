@@ -22,9 +22,9 @@ type Server struct {
 	Config  *Config            // server's options
 	Storage Storage            // Storage interface
 	Logger  *zap.SugaredLogger // server's logger
-	isRun   bool               // flag to check is server run
 	srv     http.Server        // internal server
 	mutex   sync.Mutex
+	isRun   bool // flag to check is server run
 }
 
 // Storage is interface for work with storage.
@@ -39,7 +39,7 @@ func NewServer(config *Config, logger *zap.SugaredLogger, storage Storage) *Serv
 	return &Server{Config: config, Logger: logger, Storage: storage}
 }
 
-// RunServer func runrs server. If the storage type is memory,
+// RunServer func run server. If the storage type is memory,
 // runs too gorutines for save storage data by interval and
 // save storage before finish work.
 func (s *Server) RunServer() error {
