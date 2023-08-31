@@ -6,39 +6,62 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
+	"path/filepath"
 )
 
+// Defaulf constans for Config.
+const (
+	defaultAddress       = ":8080"           // Server address
+	defaultFileName      = "metrics-db.json" // MemStorage file name
+	defaultKey           = "default"         // Key for hash
+	defaultStoreInterval = 300               // Save MemStore interval
+)
+
+// Config is struct, which contains server options.
 type Config struct {
-	IPAddress       string
-	StoreInterval   int
-	FileStorePath   string
-	Restore         bool
-	ConnectDBString string
-	Key             []byte
+	IPAddress       string // server addres in format 'ip:port'.
+	FileStorePath   string // file path if used memory storage type.
+	ConnectDBString string // dsn for database connect if used sql storage type.
+	Key             []byte // key for requests hash check
+	StoreInterval   int    // save storage interval. Used only in memory storage type.
+	Restore         bool   // flag to restore storage. Used only in memory type.
 }
 
 func stringEnvCheck(val string, name string) string {
-	if value := os.Getenv(name); value != "" {
-		return value
+	v, ok := os.LookupEnv(name)
+	if ok {
+		return v
 	}
 	return val
 }
 
-func GetFlags() (*Config, error) {
-	var options Config
+// NewConfig reads startup parameters and runtime environment variables.
+// Returns Config object with server options.
+func NewConfig() (*Config, error) {
+	options := Config{
+		IPAddress:       defaultAddress,
+		FileStorePath:   filepath.Join(os.TempDir(), defaultFileName),
+		ConnectDBString: "",
+		Key:             []byte(defaultKey),
+		StoreInterval:   defaultStoreInterval,
+		Restore:         true,
+	}
 	var key string
-	flag.StringVar(&options.IPAddress, "a", ":8080", "address and port to run server like address:port")
-	flag.IntVar(&options.StoreInterval, "i", 300, "store interval in seconds")
-	flag.StringVar(&options.FileStorePath, "f", "/tmp/metrics-db.json", "file path for save the storage")
-	flag.BoolVar(&options.Restore, "r", true, "restore storage on start server")
-	flag.StringVar(&options.ConnectDBString, "d", "", "database connect string")
-	flag.StringVar(&key, "k", "", "Key for SHA256 checks")
-	flag.Parse()
-	//-------------------------------------------------------------------------
-	if val := os.Getenv("STORE_INTERVAL"); val != "" {
+	if !flag.Parsed() {
+		flag.StringVar(&options.IPAddress, "a", options.IPAddress, "address and port to run server like address:port")
+		flag.IntVar(&options.StoreInterval, "i", options.StoreInterval, "store interval in seconds")
+		flag.StringVar(&options.FileStorePath, "f", options.FileStorePath, "file path for save the storage")
+		flag.BoolVar(&options.Restore, "r", options.Restore, "restore storage on start server")
+		flag.StringVar(&options.ConnectDBString, "d", options.ConnectDBString, "database connect string")
+		flag.StringVar(&key, "k", "", "Key for SHA256 checks")
+		flag.Parse()
+	}
+
+	if val, ok := os.LookupEnv("STORE_INTERVAL"); ok {
 		interval, err := strconv.Atoi(val)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("STORE INTERVAL enviroment incorrect: %w", err)
 		}
 		options.StoreInterval = interval
 	}
@@ -60,6 +83,5 @@ func GetFlags() (*Config, error) {
 			return nil, fmt.Errorf("enviroment RESTORE error. Use 'true' or 'false' value instead of '%s'", val)
 		}
 	}
-	//-------------------------------------------------------------------------
 	return &options, nil
 }

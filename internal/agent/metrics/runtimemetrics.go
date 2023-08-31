@@ -1,3 +1,4 @@
+// Package metrics is using for collect metrics and sending them to serer.
 package metrics
 
 import (
@@ -8,8 +9,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"hash"
 	"io"
 	"math/rand"
+	"net"
 	"net/http"
 	"runtime"
 	"strconv"
@@ -19,41 +22,50 @@ import (
 	"go.uber.org/zap"
 )
 
-type metricsStorage struct {
-	Supplier     runtime.MemStats
-	MetricsSlice map[string]metrics
-	Logger       *zap.SugaredLogger
-	IP           string
-	Port         int
-	GzipCompress bool
-	Key          []byte
-	URL          string
-	mx           sync.RWMutex
-	resiveChan   chan resiveStruct
-	requestChan  chan struct{}
-}
+type (
+	// MetricsStorage is object for use as Storager interface.
+	metricsStorage struct {
+		URL          string             // URL for requests send to server
+		MetricsSlice map[string]metrics // metrics storage
+		Logger       *zap.SugaredLogger // logger
+		resiveChan   chan resiveStruct  // chan for read requests results
+		requestChan  chan struct{}      // chan for make requests
+		Key          []byte             // check hash key
+		mx           sync.RWMutex       // mutex
+		GzipCompress bool               // flag to use gzip compress
+		Supplier     runtime.MemStats   // metrics data supplier
+	}
 
-type metrics struct {
-	ID    string   `json:"id"`              // имя метрики
-	MType string   `json:"type"`            // параметр, принимающий значение gauge или counter
-	Delta *int64   `json:"delta,omitempty"` // значение метрики в случае передачи counter
-	Value *float64 `json:"value,omitempty"` // значение метрики в случае передачи gauge
-}
+	// Metrics is one metric struct.
+	metrics struct {
+		Value *float64 `json:"value,omitempty"` // gauge value
+		Delta *int64   `json:"delta,omitempty"` // counter value
+		ID    string   `json:"id"`              // metrics name
+		MType string   `json:"type"`            // metrics type: gauge or counter
+	}
 
-type resiveStruct struct {
-	Metric *metrics
-	Err    error
-}
+	// ResiveStruct is internal struct.
+	resiveStruct struct {
+		Metric *metrics
+		Err    error
+	}
+)
 
-func NewMemoryStorage(logger *zap.Logger, ip string, key []byte, port int, compress bool, rateLimit int) *metricsStorage {
+// NewMemoryStorage creates memory storage for metrics.
+func NewMemoryStorage(
+	logger *zap.Logger,
+	ip string,
+	key []byte,
+	port int,
+	compress bool,
+	rateLimit int,
+) *metricsStorage {
 	mS := metricsStorage{
 		MetricsSlice: make(map[string]metrics),
 		Logger:       logger.Sugar(),
-		IP:           ip,
-		Port:         port,
 		GzipCompress: compress,
 		Key:          key,
-		URL:          fmt.Sprintf("http://%s:%d/updates/", ip, port),
+		URL:          fmt.Sprintf("http://%s/updates/", net.JoinHostPort(ip, fmt.Sprint(port))),
 		resiveChan:   make(chan resiveStruct, rateLimit),
 		requestChan:  make(chan struct{}, rateLimit),
 	}
@@ -75,6 +87,8 @@ func NewMemoryStorage(logger *zap.Logger, ip string, key []byte, port int, compr
 	return &mS
 }
 
+// MakeMetric is private func for create metrics object from id:value values.
+// It defines type of metrics from value's type (int64 or float64).
 func makeMetric(id string, value any) (*metrics, error) {
 	switch value.(type) {
 	case int, uint32, int64, uint64:
@@ -102,6 +116,7 @@ func makeMetric(id string, value any) (*metrics, error) {
 	}
 }
 
+// MakeMap is private func for create metrics map[string]any from runtime.MemStats.
 func makeMap(r *runtime.MemStats, pollCount *int64) map[string]any {
 	mass := make(map[string]any)
 	mass["Alloc"] = r.Alloc
@@ -140,6 +155,7 @@ func makeMap(r *runtime.MemStats, pollCount *int64) map[string]any {
 	return mass
 }
 
+// AddMetric is private func and adds one metrics to MetricsSLice.
 func (ms *metricsStorage) addMetric(name string, value any) {
 	metric, err := makeMetric(name, value)
 	if err != nil {
@@ -149,6 +165,7 @@ func (ms *metricsStorage) addMetric(name string, value any) {
 	}
 }
 
+// UpdateAditionalMetrics collects metrics from mem.VirtualMemoryStat.
 func (ms *metricsStorage) UpdateAditionalMetrics() {
 	memory, err := mem.VirtualMemory()
 	if err != nil {
@@ -169,6 +186,7 @@ func (ms *metricsStorage) UpdateAditionalMetrics() {
 	ms.mx.Unlock()
 }
 
+// UpdateMetrics collects metrics from runtime.MemStats.
 func (ms *metricsStorage) UpdateMetrics() {
 	var rStats runtime.MemStats
 	runtime.ReadMemStats(&rStats)
@@ -180,9 +198,9 @@ func (ms *metricsStorage) UpdateMetrics() {
 		}
 	}
 	ms.mx.Unlock()
-	ms.Logger.Debugln("Update finished")
 }
 
+// SendMetricsSlice sends metrics by JSON list.
 func (ms *metricsStorage) SendMetricsSlice() {
 	mSlice := make([]metrics, 0)
 
@@ -207,13 +225,16 @@ func (ms *metricsStorage) SendMetricsSlice() {
 	}
 }
 
+// SendJSONToServer is private func for send requests to server.
 func (ms *metricsStorage) sendJSONToServer(body []byte, metric *metrics) {
 	defer func() {
 		<-ms.requestChan
 	}()
 
+	var hashVarName = "HashSHA256"
+
 	client := http.Client{}
-	req, err := http.NewRequest("POST", ms.URL, nil)
+	req, err := http.NewRequest(http.MethodPost, ms.URL, nil)
 	if err != nil {
 		ms.resiveChan <- resiveStruct{Err: fmt.Errorf("request create error: %w", err), Metric: metric}
 		return
@@ -242,14 +263,14 @@ func (ms *metricsStorage) sendJSONToServer(body []byte, metric *metrics) {
 			ms.resiveChan <- resiveStruct{Err: fmt.Errorf("write hash summ error: '%w'", err), Metric: metric}
 			return
 		}
-		req.Header.Add("HashSHA256", fmt.Sprintf("%x", h.Sum(nil)))
+		req.Header.Add(hashVarName, hashToString(h))
 	}
 	resp, err := client.Do(req)
 	if err != nil {
 		ms.resiveChan <- resiveStruct{Err: fmt.Errorf("send error: '%w'", err), Metric: metric}
 		return
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck // <- senselessly
 	if resp.StatusCode != http.StatusOK {
 		ms.resiveChan <- resiveStruct{Err: fmt.Errorf("statusCode error: %d", resp.StatusCode), Metric: metric}
 		return
@@ -266,10 +287,15 @@ func (ms *metricsStorage) sendJSONToServer(body []byte, metric *metrics) {
 			ms.resiveChan <- resiveStruct{Err: fmt.Errorf("responce read hash summ error: '%w'", err), Metric: metric}
 			return
 		}
-		if resp.Header.Get("HashSHA256") != fmt.Sprintf("%x", hash.Sum(nil)) {
+		if resp.Header.Get(hashVarName) != hashToString(hash) {
 			ms.resiveChan <- resiveStruct{Err: errors.New("check responce hash summ error"), Metric: metric}
 			return
 		}
 	}
 	ms.resiveChan <- resiveStruct{Err: nil, Metric: metric}
+}
+
+// Internal function.
+func hashToString(h hash.Hash) string {
+	return fmt.Sprintf("%x", h.Sum(nil))
 }

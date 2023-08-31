@@ -4,12 +4,11 @@ import (
 	"log"
 
 	"github.com/gostuding/go-metrics/internal/agent"
-	"github.com/gostuding/go-metrics/internal/agent/metrics"
 	"go.uber.org/zap"
 )
 
 func main() {
-	cfg, err := agent.GetFlags()
+	cfg, err := agent.NewConfig()
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -17,6 +16,6 @@ func main() {
 	if err != nil {
 		log.Fatalln("create logger error:", err)
 	}
-	storage := metrics.NewMemoryStorage(logger, cfg.IP, cfg.Key, cfg.Port, cfg.GzipCompress, cfg.RateLimit)
-	agent.StartAgent(cfg, storage)
+	agent := agent.NewAgent(cfg, logger)
+	agent.StartAgent()
 }
