@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/multichecker"
@@ -14,15 +15,14 @@ import (
 	"golang.org/x/tools/go/analysis/passes/shift"
 	"golang.org/x/tools/go/analysis/passes/structtag"
 
-	"github.com/gostuding/go-metrics/staticlint/errcheckanalyzer"
-
 	"honnef.co/go/tools/staticcheck"
 )
 
-// Config — имя файла конфигурации.
-const Config = `config.json`
+const (
+	Config       = `config.json`
+	AnalysisPref = "SA"
+)
 
-// ConfigData описывает структуру файла конфигурации.
 type ConfigData struct {
 	Staticcheck []string
 }
@@ -32,18 +32,12 @@ func main() {
 	if err != nil {
 		log.Printf("file 'config.json' read error: %v\n", err)
 	}
-	// определяем map подключаемых правил
-	checks := map[string]bool{
-		"SA5000": true,
-		"SA6000": true,
-		"SA9004": true,
-	}
 	for _, v := range staticcheck.Analyzers {
-		if checks[v.Analyzer.Name] {
+		if strings.HasPrefix(v.Analyzer.Name, AnalysisPref) {
 			mychecksStaticChecks = append(mychecksStaticChecks, v.Analyzer)
 		}
 	}
-	mychecksStaticChecks = append(mychecksStaticChecks, errcheckanalyzer.ErrCheckAnalyzer)
+	// mychecksStaticChecks = append(mychecksStaticChecks, errcheckanalyzer.ErrCheckAnalyzer)
 	mychecksStaticChecks = append(mychecksStaticChecks, printf.Analyzer)
 	mychecksStaticChecks = append(mychecksStaticChecks, shadow.Analyzer)
 	mychecksStaticChecks = append(mychecksStaticChecks, structtag.Analyzer)
@@ -56,7 +50,6 @@ func main() {
 
 func readConfigFile() ([]*analysis.Analyzer, error) {
 	configChecks := make([]*analysis.Analyzer, 0)
-
 	appfile, err := os.Executable()
 	if err != nil {
 		return configChecks, fmt.Errorf("get file name error: %w", err)
@@ -73,12 +66,10 @@ func readConfigFile() ([]*analysis.Analyzer, error) {
 	if err = json.Unmarshal(data, &cfg); err != nil {
 		return configChecks, fmt.Errorf("config file json incorrect: %w", err)
 	}
-
 	checks := make(map[string]bool)
 	for _, v := range cfg.Staticcheck {
 		checks[v] = true
 	}
-	// добавляем анализаторы из staticcheck, которые указаны в файле конфигурации
 	for _, v := range staticcheck.Analyzers {
 		if checks[v.Analyzer.Name] {
 			configChecks = append(configChecks, v.Analyzer)

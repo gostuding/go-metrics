@@ -103,9 +103,9 @@ func bytesErrorRepeater(ctx context.Context, f fbe, data []byte) ([]byte, error)
 				if !isRepeat(err, &waitTime) {
 					return value, err
 				}
-				rez, err := f(ctx, data)
+				value, err = f(ctx, data)
 				if err == nil {
-					return rez, nil
+					return value, nil
 				}
 			}
 		}

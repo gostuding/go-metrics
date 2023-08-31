@@ -95,8 +95,8 @@ func (s *Server) StopServer() error {
 // startServe is private function for listen server's address and write error in chan when server finished.
 func (s *Server) startServe(srvChan chan error) {
 	err := s.srv.ListenAndServe()
-	if err := s.Storage.Stop(); err != nil {
-		s.Logger.Warnf("stop storage error: %w", err)
+	if serr := s.Storage.Stop(); serr != nil {
+		s.Logger.Warnf("stop storage error: %w", serr)
 	} else {
 		s.Logger.Debugln("Storage finished")
 	}
