@@ -28,6 +28,7 @@ type Config struct {
 	Restore         bool   // flag to restore storage. Used only in memory type.
 }
 
+// Private func for get Enviroment values.
 func stringEnvCheck(val string, name string) string {
 	v, ok := os.LookupEnv(name)
 	if ok {

@@ -32,6 +32,7 @@ type Storage interface {
 	StorageSetter
 	StorageGetter
 	StorageDB
+	Saver
 }
 
 // NewServer creates new server object.
@@ -114,7 +115,7 @@ func (s *Server) startServe(srvChan chan error) {
 func saveStorageInterval(
 	ctx context.Context,
 	interval int,
-	storage Storage,
+	storage Saver,
 	logger *zap.SugaredLogger,
 ) {
 	if interval < 1 {
