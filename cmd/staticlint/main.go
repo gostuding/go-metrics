@@ -14,7 +14,7 @@ import (
 	"golang.org/x/tools/go/analysis/passes/shift"
 	"golang.org/x/tools/go/analysis/passes/structtag"
 
-	"mycheck/errcheckanalyzer"
+	"github.com/gostuding/go-metrics/staticlint/errcheckanalyzer"
 
 	"honnef.co/go/tools/staticcheck"
 )
