@@ -20,7 +20,7 @@ type (
 		Save() error
 	}
 
-	// Save interface.
+	// Saver interface.
 	Saver interface {
 		Save() error
 	}
