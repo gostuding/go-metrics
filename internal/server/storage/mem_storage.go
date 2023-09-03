@@ -371,8 +371,8 @@ func (ms *MemStorage) restore() error {
 	decoder := json.NewDecoder(file)
 	defer file.Close() //nolint:errcheck //<-senselessly
 	err = decoder.Decode(ms)
-	if err != nil && errors.Is(err, io.EOF) {
-		return fmt.Errorf("decode error: %w", err)
+	if err != nil && !errors.Is(err, io.EOF) {
+		return fmt.Errorf("restore decode error: %w", err)
 	}
 	return nil
 }

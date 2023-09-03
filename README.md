@@ -51,3 +51,50 @@ http://localhost:8080/pkg/github.com/gostuding/go-metrics/?m=all
 ./golint_run.sh
 ```
 Реузльтаты работы golangci-lint будут отображены в файле `./golangci-lint/report.json`
+
+## Компиляция серверной части проекта
+
+Для компиляции серверной части проекта выполните команду:
+
+```
+go build -ldflags "-X 'main.buildVersion=VERSION' -X 'main.buildDate=$(date +'%Y/%m/%d %H:%M:%S')'  -X 'main.buildCommit=COMMENT'" cmd/server/main.go 
+```
+Где ```VERSION``` -  версия сборки, а ```COMMENT``` - коментария пользователя.
+При запуске серверной части проекта будет выведены версия, дата и коментарий пользователя.
+В качестве примера, строка сборки может выглядеть так: 
+
+```
+go build -ldflags "-X 'main.buildVersion=v1.0.01' -X 'main.buildDate=$(date +'%Y/%m/%d %H:%M:%S')'  -X 'main.buildCommit=INIT RELEASE'" cmd/server/main.go
+```
+При завуске скомпилированного исполняемого файла будет выведена информация о сборке:
+```
+Build version: v1.0.01
+Build date: 2023/09/03 22:00:46
+Build commit: INIT RELEASE
+```
+Если параметры не указаны, то вывод будет следующим:
+```
+Build version: N/A
+Build date: N/A
+Build commit: N/A
+```
+
+## Компиляция агента проекта
+
+Параметры аналогичны выше описанным, за исключением пути до main.go файла. Пример команды:
+```
+go build -ldflags "-X 'main.buildVersion=v1.0.01' -X 'main.buildDate=$(date +'%Y/%m/%d %H:%M:%S')'  -X 'main.buildCommit=INIT RELEASE'" cmd/agent/main.go
+```
+
+## Статические анализаторы
+
+В проект добавлен набор основных статических анализаторов. Исходный код содержится в ```cmd/staticlint```. 
+При необходимости, можно внести изменения и скомпилировать исполняемый файл командой:
+```
+go build -o staticlint cmd/staticlint/main.go
+```
+Для запуска статических анализаторов запустить собранный файл командой:
+```
+staticlint ./...
+```
+
