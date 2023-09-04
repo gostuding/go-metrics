@@ -11,8 +11,9 @@ import (
 )
 
 const (
-	pkgName = "main"    // search package name
-	osExit  = "os.Exit" // search function name
+	pkgName  = "main"    // search package name
+	funcName = "main"    // in function search name
+	osExit   = "os.Exit" // search function name
 )
 
 // OsExitAnalyzer is an analyzer.
@@ -24,31 +25,25 @@ var OsExitAnalyzer = &analysis.Analyzer{
 
 // CheckOsExit checks the ast.Tree.
 func CheckOsExit(pass *analysis.Pass) (interface{}, error) {
-	fMain := false
 	for _, file := range pass.Files {
-		if file.Name.Name == pkgName {
-			fMain = false
-			ast.Inspect(file, func(node ast.Node) bool {
-				switch x := node.(type) {
-				case *ast.CallExpr:
-					if fMain {
-						fn, _ := typeutil.Callee(pass.TypesInfo, x).(*types.Func)
-						if fn != nil && fn.FullName() == osExit {
-							pass.Reportf(x.Pos(), "using 'os.Exit' function in main package detected")
-						}
-					}
-				case *ast.FuncDecl:
-					if x.Name.Name == "main" {
-						fMain = true
-					} else {
-						fMain = false
-					}
-				}
-				return true
-			},
-			)
-
+		if file.Name.Name != pkgName {
+			continue
 		}
+		ast.Inspect(file, func(node ast.Node) bool {
+			switch x := node.(type) {
+			case *ast.CallExpr:
+				fn, ok := typeutil.Callee(pass.TypesInfo, x).(*types.Func)
+				if ok && fn.FullName() == osExit {
+					pass.Reportf(x.Pos(), "using 'os.Exit' function in main package and main function detected")
+				}
+			case *ast.FuncDecl:
+				if x.Name.Name != funcName {
+					return false
+				}
+			}
+			return true
+		},
+		)
 	}
 	return nil, nil
 }

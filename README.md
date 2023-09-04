@@ -52,6 +52,21 @@ http://localhost:8080/pkg/github.com/gostuding/go-metrics/?m=all
 ```
 Реузльтаты работы golangci-lint будут отображены в файле `./golangci-lint/report.json`
 
+## Запуск юнит-тестов 
+
+В пакете internal/serve/storage хранятся тесты для MemStorage и SqlStorage.
+При выполнении команды ```go test ./...``` будут запущены ттесты только для MemStorage.
+```
+go test ./...
+```
+Для включения тестов для SqlStorage необходимо указать ```--tags=sql_storage```, 
+проверить корректность строки подключения к БД и при необходимости исправить её 
+(файл ```internal/server/storage/example_sql_test.go```, переменная ```testsDefDSN```).
+Запуск тестов осуществляется командой:
+```
+go test ./... --tags=sql_storage
+``` 
+
 ## Компиляция серверной части проекта
 
 Для компиляции серверной части проекта выполните команду:
