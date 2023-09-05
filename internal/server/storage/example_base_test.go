@@ -16,8 +16,8 @@ var (
 	gType          = "gauge"
 	cType          = "counter"
 	defMetricName  = "mName"
-	memStorage     *MemStorage     // Storage used in MemStorage's tests
-	ctx            context.Context // default context
+	memStorage     *MemStorage            // Storage used in MemStorage's tests
+	ctx            = context.Background() // default context
 )
 
 func Example() {

@@ -1,8 +1,11 @@
 // Package main contains static analyzers.
 // To build executable file in all project folder use command:
-//  go build -o staticlint cmd/staticlint/main.go
+//
+//	go build -o staticlint cmd/staticlint/main.go
+//
 // After that use command:
-//  staticlint ./...
+//
+//	staticlint ./...
 package main
 
 import (

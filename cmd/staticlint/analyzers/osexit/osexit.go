@@ -3,17 +3,17 @@
 package osexit
 
 import (
+	"fmt"
 	"go/ast"
-	"go/types"
 
 	"golang.org/x/tools/go/analysis"
-	"golang.org/x/tools/go/types/typeutil"
 )
 
 const (
-	pkgName  = "main"    // search package name
-	funcName = "main"    // in function search name
-	osExit   = "os.Exit" // search function name
+	pkgName      = "main"    // search package name
+	funcName     = "main"    // in function search name
+	osExit       = "os.Exit" // search function name
+	errorMessage = "using 'os.Exit' function in main package and main function detected"
 )
 
 // OsExitAnalyzer is an analyzer.
@@ -26,18 +26,23 @@ var OsExitAnalyzer = &analysis.Analyzer{
 // CheckOsExit checks the ast.Tree.
 func CheckOsExit(pass *analysis.Pass) (interface{}, error) {
 	for _, file := range pass.Files {
-		if file.Name.Name != pkgName {
+		if ast.IsGenerated(file) || file.Name.Name != pkgName {
 			continue
 		}
 		ast.Inspect(file, func(node ast.Node) bool {
 			switch x := node.(type) {
-			case *ast.CallExpr:
-				fn, ok := typeutil.Callee(pass.TypesInfo, x).(*types.Func)
-				if ok && fn.FullName() == osExit {
-					pass.Reportf(x.Pos(), "using 'os.Exit' function in main package and main function detected")
-				}
 			case *ast.FuncDecl:
-				if x.Name.Name != funcName {
+				if x.Name.Name == funcName {
+					ast.Inspect(x, func(n ast.Node) bool {
+						switch f := n.(type) {
+						case *ast.CallExpr:
+							fun, ok := f.Fun.(*ast.SelectorExpr)
+							if ok && fmt.Sprintf("%s.%s", fun.X, fun.Sel.Name) == osExit {
+								pass.Reportf(f.Pos(), errorMessage)
+							}
+						}
+						return true
+					})
 					return false
 				}
 			}

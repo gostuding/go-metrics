@@ -60,11 +60,10 @@ http://localhost:8080/pkg/github.com/gostuding/go-metrics/?m=all
 go test ./...
 ```
 Для включения тестов для SqlStorage необходимо указать ```--tags=sql_storage```, 
-проверить корректность строки подключения к БД и при необходимости исправить её 
-(файл ```internal/server/storage/example_sql_test.go```, переменная ```testsDefDSN```).
-Запуск тестов осуществляется командой:
+а также строку подключения к БД: ```-args dsn="connection"```.
+Пример запуска тестов sql_storage:
 ```
-go test ./... --tags=sql_storage
+go test ./... --tags=sql_storage -args dsn="host=localhost user=postgres database=metrics"
 ``` 
 
 ## Компиляция серверной части проекта
