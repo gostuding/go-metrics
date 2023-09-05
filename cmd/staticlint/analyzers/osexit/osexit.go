@@ -26,7 +26,7 @@ var OsExitAnalyzer = &analysis.Analyzer{
 // CheckOsExit checks the ast.Tree.
 func CheckOsExit(pass *analysis.Pass) (interface{}, error) {
 	for _, file := range pass.Files {
-		if ast.IsGenerated(file) || file.Name.Name != pkgName {
+		if file.Name.Name != pkgName {
 			continue
 		}
 		ast.Inspect(file, func(node ast.Node) bool {
