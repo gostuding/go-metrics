@@ -164,7 +164,7 @@ func loggerMiddleware(logger *zap.SugaredLogger) func(h http.Handler) http.Handl
 				"duration", time.Since(start),
 			)
 			defer logger.Infow(
-				"Reaponse logger",
+				"Response logger",
 				typeString, "responce",
 				urlString, r.RequestURI,
 				"status", rWriter.status,

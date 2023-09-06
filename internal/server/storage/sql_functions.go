@@ -9,11 +9,12 @@ import (
 )
 
 var (
-	gaugeTableName     = "gauges"   // table name in database
-	counterTableName   = "counters" // table name in database
-	databaseType       = "pgx"
-	createTableTimeout = 1
-	sqlValueSpliter    = ","
+	gaugeTableName        = "gauges"   // table name in database
+	counterTableName      = "counters" // table name in database
+	databaseType          = "pgx"
+	createTableTimeout    = 1
+	checkStructureTimeout = time.Duration(3) * time.Second
+	sqlValueSpliter       = ","
 )
 
 // SqlColumns map with database columns names.
@@ -85,7 +86,7 @@ func checkDatabaseStructure(connectionString string) error {
 		return fmt.Errorf("connect database error: %w", err)
 	}
 	// проверка структуры БД не должна превышать 3 секунды
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second) //nolint:gomnd //<-def constant
+	ctx, cancel := context.WithTimeout(context.Background(), checkStructureTimeout)
 	defer cancel()
 	if err = db.PingContext(ctx); err != nil {
 		return fmt.Errorf("database ping error: %w", err)

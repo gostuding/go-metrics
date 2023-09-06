@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"testing"
@@ -9,6 +10,15 @@ import (
 	"github.com/gostuding/go-metrics/internal/server/storage"
 	"github.com/stretchr/testify/assert"
 )
+
+type saverInterface struct {
+	Count int
+}
+
+func (s *saverInterface) Save() error {
+	s.Count++
+	return nil
+}
 
 func createMemServer(ip string) (*Server, error) {
 	logger, err := NewLogger()
@@ -117,5 +127,22 @@ func TestServer_RunServer(t *testing.T) {
 			err := tt.server.StopServer()
 			assert.NoError(t, err, "Stop server error")
 		})
+	}
+}
+
+func Test_saveStorageInterval(t *testing.T) {
+	var sleepTime = 3
+	var wantValue = 1
+	logger, err := NewLogger()
+	assert.NoError(t, err, "create logger error")
+	strg := saverInterface{Count: 0}
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	var interval = 2
+	go saveStorageInterval(ctx, interval, &strg, logger)
+	time.Sleep(time.Duration(sleepTime) * time.Second)
+	cancelFunc()
+	time.Sleep(time.Duration(sleepTime) * time.Second)
+	if strg.Count != wantValue {
+		t.Errorf("SaveStorageInterval incorrect count: want %d, got %d", wantValue, strg.Count)
 	}
 }

@@ -20,6 +20,10 @@ type (
 		Save() error
 	}
 
+	// Saver interface.
+	Saver interface {
+		Save() error
+	}
 	// StorageGetter is interface for get data from storage.
 	StorageGetter interface {
 		GetMetric(context.Context, string, string) (string, error)
@@ -65,6 +69,7 @@ const (
 	pingErrorType
 )
 
+// Private func for get default type errors.
 func getError(errType any, values ...any) error {
 	switch errType {
 	case contextErrType:
@@ -103,9 +108,9 @@ func bytesErrorRepeater(ctx context.Context, f fbe, data []byte) ([]byte, error)
 				if !isRepeat(err, &waitTime) {
 					return value, err
 				}
-				rez, err := f(ctx, data)
+				value, err = f(ctx, data)
 				if err == nil {
-					return rez, nil
+					return value, nil
 				}
 			}
 		}

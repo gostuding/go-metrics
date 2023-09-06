@@ -52,6 +52,14 @@ type (
 )
 
 // NewMemoryStorage creates memory storage for metrics.
+//
+// Args:
+// logger *zap.Logger
+// ip string - server ip address for send metrics
+// key []byte - key for requests hash check
+// port int - server port for send metrics
+// compress bool - flag to compress data by gzip
+// rateLimit int - max count requests in time
 func NewMemoryStorage(
 	logger *zap.Logger,
 	ip string,
@@ -172,13 +180,11 @@ func (ms *metricsStorage) UpdateAditionalMetrics() {
 		ms.Logger.Warnf("get virtualmemory metric error: %w", err)
 		return
 	}
-
 	mSlice := make(map[string]float64)
 	mSlice["TotalMemory"] = float64(memory.Total)
 	mSlice["FreeMemory"] = float64(memory.Free)
 	mSlice["UsedMemoryPercent"] = memory.UsedPercent
 	mSlice["CPUutilization1"] = float64(runtime.NumCPU())
-
 	ms.mx.Lock()
 	for name, value := range mSlice {
 		ms.addMetric(name, value)
@@ -242,7 +248,7 @@ func (ms *metricsStorage) sendJSONToServer(body []byte, metric *metrics) {
 	if ms.GzipCompress {
 		var b bytes.Buffer
 		gz := gzip.NewWriter(&b)
-		_, err := gz.Write(body)
+		_, err = gz.Write(body)
 		if err != nil {
 			ms.resiveChan <- resiveStruct{Err: fmt.Errorf("compress error: %w", err), Metric: metric}
 			return

@@ -3,10 +3,17 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/gostuding/go-metrics/internal/server"
 	"github.com/gostuding/go-metrics/internal/server/storage"
 	"go.uber.org/zap"
+)
+
+var (
+	buildVersion = "N/A"
+	buildDate    = "N/A"
+	buildCommit  = "N/A"
 )
 
 func run(logger *zap.SugaredLogger) error {
@@ -23,13 +30,16 @@ func run(logger *zap.SugaredLogger) error {
 		strg, strErr = storage.NewSQLStorage(cfg.ConnectDBString)
 	}
 	if strErr != nil {
-		return fmt.Errorf("storage error: %w", err)
+		return fmt.Errorf("storage error: %w", strErr)
 	}
 	srv := server.NewServer(cfg, logger, strg)
 	return srv.RunServer() //nolint:wrapcheck //<-senselessly
 }
 
 func main() {
+	fmt.Fprintf(os.Stdout, "Build version: %s\n", buildVersion)
+	fmt.Fprintf(os.Stdout, "Build date: %s\n", buildDate)
+	fmt.Fprintf(os.Stdout, "Build commit: %s\n", buildCommit)
 	logger, err := server.NewLogger()
 	if err != nil {
 		log.Fatal(err)

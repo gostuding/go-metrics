@@ -384,7 +384,7 @@ func Test_isRepeat(t *testing.T) {
 	}
 }
 
-func TestUpdate(t *testing.T) {
+func Test_Update(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	storage := mocks.NewMockStorage(ctrl)
 	ctx := context.Background()

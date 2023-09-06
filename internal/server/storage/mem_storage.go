@@ -202,13 +202,13 @@ func (ms *MemStorage) updateOneMetric(m metric) (*metric, error) {
 // Gets []byte with JSON.
 // Context doesn't have mean. Used to satisfy the interface.
 func (ms *MemStorage) UpdateJSON(ctx context.Context, data []byte) ([]byte, error) {
-	var metric metric
-	err := json.Unmarshal(data, &metric)
+	var m metric
+	err := json.Unmarshal(data, &m)
 	if err != nil {
 		return nil, fmt.Errorf("conver error: %w", err)
 	}
 	ms.mx.Lock()
-	item, err := ms.updateOneMetric(metric)
+	item, err := ms.updateOneMetric(m)
 	ms.mx.Unlock()
 	if err != nil {
 		return nil, err
@@ -230,34 +230,34 @@ func (ms *MemStorage) UpdateJSON(ctx context.Context, data []byte) ([]byte, erro
 // Gets []byte with JSON.
 // Context doesn't have mean. Used to satisfy the interface.
 func (ms *MemStorage) GetMetricJSON(ctx context.Context, data []byte) ([]byte, error) {
-	var metric metric
-	err := json.Unmarshal(data, &metric)
+	var m metric
+	err := json.Unmarshal(data, &m)
 	if err != nil {
 		return nil, makeError(jsonConverError, err)
 	}
 	resp := make([]byte, 0)
-	err = fmt.Errorf("metric not found. id: '%s', type: '%s'", metric.ID, metric.MType)
+	err = fmt.Errorf("metric not found. id: '%s', type: '%s'", m.ID, m.MType)
 	ms.mx.RLock()
 	defer ms.mx.RUnlock()
-	switch metric.MType {
+	switch m.MType {
 	case counterType:
 		for key, val := range ms.Counters {
 			val := val
-			if key == metric.ID {
-				metric.Delta = &val
-				resp, err = json.Marshal(metric)
+			if key == m.ID {
+				m.Delta = &val
+				resp, err = json.Marshal(m)
 			}
 		}
 	case gaugeType:
 		for key, val := range ms.Gauges {
 			val := val
-			if key == metric.ID {
-				metric.Value = &val
-				resp, err = json.Marshal(metric)
+			if key == m.ID {
+				m.Value = &val
+				resp, err = json.Marshal(m)
 			}
 		}
 	default:
-		return nil, fmt.Errorf("metric type ('%s') error", metric.MType)
+		return nil, fmt.Errorf("metric type ('%s') error", m.MType)
 	}
 	if err != nil {
 		return []byte(""), err
@@ -371,8 +371,8 @@ func (ms *MemStorage) restore() error {
 	decoder := json.NewDecoder(file)
 	defer file.Close() //nolint:errcheck //<-senselessly
 	err = decoder.Decode(ms)
-	if err != nil && errors.Is(err, io.EOF) {
-		return fmt.Errorf("decode error: %w", err)
+	if err != nil && !errors.Is(err, io.EOF) {
+		return fmt.Errorf("restore decode error: %w", err)
 	}
 	return nil
 }

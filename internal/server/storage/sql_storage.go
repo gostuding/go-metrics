@@ -118,13 +118,13 @@ func (ms *SQLStorage) updateOneMetric(ctx context.Context, m metric, connect SQL
 
 // UpdateJSON creates or updates metric value in storage.
 func (ms *SQLStorage) UpdateJSON(ctx context.Context, data []byte) ([]byte, error) {
-	var metric metric
-	err := json.Unmarshal(data, &metric)
+	var m metric
+	err := json.Unmarshal(data, &m)
 	if err != nil {
 		return nil, makeError(jsonConverError, err)
 	}
 
-	item, err := ms.updateOneMetric(ctx, metric, ms.con)
+	item, err := ms.updateOneMetric(ctx, m, ms.con)
 	if err != nil {
 		return nil, err
 	}
@@ -138,42 +138,42 @@ func (ms *SQLStorage) UpdateJSON(ctx context.Context, data []byte) ([]byte, erro
 
 // GetMetricJSON returns the metric value as string.
 func (ms *SQLStorage) GetMetricJSON(ctx context.Context, data []byte) ([]byte, error) {
-	var metric metric
-	err := json.Unmarshal(data, &metric)
+	var m metric
+	err := json.Unmarshal(data, &m)
 	if err != nil {
 		return nil, makeError(jsonConverError, err)
 	}
-	switch metric.MType {
+	switch m.MType {
 	case counterType:
-		value, err := ms.getCounter(ctx, metric.ID)
+		value, err := ms.getCounter(ctx, m.ID)
 		if err != nil {
 			if value != nil {
 				return []byte(""), err
 			}
 			return nil, err
 		}
-		metric.Delta = value
-		resp, err := json.Marshal(metric)
+		m.Delta = value
+		resp, err := json.Marshal(m)
 		if err != nil {
 			return nil, fmt.Errorf("marshal counter metric error: %w", err)
 		}
 		return resp, nil
 	case gaugeType:
-		value, err := ms.getGauge(ctx, metric.ID)
+		value, err := ms.getGauge(ctx, m.ID)
 		if err != nil {
 			if value != nil {
 				return []byte(""), err
 			}
 			return nil, err
 		}
-		metric.Value = value
-		resp, err := json.Marshal(metric)
+		m.Value = value
+		resp, err := json.Marshal(m)
 		if err != nil {
 			return nil, fmt.Errorf("marshal gauge metric error: %w", err)
 		}
 		return resp, nil
 	default:
-		return nil, fmt.Errorf("metric type ('%s') error, use counter like int64 or gauge like float64", metric.MType)
+		return nil, fmt.Errorf("metric type ('%s') error, use counter like int64 or gauge like float64", m.MType)
 	}
 }
 

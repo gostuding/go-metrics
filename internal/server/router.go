@@ -11,20 +11,9 @@ import (
 
 const (
 	writeErrorString = "write data to client error: %w"
+	mTypeString      = "mType"
+	mNameString      = "mName"
 )
-
-// private func.
-func getParams(r *http.Request) getMetricsArgs {
-	return getMetricsArgs{mType: chi.URLParam(r, "mType"), mName: chi.URLParam(r, "mName")}
-}
-
-// private func.
-func updateParams(r *http.Request) updateMetricsArgs {
-	return updateMetricsArgs{
-		base:   getParams(r),
-		mValue: chi.URLParam(r, "mValue"),
-	}
-}
 
 // private func. Create posible hendlers for server.
 func makeRouter(storage Storage, logger *zap.SugaredLogger, key []byte) http.Handler {
@@ -67,7 +56,14 @@ func makeRouter(storage Storage, logger *zap.SugaredLogger, key []byte) http.Han
 	})
 
 	router.Get("/value/{mType}/{mName}", func(w http.ResponseWriter, r *http.Request) {
-		body, err := GetMetric(r.Context(), storage, getParams(r))
+		body, err := GetMetric(
+			r.Context(),
+			storage,
+			getMetricsArgs{
+				mType: chi.URLParam(r, mTypeString),
+				mName: chi.URLParam(r, mNameString),
+			},
+		)
 		if err != nil {
 			w.WriteHeader(http.StatusNotFound)
 			logger.Warnf("get metric error: %w", err)
@@ -80,7 +76,13 @@ func makeRouter(storage Storage, logger *zap.SugaredLogger, key []byte) http.Han
 	})
 
 	router.Post("/update/{mType}/{mName}/{mValue}", func(w http.ResponseWriter, r *http.Request) {
-		m := updateParams(r)
+		m := updateMetricsArgs{
+			base: getMetricsArgs{
+				mType: chi.URLParam(r, mTypeString),
+				mName: chi.URLParam(r, mNameString),
+			},
+			mValue: chi.URLParam(r, "mValue"),
+		}
 		status, err := Update(r.Context(), storage, m)
 		w.WriteHeader(status)
 		if err != nil {
@@ -151,6 +153,7 @@ func makeRouter(storage Storage, logger *zap.SugaredLogger, key []byte) http.Han
 			logger.Warnf("clear request error: %w", err)
 		}
 	})
+
 	router.Mount("/debug", middleware.Profiler())
 	return router
 }
