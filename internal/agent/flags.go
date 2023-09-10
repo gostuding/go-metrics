@@ -26,6 +26,7 @@ type Config struct {
 	PollInterval   int    // poll requests interval
 	ReportInterval int    // send to server interval
 	GzipCompress   bool   // flag to compress requests or not
+	RSAPublicKey   []byte // public key for messages encryption
 }
 
 // String convert Config to string.
@@ -109,8 +110,10 @@ func NewConfig() (*Config, error) {
 		GzipCompress:   true,
 		Key:            nil,
 		RateLimit:      defRateLimit,
+		RSAPublicKey:   nil,
 	}
 	var key string
+	var criptoKeyPath string
 	if !flag.Parsed() {
 		flag.Var(&agentArgs, "a", "Net address like 'host:port'")
 		flag.IntVar(&agentArgs.PollInterval, "p", agentArgs.PollInterval, "Poll metricks interval")
@@ -118,6 +121,7 @@ func NewConfig() (*Config, error) {
 		flag.IntVar(&agentArgs.RateLimit, "l", agentArgs.RateLimit, "Rate limit")
 		flag.BoolVar(&agentArgs.GzipCompress, "gzip", agentArgs.GzipCompress, "Use gzip compress in requests")
 		flag.StringVar(&key, "k", "", "Key for SHA256")
+		flag.StringVar(&criptoKeyPath, "crypto-key", "", "Key for PUBLIC key for send data to server")
 		flag.Parse()
 	}
 
@@ -143,6 +147,13 @@ func NewConfig() (*Config, error) {
 	key = envToString("KEY", key)
 	if key != "" {
 		agentArgs.Key = []byte(key)
+	}
+	criptoKeyPath = envToString("CRYPTO_KEY", criptoKeyPath)
+	if criptoKeyPath != "" {
+		agentArgs.RSAPublicKey, err = os.ReadFile(criptoKeyPath)
+		if err != nil {
+			return nil, fmt.Errorf("file with public key read error: %w", err)
+		}
 	}
 	return &agentArgs, agentArgs.validate()
 }

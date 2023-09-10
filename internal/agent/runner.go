@@ -25,7 +25,7 @@ type (
 	Storager interface {
 		UpdateMetrics()
 		UpdateAditionalMetrics()
-		SendMetricsSlice()
+		SendMetricsSlice([]byte)
 	}
 )
 
@@ -57,7 +57,7 @@ func (a *Agent) StartAgent() {
 			go a.Storage.UpdateMetrics()
 			go a.Storage.UpdateAditionalMetrics()
 		case <-reportTicker.C:
-			a.Storage.SendMetricsSlice()
+			a.Storage.SendMetricsSlice(nil)
 		case <-a.stopChan:
 			a.logger.Debug("Agent work finished")
 			return

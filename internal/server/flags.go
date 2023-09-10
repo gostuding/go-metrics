@@ -26,6 +26,7 @@ type Config struct {
 	Key             []byte // key for requests hash check
 	StoreInterval   int    // save storage interval. Used only in memory storage type.
 	Restore         bool   // flag to restore storage. Used only in memory type.
+	RSAPrivateKey   []byte // rsa private key
 }
 
 // Private func for get Enviroment values.
@@ -47,8 +48,10 @@ func NewConfig() (*Config, error) {
 		Key:             []byte(defaultKey),
 		StoreInterval:   defaultStoreInterval,
 		Restore:         true,
+		RSAPrivateKey:   nil,
 	}
 	var key string
+	var privateKeyPath string
 	if !flag.Parsed() {
 		flag.StringVar(&options.IPAddress, "a", options.IPAddress, "address and port to run server like address:port")
 		flag.IntVar(&options.StoreInterval, "i", options.StoreInterval, "store interval in seconds")
@@ -56,6 +59,7 @@ func NewConfig() (*Config, error) {
 		flag.BoolVar(&options.Restore, "r", options.Restore, "restore storage on start server")
 		flag.StringVar(&options.ConnectDBString, "d", options.ConnectDBString, "database connect string")
 		flag.StringVar(&key, "k", "", "Key for SHA256 checks")
+		flag.StringVar(&privateKeyPath, "crypto-key", "", "path to file with RSA public key")
 		flag.Parse()
 	}
 
@@ -83,6 +87,14 @@ func NewConfig() (*Config, error) {
 		if val != "" {
 			return nil, fmt.Errorf("enviroment RESTORE error. Use 'true' or 'false' value instead of '%s'", val)
 		}
+	}
+	privateKeyPath = stringEnvCheck(privateKeyPath, "CRYPTO_KEY")
+	if privateKeyPath != "" {
+		fData, err := os.ReadFile(privateKeyPath)
+		if err != nil {
+			return nil, fmt.Errorf("read key file error: %w", err)
+		}
+		options.RSAPrivateKey = fData
 	}
 	return &options, nil
 }

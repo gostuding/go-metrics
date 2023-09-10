@@ -207,7 +207,7 @@ func (ms *metricsStorage) UpdateMetrics() {
 }
 
 // SendMetricsSlice sends metrics by JSON list.
-func (ms *metricsStorage) SendMetricsSlice() {
+func (ms *metricsStorage) SendMetricsSlice(key []byte) {
 	mSlice := make([]metrics, 0)
 
 	ms.mx.RLock()
@@ -261,6 +261,7 @@ func (ms *metricsStorage) sendJSONToServer(body []byte, metric *metrics) {
 		body = b.Bytes()
 		req.Header.Add("Content-Encoding", "gzip")
 	}
+	// rsa.EncryptPKCS1v15(rand.New(1), nil, body)
 	req.Body = io.NopCloser(bytes.NewReader(body))
 	if ms.Key != nil {
 		h := hmac.New(sha256.New, ms.Key)

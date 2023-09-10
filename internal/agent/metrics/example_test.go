@@ -30,7 +30,8 @@ func Example() {
 	// Check that PollCount == 1
 	if *storage.MetricsSlice["PollCount"].Delta == 1 {
 		// If storage data will be send success, PollCount will be cheched to 0
-		storage.SendMetricsSlice()
+		// If encription nead, set KEY instead nil.
+		storage.SendMetricsSlice(nil)
 	}
 
 	// Output:
