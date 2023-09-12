@@ -1,47 +1,9 @@
-package server
+package middlewares
 
 import (
 	"net/http"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
-
-type rwMock struct {
-	Head http.Header
-}
-
-func (r *rwMock) Write(b []byte) (int, error) {
-	return len(b), nil
-}
-
-func (r *rwMock) WriteHeader(statusCode int) {
-
-}
-func (r *rwMock) Header() http.Header {
-	return r.Head
-
-}
-
-func Test_myLogWriter_Write(t *testing.T) {
-	b := []byte("123")
-	mock := rwMock{}
-	logWriter := newLogWriter(&mock)
-	count, err := logWriter.Write(b)
-	assert.NoError(t, err, "Write error")
-	if count != len(b) {
-		t.Errorf("myLogWriter_Write size count = %d, want %d", count, len(b))
-	}
-}
-
-func Test_myLogWriter_WriteHeader(t *testing.T) {
-	mock := rwMock{Head: make(http.Header)}
-	logWriter := newLogWriter(&mock)
-	logWriter.WriteHeader(http.StatusAlreadyReported)
-	if logWriter.status != http.StatusAlreadyReported {
-		t.Errorf("myLogWriter_WriteHeader status = %d, want %d", logWriter.status, http.StatusAlreadyReported)
-	}
-}
 
 func Test_hashWriter_Write(t *testing.T) {
 	type fields struct {
@@ -62,7 +24,7 @@ func Test_hashWriter_Write(t *testing.T) {
 		{
 			name: "key nil",
 			fields: fields{
-				ResponseWriter: &rwMock{Head: make(http.Header)},
+				ResponseWriter: newWMock(),
 				key:            nil,
 				body:           nil,
 			},
@@ -73,7 +35,7 @@ func Test_hashWriter_Write(t *testing.T) {
 		{
 			name: "key default",
 			fields: fields{
-				ResponseWriter: &rwMock{Head: make(http.Header)},
+				ResponseWriter: newWMock(),
 				key:            []byte("default"),
 				body:           nil,
 			},
@@ -97,6 +59,46 @@ func Test_hashWriter_Write(t *testing.T) {
 			}
 			if tt.fields.ResponseWriter.Header().Get(hashVarName) != tt.want {
 				t.Errorf("hashWriter.Write() = %v, want %v", tt.fields.ResponseWriter.Header().Get(hashVarName), tt.want)
+			}
+		})
+	}
+}
+
+func Test_checkHash(t *testing.T) {
+	type args struct {
+		data []byte
+		key  []byte
+		hash string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name:    "Null data",
+			args:    args{data: nil, key: nil, hash: ""},
+			wantErr: false,
+		},
+		{
+			name: "Test data",
+			args: args{
+				data: []byte("test"),
+				key:  []byte("default"),
+				hash: "de79cc62d7da11c1f3049dbf73ba060497e3d4e7a07029fa6f48e75cfc681042",
+			},
+			wantErr: false,
+		},
+		{
+			name:    "Bad hash",
+			args:    args{data: []byte("test"), key: []byte("default"), hash: "d1"},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := checkHash(tt.args.data, tt.args.key, tt.args.hash); (err != nil) != tt.wantErr {
+				t.Errorf("checkHash() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

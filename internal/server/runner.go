@@ -60,7 +60,10 @@ func (s *Server) RunServer() error {
 	ctx, cancelFunc := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancelFunc()
 	srvChan := make(chan error, 1)
-	s.srv = http.Server{Addr: s.Config.IPAddress, Handler: makeRouter(s.Storage, s.Logger, s.Config.Key)}
+	s.srv = http.Server{
+		Addr:    s.Config.IPAddress,
+		Handler: makeRouter(s.Storage, s.Logger, s.Config.Key, s.Config.PrivateKey),
+	}
 	go s.startServe(srvChan)
 	s.mutex.Lock()
 	s.isRun = true

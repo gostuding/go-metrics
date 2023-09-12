@@ -1,6 +1,9 @@
 package agent
 
 import (
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
 	"errors"
 	"flag"
 	"fmt"
@@ -19,14 +22,14 @@ const (
 
 // Config contains agent's configuration.
 type Config struct {
-	IP             string // server's ip address
-	Key            []byte // key for hashing requests body
-	RateLimit      int    // max requests in time
-	Port           int    // server's port
-	PollInterval   int    // poll requests interval
-	ReportInterval int    // send to server interval
-	GzipCompress   bool   // flag to compress requests or not
-	RSAPublicKey   []byte // public key for messages encryption
+	PublicKey      *rsa.PublicKey // public key for messages encryption
+	IP             string         // server's ip address
+	Key            []byte         // key for hashing requests body
+	RateLimit      int            // max requests in time
+	Port           int            // server's port
+	PollInterval   int            // poll requests interval
+	ReportInterval int            // send to server interval
+	GzipCompress   bool           // flag to compress requests or not
 }
 
 // String convert Config to string.
@@ -92,6 +95,27 @@ func envToString(envName string, def string) string {
 	return value
 }
 
+// parcePublicKey reads rsa public key from file.
+func parcePublicKey(filePath string) (*rsa.PublicKey, error) {
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("file read error: %w", err)
+	}
+	block, _ := pem.Decode([]byte(data)) //nolint:all //<-senselessly
+	if block == nil {
+		return nil, errors.New("failed to parse PEM block with publick key")
+	}
+	pubKey, err := x509.ParsePKIXPublicKey(block.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("parce public key error: %w", err)
+	}
+	pub, ok := pubKey.(*rsa.PublicKey)
+	if !ok {
+		return nil, errors.New("key type is not RSA")
+	}
+	return pub, nil
+}
+
 // NewConfig return's configuration object for agent.
 // The list of parameters are taken from startup variables and environment variables.
 //
@@ -110,7 +134,6 @@ func NewConfig() (*Config, error) {
 		GzipCompress:   true,
 		Key:            nil,
 		RateLimit:      defRateLimit,
-		RSAPublicKey:   nil,
 	}
 	var key string
 	var criptoKeyPath string
@@ -134,15 +157,15 @@ func NewConfig() (*Config, error) {
 	var err error
 	agentArgs.ReportInterval, err = envToInt("REPORT_INTERVAL", agentArgs.ReportInterval)
 	if err != nil {
-		return &agentArgs, err
+		return nil, err
 	}
 	agentArgs.PollInterval, err = envToInt("POLL_INTERVAL", agentArgs.PollInterval)
 	if err != nil {
-		return &agentArgs, err
+		return nil, err
 	}
 	agentArgs.RateLimit, err = envToInt("RATE_LIMIT", agentArgs.RateLimit)
 	if err != nil {
-		return &agentArgs, err
+		return nil, err
 	}
 	key = envToString("KEY", key)
 	if key != "" {
@@ -150,9 +173,9 @@ func NewConfig() (*Config, error) {
 	}
 	criptoKeyPath = envToString("CRYPTO_KEY", criptoKeyPath)
 	if criptoKeyPath != "" {
-		agentArgs.RSAPublicKey, err = os.ReadFile(criptoKeyPath)
+		agentArgs.PublicKey, err = parcePublicKey(criptoKeyPath)
 		if err != nil {
-			return nil, fmt.Errorf("file with public key read error: %w", err)
+			return nil, err
 		}
 	}
 	return &agentArgs, agentArgs.validate()

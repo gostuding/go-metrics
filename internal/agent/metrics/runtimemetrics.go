@@ -5,21 +5,26 @@ import (
 	"bytes"
 	"compress/gzip"
 	"crypto/hmac"
+	"crypto/rand"
+	"crypto/rsa"
 	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"hash"
 	"io"
-	"math/rand"
 	"net"
 	"net/http"
+	"os"
 	"runtime"
-	"strconv"
 	"sync"
 
 	"github.com/shirou/gopsutil/mem"
 	"go.uber.org/zap"
+)
+
+// Const values.
+const (
+	hashVarName = "HashSHA256" // Header name for hash check.
 )
 
 type (
@@ -27,6 +32,7 @@ type (
 	metricsStorage struct {
 		URL          string             // URL for requests send to server
 		MetricsSlice map[string]metrics // metrics storage
+		PublicKey    *rsa.PublicKey     // encription messages key
 		Logger       *zap.SugaredLogger // logger
 		resiveChan   chan resiveStruct  // chan for read requests results
 		requestChan  chan struct{}      // chan for make requests
@@ -54,13 +60,15 @@ type (
 // NewMemoryStorage creates memory storage for metrics.
 //
 // Args:
+// pk *rsa.PublicKey - public RSA key for messages encription
 // logger *zap.Logger
 // ip string - server ip address for send metrics
 // key []byte - key for requests hash check
 // port int - server port for send metrics
 // compress bool - flag to compress data by gzip
-// rateLimit int - max count requests in time
+// rateLimit int - max count requests in time.
 func NewMemoryStorage(
+	pk *rsa.PublicKey,
 	logger *zap.Logger,
 	ip string,
 	key []byte,
@@ -71,6 +79,7 @@ func NewMemoryStorage(
 	mS := metricsStorage{
 		MetricsSlice: make(map[string]metrics),
 		Logger:       logger.Sugar(),
+		PublicKey:    pk,
 		GzipCompress: compress,
 		Key:          key,
 		URL:          fmt.Sprintf("http://%s/updates/", net.JoinHostPort(ip, fmt.Sprint(port))),
@@ -93,74 +102,6 @@ func NewMemoryStorage(
 		}
 	}()
 	return &mS
-}
-
-// MakeMetric is private func for create metrics object from id:value values.
-// It defines type of metrics from value's type (int64 or float64).
-func makeMetric(id string, value any) (*metrics, error) {
-	switch value.(type) {
-	case int, uint32, int64, uint64:
-		val, err := strconv.ParseInt(fmt.Sprint(value), 10, 64)
-		if err != nil {
-			return nil, fmt.Errorf("convert '%s' to int64 error: %w", id, err)
-		}
-		return &metrics{
-			ID:    id,
-			MType: "counter",
-			Delta: &val,
-		}, nil
-	case float64:
-		val, err := strconv.ParseFloat(fmt.Sprint(value), 64)
-		if err != nil {
-			return nil, fmt.Errorf("convert '%s' to float64 error: %w", id, err)
-		}
-		return &metrics{
-			ID:    id,
-			MType: "gauge",
-			Value: &val,
-		}, nil
-	default:
-		return nil, fmt.Errorf("convert error. metric '%s' type undefined", id)
-	}
-}
-
-// MakeMap is private func for create metrics map[string]any from runtime.MemStats.
-func makeMap(r *runtime.MemStats, pollCount *int64) map[string]any {
-	mass := make(map[string]any)
-	mass["Alloc"] = r.Alloc
-	mass["BuckHashSys"] = r.BuckHashSys
-	mass["Frees"] = r.Frees
-	mass["GCCPUFraction"] = r.GCCPUFraction
-	mass["GCSys"] = r.GCSys
-	mass["HeapAlloc"] = r.HeapAlloc
-	mass["HeapIdle"] = r.HeapIdle
-	mass["HeapInuse"] = r.HeapInuse
-	mass["HeapObjects"] = r.HeapObjects
-	mass["HeapReleased"] = r.HeapReleased
-	mass["HeapSys"] = r.HeapSys
-	mass["LastGC"] = r.LastGC
-	mass["Lookups"] = r.Lookups
-	mass["MCacheInuse"] = r.MCacheInuse
-	mass["MCacheSys"] = r.MCacheSys
-	mass["MSpanInuse"] = r.MSpanInuse
-	mass["MSpanSys"] = r.MSpanSys
-	mass["Mallocs"] = r.Mallocs
-	mass["NextGC"] = r.NextGC
-	mass["NumForcedGC"] = r.NumForcedGC
-	mass["NumGC"] = r.NumGC
-	mass["OtherSys"] = r.OtherSys
-	mass["PauseTotalNs"] = r.PauseTotalNs
-	mass["StackInuse"] = r.StackInuse
-	mass["StackSys"] = r.StackSys
-	mass["TotalAlloc"] = r.TotalAlloc
-	mass["Sys"] = r.Sys
-	mass["RandomValue"] = rand.Float64()
-	if pollCount == nil {
-		mass["PollCount"] = 1
-	} else {
-		mass["PollCount"] = *pollCount + 1
-	}
-	return mass
 }
 
 // AddMetric is private func and adds one metrics to MetricsSLice.
@@ -207,15 +148,13 @@ func (ms *metricsStorage) UpdateMetrics() {
 }
 
 // SendMetricsSlice sends metrics by JSON list.
-func (ms *metricsStorage) SendMetricsSlice(key []byte) {
+func (ms *metricsStorage) SendMetricsSlice() {
 	mSlice := make([]metrics, 0)
-
 	ms.mx.RLock()
 	defer ms.mx.RUnlock()
 	for _, item := range ms.MetricsSlice {
 		mSlice = append(mSlice, item)
 	}
-
 	body, err := json.Marshal(mSlice)
 	if err != nil {
 		ms.Logger.Warnf("metrics slice conver error: %w", err)
@@ -236,14 +175,18 @@ func (ms *metricsStorage) sendJSONToServer(body []byte, metric *metrics) {
 	defer func() {
 		<-ms.requestChan
 	}()
-
-	var hashVarName = "HashSHA256"
-
 	client := http.Client{}
 	req, err := http.NewRequest(http.MethodPost, ms.URL, nil)
 	if err != nil {
 		ms.resiveChan <- resiveStruct{Err: fmt.Errorf("request create error: %w", err), Metric: metric}
 		return
+	}
+	if ms.PublicKey != nil {
+		body, err = encriptMessage(body, ms.PublicKey)
+		if err != nil {
+			ms.Logger.Warnf("metrics encription error: %w", err)
+			return
+		}
 	}
 	if ms.GzipCompress {
 		var b bytes.Buffer
@@ -261,7 +204,6 @@ func (ms *metricsStorage) sendJSONToServer(body []byte, metric *metrics) {
 		body = b.Bytes()
 		req.Header.Add("Content-Encoding", "gzip")
 	}
-	// rsa.EncryptPKCS1v15(rand.New(1), nil, body)
 	req.Body = io.NopCloser(bytes.NewReader(body))
 	if ms.Key != nil {
 		h := hmac.New(sha256.New, ms.Key)
@@ -302,7 +244,18 @@ func (ms *metricsStorage) sendJSONToServer(body []byte, metric *metrics) {
 	ms.resiveChan <- resiveStruct{Err: nil, Metric: metric}
 }
 
-// Internal function.
-func hashToString(h hash.Hash) string {
-	return fmt.Sprintf("%x", h.Sum(nil))
+func encriptMessage(msg []byte, key *rsa.PublicKey) ([]byte, error) {
+	rng := rand.Reader
+	hash := sha256.New()
+	size := key.Size() - 2*hash.Size() - 2 //nolint:gomnd //<-default values
+	encripted := make([]byte, 0)
+	for _, slice := range splitMessage(msg, size) {
+		data, err := rsa.EncryptOAEP(hash, rng, key, slice, []byte(""))
+		if err != nil {
+			return nil, fmt.Errorf("message encript error: %w", err)
+		}
+		encripted = append(encripted, data...)
+	}
+	fmt.Fprintln(os.Stdout, len(msg), len(encripted))
+	return encripted, nil
 }

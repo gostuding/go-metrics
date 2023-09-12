@@ -20,7 +20,7 @@ func Example() {
 	if err != nil {
 		log.Fatalln("create logger error:", err)
 	}
-	storage := NewMemoryStorage(logger, ip, key, port, compress, rateLimit)
+	storage := NewMemoryStorage(nil, logger, ip, key, port, compress, rateLimit)
 	// Collect metrics.
 	storage.UpdateMetrics()
 	storage.UpdateAditionalMetrics()
@@ -31,7 +31,7 @@ func Example() {
 	if *storage.MetricsSlice["PollCount"].Delta == 1 {
 		// If storage data will be send success, PollCount will be cheched to 0
 		// If encription nead, set KEY instead nil.
-		storage.SendMetricsSlice(nil)
+		storage.SendMetricsSlice()
 	}
 
 	// Output:

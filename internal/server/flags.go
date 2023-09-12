@@ -1,6 +1,10 @@
 package server
 
 import (
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -20,13 +24,13 @@ const (
 
 // Config is struct, which contains server options.
 type Config struct {
-	IPAddress       string // server addres in format 'ip:port'.
-	FileStorePath   string // file path if used memory storage type.
-	ConnectDBString string // dsn for database connect if used sql storage type.
-	Key             []byte // key for requests hash check
-	StoreInterval   int    // save storage interval. Used only in memory storage type.
-	Restore         bool   // flag to restore storage. Used only in memory type.
-	RSAPrivateKey   []byte // rsa private key
+	PrivateKey      *rsa.PrivateKey // rsa private key
+	IPAddress       string          // server addres in format 'ip:port'.
+	FileStorePath   string          // file path if used memory storage type.
+	ConnectDBString string          // dsn for database connect if used sql storage type.
+	Key             []byte          // key for requests hash check
+	StoreInterval   int             // save storage interval. Used only in memory storage type.
+	Restore         bool            // flag to restore storage. Used only in memory type.
 }
 
 // Private func for get Enviroment values.
@@ -36,6 +40,23 @@ func stringEnvCheck(val string, name string) string {
 		return v
 	}
 	return val
+}
+
+// parcePrivateKey reads rsa private key from file.
+func parcePrivateKey(filePath string) (*rsa.PrivateKey, error) {
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("file read error: %w", err)
+	}
+	block, _ := pem.Decode([]byte(data)) //nolint:all //<-senselessly
+	if block == nil {
+		return nil, errors.New("failed to parse PEM block with private key")
+	}
+	pKey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("parce private key error: %w", err)
+	}
+	return pKey, nil
 }
 
 // NewConfig reads startup parameters and runtime environment variables.
@@ -48,7 +69,7 @@ func NewConfig() (*Config, error) {
 		Key:             []byte(defaultKey),
 		StoreInterval:   defaultStoreInterval,
 		Restore:         true,
-		RSAPrivateKey:   nil,
+		PrivateKey:      nil,
 	}
 	var key string
 	var privateKeyPath string
@@ -59,7 +80,7 @@ func NewConfig() (*Config, error) {
 		flag.BoolVar(&options.Restore, "r", options.Restore, "restore storage on start server")
 		flag.StringVar(&options.ConnectDBString, "d", options.ConnectDBString, "database connect string")
 		flag.StringVar(&key, "k", "", "Key for SHA256 checks")
-		flag.StringVar(&privateKeyPath, "crypto-key", "", "path to file with RSA public key")
+		flag.StringVar(&privateKeyPath, "crypto-key", "", "path to file with RSA private key")
 		flag.Parse()
 	}
 
@@ -90,11 +111,11 @@ func NewConfig() (*Config, error) {
 	}
 	privateKeyPath = stringEnvCheck(privateKeyPath, "CRYPTO_KEY")
 	if privateKeyPath != "" {
-		fData, err := os.ReadFile(privateKeyPath)
+		key, err := parcePrivateKey(privateKeyPath)
 		if err != nil {
-			return nil, fmt.Errorf("read key file error: %w", err)
+			return nil, err
 		}
-		options.RSAPrivateKey = fData
+		options.PrivateKey = key
 	}
 	return &options, nil
 }

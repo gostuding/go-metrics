@@ -13,7 +13,7 @@ var (
 	counterTableName      = "counters" // table name in database
 	databaseType          = "pgx"
 	createTableTimeout    = 1
-	checkStructureTimeout = time.Duration(3) * time.Second
+	checkStructureTimeout = time.Duration(3) * time.Second //nolint:all //<-no need
 	sqlValueSpliter       = ","
 )
 

@@ -30,12 +30,12 @@ func CheckOsExit(pass *analysis.Pass) (interface{}, error) {
 			continue
 		}
 		ast.Inspect(file, func(node ast.Node) bool {
-			switch x := node.(type) {
-			case *ast.FuncDecl:
+			x, ok := node.(*ast.FuncDecl)
+			if ok {
 				if x.Name.Name == funcName {
 					ast.Inspect(x, func(n ast.Node) bool {
-						switch f := n.(type) {
-						case *ast.CallExpr:
+						f, ok := node.(*ast.CallExpr)
+						if ok {
 							fun, ok := f.Fun.(*ast.SelectorExpr)
 							if ok && fmt.Sprintf("%s.%s", fun.X, fun.Sel.Name) == osExit {
 								pass.Reportf(f.Pos(), errorMessage)
@@ -50,5 +50,5 @@ func CheckOsExit(pass *analysis.Pass) (interface{}, error) {
 		},
 		)
 	}
-	return nil, nil
+	return nil, nil //nolint:all //<-senselessly
 }

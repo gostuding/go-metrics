@@ -25,13 +25,13 @@ type (
 	Storager interface {
 		UpdateMetrics()
 		UpdateAditionalMetrics()
-		SendMetricsSlice([]byte)
+		SendMetricsSlice()
 	}
 )
 
 // NewAgent creates new Agent object.
 func NewAgent(cfg *Config, logger *zap.Logger) *Agent {
-	s := metrics.NewMemoryStorage(logger, cfg.IP, cfg.Key, cfg.Port, cfg.GzipCompress, cfg.RateLimit)
+	s := metrics.NewMemoryStorage(cfg.PublicKey, logger, cfg.IP, cfg.Key, cfg.Port, cfg.GzipCompress, cfg.RateLimit)
 	return &Agent{Storage: s, logger: logger, cfg: cfg}
 }
 
@@ -57,7 +57,7 @@ func (a *Agent) StartAgent() {
 			go a.Storage.UpdateMetrics()
 			go a.Storage.UpdateAditionalMetrics()
 		case <-reportTicker.C:
-			a.Storage.SendMetricsSlice(nil)
+			a.Storage.SendMetricsSlice()
 		case <-a.stopChan:
 			a.logger.Debug("Agent work finished")
 			return
