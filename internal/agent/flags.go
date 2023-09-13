@@ -3,6 +3,7 @@ package agent
 import (
 	"crypto/rsa"
 	"crypto/x509"
+	"encoding/json"
 	"encoding/pem"
 	"errors"
 	"flag"
@@ -18,23 +19,51 @@ const (
 	defPoolInterval   = 2
 	defReportInterval = 10
 	defRateLimit      = 5
+	falseStr          = "false"
 )
 
 // Config contains agent's configuration.
-type Config struct {
-	PublicKey      *rsa.PublicKey // public key for messages encryption
-	IP             string         // server's ip address
-	Key            []byte         // key for hashing requests body
-	RateLimit      int            // max requests in time
-	Port           int            // server's port
-	PollInterval   int            // poll requests interval
-	ReportInterval int            // send to server interval
-	GzipCompress   bool           // flag to compress requests or not
-}
+type (
+	Config struct {
+		PublicKey      *rsa.PublicKey `json:"-"`                         // public key for messages encryption
+		pKeyPath       string         `json:"crypto_key,omitempty"`      // path to public key
+		IP             string         `json:"address,omitempty"`         // server's ip address
+		gzipCompress   string         `json:"-"`                         //
+		HashKey        []byte         `json:"key,omitempty"`             // key for hashing requests body
+		RateLimit      int            `json:"rate_limit,omitempty"`      // max requests in time
+		Port           int            `json:"-"`                         // server's port
+		PollInterval   int            `json:"poll_interval,omitempty"`   // poll requests interval
+		ReportInterval int            `json:"report_interval,omitempty"` // send to server interval
+		GzipCompress   bool           `json:"gzip,omitempty"`            // flag to compress requests or not
+	}
+	// Internal struct
+	keysStruct struct {
+		hash  string // key for hash summ of messages
+		pPath string // public key path
+	}
+)
 
 // String convert Config to string.
 func (n *Config) String() string {
 	return fmt.Sprintf("%s:%d -r %d -p %d", n.IP, n.Port, n.PollInterval, n.ReportInterval)
+}
+
+func (n *Config) setDefault() {
+	if n.Port == 0 {
+		n.Port = defPort
+	}
+	if n.PollInterval == 0 {
+		n.PollInterval = defPoolInterval
+	}
+	if n.ReportInterval == 0 {
+		n.ReportInterval = defReportInterval
+	}
+	if n.RateLimit == 0 {
+		n.RateLimit = defRateLimit
+	}
+	if n.gzipCompress != falseStr {
+		n.GzipCompress = true
+	}
 }
 
 // Set validates and sets server's address.
@@ -44,7 +73,6 @@ func (n *Config) Set(value string) error {
 	if err != nil {
 		return fmt.Errorf("NetworkAddress ('%s') incorrect. Use value like: 'IP:PORT': %w", value, err)
 	}
-
 	n.IP = ip
 	val, err := strconv.Atoi(port)
 	if err != nil {
@@ -88,11 +116,11 @@ func envToInt(envName string, def int) (int, error) {
 
 // envToString is private func.
 func envToString(envName string, def string) string {
-	value, ok := os.LookupEnv(envName)
-	if !ok {
+	if value, ok := os.LookupEnv(envName); !ok {
 		return def
+	} else {
+		return value
 	}
-	return value
 }
 
 // parcePublicKey reads rsa public key from file.
@@ -116,6 +144,84 @@ func parcePublicKey(filePath string) (*rsa.PublicKey, error) {
 	return pub, nil
 }
 
+func lookFileConfig(fPath string, a *Config, keys *keysStruct) error {
+	defer a.setDefault()
+	if val, ok := os.LookupEnv("CONFIG"); ok {
+		fPath = val
+	}
+	if fPath == "" {
+		return nil
+	}
+	data, err := os.ReadFile(fPath)
+	if err != nil {
+		return fmt.Errorf("config file read error: %w", err)
+	}
+	var c Config
+	err = json.Unmarshal(data, &c)
+	if err != nil {
+		return fmt.Errorf("config file convert error: %w", err)
+	}
+	if a.IP == "" {
+		a.Set(c.IP)
+	}
+	if a.IP == "" {
+		a.Set(c.IP)
+	}
+	if a.PollInterval == 0 {
+		a.PollInterval = c.PollInterval
+	}
+	if a.ReportInterval == 0 {
+		a.ReportInterval = c.ReportInterval
+	}
+	if a.RateLimit == 0 {
+		a.RateLimit = c.RateLimit
+	}
+	if a.gzipCompress == "" {
+		a.GzipCompress = c.GzipCompress
+	}
+	if keys.hash == "" {
+		keys.hash = string(c.HashKey)
+	}
+	if keys.pPath == "" {
+		keys.pPath = c.pKeyPath
+	}
+	return nil
+}
+
+// lookEnviroment gets config values from Enviroment.
+func lookEnviroment(a *Config, keys *keysStruct) error {
+	if address, ok := os.LookupEnv("ADDRESS"); ok {
+		if err := a.Set(address); err != nil {
+			return fmt.Errorf("enviroment 'ADDRESS' value error: %w", err)
+		}
+	}
+	var err error
+	a.ReportInterval, err = envToInt("REPORT_INTERVAL", a.ReportInterval)
+	if err != nil {
+		return err
+	}
+	a.PollInterval, err = envToInt("POLL_INTERVAL", a.PollInterval)
+	if err != nil {
+		return err
+	}
+	a.RateLimit, err = envToInt("RATE_LIMIT", a.RateLimit)
+	if err != nil {
+		return err
+	}
+	hKey := envToString("KEY", keys.hash)
+	if keys.hash != "" {
+		a.HashKey = []byte(hKey)
+	}
+	pKey := envToString("CRYPTO_KEY", keys.pPath)
+	if pKey != "" {
+		a.PublicKey, err = parcePublicKey(pKey)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // NewConfig return's configuration object for agent.
 // The list of parameters are taken from startup variables and environment variables.
 //
@@ -126,57 +232,26 @@ func parcePublicKey(filePath string) (*rsa.PublicKey, error) {
 //	POLL_INTERVAL - update metrics interval in seconds
 //	RATE_LIMIT - max requests count
 func NewConfig() (*Config, error) {
-	agentArgs := Config{
-		IP:             "",
-		Port:           defPort,
-		PollInterval:   defPoolInterval,
-		ReportInterval: defReportInterval,
-		GzipCompress:   true,
-		Key:            nil,
-		RateLimit:      defRateLimit,
-	}
-	var key string
-	var criptoKeyPath string
+	agentArgs := Config{}
+	keys := keysStruct{}
+	cfgPath := ""
 	if !flag.Parsed() {
 		flag.Var(&agentArgs, "a", "Net address like 'host:port'")
 		flag.IntVar(&agentArgs.PollInterval, "p", agentArgs.PollInterval, "Poll metricks interval")
 		flag.IntVar(&agentArgs.ReportInterval, "r", agentArgs.ReportInterval, "Report metricks interval")
 		flag.IntVar(&agentArgs.RateLimit, "l", agentArgs.RateLimit, "Rate limit")
-		flag.BoolVar(&agentArgs.GzipCompress, "gzip", agentArgs.GzipCompress, "Use gzip compress in requests")
-		flag.StringVar(&key, "k", "", "Key for SHA256")
-		flag.StringVar(&criptoKeyPath, "crypto-key", "", "Key for PUBLIC key for send data to server")
+		flag.StringVar(&agentArgs.gzipCompress, "gzip", agentArgs.gzipCompress, "Use gzip compress in requests")
+		flag.StringVar(&keys.hash, "k", "", "Key for HASHSUMM in SHA256")
+		flag.StringVar(&keys.pPath, "crypto-key", "", "Path to PUBLIC key file")
+		flag.StringVar(&cfgPath, "c", "", "Path to config file")
+		flag.StringVar(&cfgPath, "config", cfgPath, "Path to config file")
 		flag.Parse()
 	}
-
-	if address := os.Getenv("ADDRESS"); address != "" {
-		err := agentArgs.Set(address)
-		if err != nil {
-			return &agentArgs, fmt.Errorf("enviroment 'ADDRESS' value error: %w", err)
-		}
-	}
-	var err error
-	agentArgs.ReportInterval, err = envToInt("REPORT_INTERVAL", agentArgs.ReportInterval)
-	if err != nil {
+	if err := lookFileConfig(cfgPath, &agentArgs, &keys); err != nil {
 		return nil, err
 	}
-	agentArgs.PollInterval, err = envToInt("POLL_INTERVAL", agentArgs.PollInterval)
-	if err != nil {
+	if err := lookEnviroment(&agentArgs, &keys); err != nil {
 		return nil, err
-	}
-	agentArgs.RateLimit, err = envToInt("RATE_LIMIT", agentArgs.RateLimit)
-	if err != nil {
-		return nil, err
-	}
-	key = envToString("KEY", key)
-	if key != "" {
-		agentArgs.Key = []byte(key)
-	}
-	criptoKeyPath = envToString("CRYPTO_KEY", criptoKeyPath)
-	if criptoKeyPath != "" {
-		agentArgs.PublicKey, err = parcePublicKey(criptoKeyPath)
-		if err != nil {
-			return nil, err
-		}
 	}
 	return &agentArgs, agentArgs.validate()
 }

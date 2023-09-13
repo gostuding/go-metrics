@@ -34,7 +34,7 @@ func CheckOsExit(pass *analysis.Pass) (interface{}, error) {
 			if ok {
 				if x.Name.Name == funcName {
 					ast.Inspect(x, func(n ast.Node) bool {
-						f, ok := node.(*ast.CallExpr)
+						f, ok := n.(*ast.CallExpr)
 						if ok {
 							fun, ok := f.Fun.(*ast.SelectorExpr)
 							if ok && fmt.Sprintf("%s.%s", fun.X, fun.Sel.Name) == osExit {
