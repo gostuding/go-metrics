@@ -26,7 +26,7 @@ const (
 type (
 	Config struct {
 		PublicKey      *rsa.PublicKey `json:"-"`                         // public key for messages encryption
-		pKeyPath       string         `json:"crypto_key,omitempty"`      // path to public key
+		PublicKeyPath  string         `json:"crypto_key,omitempty"`      // path to public key
 		IP             string         `json:"address,omitempty"`         // server's ip address
 		gzipCompress   string         `json:"-"`                         //
 		HashKey        []byte         `json:"key,omitempty"`             // key for hashing requests body
@@ -183,7 +183,7 @@ func lookFileConfig(fPath string, a *Config, keys *keysStruct) error {
 		keys.hash = string(c.HashKey)
 	}
 	if keys.pPath == "" {
-		keys.pPath = c.pKeyPath
+		keys.pPath = c.PublicKeyPath
 	}
 	return nil
 }
