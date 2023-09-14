@@ -7,13 +7,14 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/gostuding/go-metrics/internal/server/middlewares/mocks"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 )
 
 func Test_myGzipWriter_Write(t *testing.T) {
 	data := []byte("test data write")
-	mock := newWMock()
+	mock := mocks.NewWMock()
 	logger, err := zap.NewDevelopment()
 	assert.NoError(t, err, "create logger error")
 	writer := NewGzipWriter(mock, logger.Sugar())
@@ -26,7 +27,7 @@ func Test_myGzipWriter_Write(t *testing.T) {
 }
 
 func Test_myGzipWriter_WriteHeader(t *testing.T) {
-	mock := newWMock()
+	mock := mocks.NewWMock()
 	logger, err := zap.NewDevelopment()
 	assert.NoError(t, err, "create logger error")
 	writer := NewGzipWriter(mock, logger.Sugar())
@@ -43,7 +44,7 @@ func Test_myGzipWriter_WriteHeader(t *testing.T) {
 }
 
 func Test_myGzipWriter_Header(t *testing.T) {
-	mock := newWMock()
+	mock := mocks.NewWMock()
 	logger, err := zap.NewDevelopment()
 	assert.NoError(t, err, "create logger error")
 	writer := NewGzipWriter(mock, logger.Sugar())
@@ -54,7 +55,7 @@ func Test_myGzipWriter_Header(t *testing.T) {
 }
 
 func Test_gzipReader_Read(t *testing.T) {
-	m := newWMock()
+	m := mocks.NewWMock()
 	logger, err := zap.NewDevelopment()
 	write := []byte("data")
 	if err != nil {
@@ -86,7 +87,7 @@ func Test_gzipReader_Read(t *testing.T) {
 }
 
 func Test_gzipReader_Close(t *testing.T) {
-	m := newWMock()
+	m := mocks.NewWMock()
 	r, err := NewGzipReader(m)
 	if err != nil {
 		fmt.Printf("gzipReader.Close() create reader error: %v", err)

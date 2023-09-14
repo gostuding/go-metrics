@@ -3,6 +3,7 @@ package server
 import (
 	"crypto/rsa"
 	"crypto/x509"
+	"encoding/json"
 	"encoding/pem"
 	"errors"
 	"flag"
@@ -20,17 +21,45 @@ const (
 	defaultFileName      = "metrics-db.json" // MemStorage file name
 	defaultKey           = "default"         // Key for hash
 	defaultStoreInterval = 300               // Save MemStore interval
+	falseString          = "false"
 )
 
 // Config is struct, which contains server options.
-type Config struct {
-	PrivateKey      *rsa.PrivateKey // rsa private key
-	IPAddress       string          // server addres in format 'ip:port'.
-	FileStorePath   string          // file path if used memory storage type.
-	ConnectDBString string          // dsn for database connect if used sql storage type.
-	Key             []byte          // key for requests hash check
-	StoreInterval   int             // save storage interval. Used only in memory storage type.
-	Restore         bool            // flag to restore storage. Used only in memory type.
+type (
+	Config struct {
+		PrivateKey      *rsa.PrivateKey `json:"-"`                        // rsa private key
+		PrivateKeyPath  string          `json:"crypto_key,omitempty"`     //
+		IPAddress       string          `json:"address,omitempty"`        // server addres in format 'ip:port'.
+		FileStorePath   string          `json:"store_file,omitempty"`     // file path if used memory storage type.
+		ConnectDBString string          `json:"database_dsn,omitempty"`   // dsn for database connect if used sql storage type.
+		resString       string          `json:"-"`                        //
+		Key             string          `json:"key,omitempty"`            // key for requests hash check
+		StoreInterval   int             `json:"store_interval,omitempty"` // save storage interval. Used only in memory storage type.
+		Restore         bool            `json:"restore,omitempty"`        // flag to restore storage. Used only in memory type.
+	}
+	// Internal struct.
+	keysStruct struct {
+		HashKey        string
+		PrivateKeyPath string
+	}
+)
+
+func (c *Config) setDefault() {
+	if c.IPAddress == "" {
+		c.IPAddress = defaultAddress
+	}
+	if c.FileStorePath == "" {
+		c.FileStorePath = filepath.Join(os.TempDir(), defaultFileName)
+	}
+	if c.Key == "" {
+		c.Key = defaultKey
+	}
+	if c.StoreInterval == 0 {
+		c.StoreInterval = defaultStoreInterval
+	}
+	if c.resString != falseString {
+		c.Restore = true
+	}
 }
 
 // Private func for get Enviroment values.
@@ -59,63 +88,108 @@ func parcePrivateKey(filePath string) (*rsa.PrivateKey, error) {
 	return pKey, nil
 }
 
-// NewConfig reads startup parameters and runtime environment variables.
-// Returns Config object with server options.
-func NewConfig() (*Config, error) {
-	options := Config{
-		IPAddress:       defaultAddress,
-		FileStorePath:   filepath.Join(os.TempDir(), defaultFileName),
-		ConnectDBString: "",
-		Key:             []byte(defaultKey),
-		StoreInterval:   defaultStoreInterval,
-		Restore:         true,
-		PrivateKey:      nil,
-	}
-	var key string
-	var privateKeyPath string
-	if !flag.Parsed() {
-		flag.StringVar(&options.IPAddress, "a", options.IPAddress, "address and port to run server like address:port")
-		flag.IntVar(&options.StoreInterval, "i", options.StoreInterval, "store interval in seconds")
-		flag.StringVar(&options.FileStorePath, "f", options.FileStorePath, "file path for save the storage")
-		flag.BoolVar(&options.Restore, "r", options.Restore, "restore storage on start server")
-		flag.StringVar(&options.ConnectDBString, "d", options.ConnectDBString, "database connect string")
-		flag.StringVar(&key, "k", "", "Key for SHA256 checks")
-		flag.StringVar(&privateKeyPath, "crypto-key", "", "path to file with RSA private key")
-		flag.Parse()
-	}
-
+// lookEnviroment gets options from Enviroment.
+func lookEnviroment(cfg *Config, keys *keysStruct) error {
 	if val, ok := os.LookupEnv("STORE_INTERVAL"); ok {
 		interval, err := strconv.Atoi(val)
 		if err != nil {
-			return nil, fmt.Errorf("STORE INTERVAL enviroment incorrect: %w", err)
+			return fmt.Errorf("STORE INTERVAL enviroment incorrect: %w", err)
 		}
-		options.StoreInterval = interval
+		cfg.StoreInterval = interval
 	}
-	options.IPAddress = stringEnvCheck(options.IPAddress, "ADDRESS")
-	options.FileStorePath = stringEnvCheck(options.FileStorePath, "FILE_STORAGE_PATH")
-	options.ConnectDBString = stringEnvCheck(options.ConnectDBString, "DATABASE_DSN")
-	key = stringEnvCheck(key, "KEY")
-	if key != "" {
-		options.Key = []byte(key)
+	cfg.IPAddress = stringEnvCheck(cfg.IPAddress, "ADDRESS")
+	cfg.FileStorePath = stringEnvCheck(cfg.FileStorePath, "FILE_STORAGE_PATH")
+	cfg.ConnectDBString = stringEnvCheck(cfg.ConnectDBString, "DATABASE_DSN")
+	keys.HashKey = stringEnvCheck(keys.HashKey, "KEY")
+	if keys.HashKey != "" {
+		cfg.Key = keys.HashKey
 	}
 	val := strings.ToLower(os.Getenv("RESTORE"))
 	switch val {
 	case "true":
-		options.Restore = true
+		cfg.Restore = true
 	case "false":
-		options.Restore = false
+		cfg.Restore = false
 	default:
 		if val != "" {
-			return nil, fmt.Errorf("enviroment RESTORE error. Use 'true' or 'false' value instead of '%s'", val)
+			return fmt.Errorf("enviroment RESTORE error. Use 'true' or 'false' value instead of '%s'", val)
 		}
 	}
-	privateKeyPath = stringEnvCheck(privateKeyPath, "CRYPTO_KEY")
-	if privateKeyPath != "" {
-		key, err := parcePrivateKey(privateKeyPath)
+	keys.PrivateKeyPath = stringEnvCheck(keys.PrivateKeyPath, "CRYPTO_KEY")
+	if keys.PrivateKeyPath != "" {
+		key, err := parcePrivateKey(keys.PrivateKeyPath)
 		if err != nil {
-			return nil, err
+			return err
 		}
-		options.PrivateKey = key
+		cfg.PrivateKey = key
 	}
-	return &options, nil
+	return nil
+}
+
+// lookFileConfig gets options from json file.
+func lookFileConfig(path string, cfg *Config, keys *keysStruct) error {
+	defer cfg.setDefault()
+	if val, ok := os.LookupEnv("CONFIG"); ok {
+		path = val
+	}
+	if path == "" {
+		return nil
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("config file read error: %w", err)
+	}
+	c := Config{Restore: true}
+	err = json.Unmarshal(data, &c)
+	if err != nil {
+		return fmt.Errorf("config file convert error: %w", err)
+	}
+	if cfg.IPAddress == "" {
+		cfg.IPAddress = c.IPAddress
+	}
+	if cfg.ConnectDBString == "" {
+		cfg.ConnectDBString = c.ConnectDBString
+	}
+	if cfg.StoreInterval == 0 {
+		cfg.StoreInterval = c.StoreInterval
+	}
+	if cfg.FileStorePath == "" {
+		cfg.FileStorePath = c.FileStorePath
+	}
+	if cfg.resString == "" && !c.Restore {
+		cfg.resString = falseString
+	}
+	if keys.HashKey == "" {
+		keys.HashKey = string(c.Key)
+	}
+	if keys.PrivateKeyPath == "" {
+		keys.PrivateKeyPath = c.PrivateKeyPath
+	}
+	return nil
+}
+
+// NewConfig reads startup parameters and runtime environment variables.
+// Returns Config object with server options.
+func NewConfig() (*Config, error) {
+	cfg := Config{}
+	keys := keysStruct{}
+	var cfgFilePath string
+	if !flag.Parsed() {
+		flag.StringVar(&cfg.IPAddress, "a", cfg.IPAddress, "address and port to run server like address:port")
+		flag.IntVar(&cfg.StoreInterval, "i", cfg.StoreInterval, "store interval in seconds")
+		flag.StringVar(&cfg.FileStorePath, "f", cfg.FileStorePath, "file path for save the storage")
+		flag.StringVar(&cfg.resString, "r", "", "restore storage on start server (true or false)")
+		flag.StringVar(&cfg.ConnectDBString, "d", cfg.ConnectDBString, "database connect string")
+		flag.StringVar(&keys.HashKey, "k", "", "Key for SHA256 checks")
+		flag.StringVar(&keys.PrivateKeyPath, "crypto-key", "", "path to file with RSA private key")
+		flag.StringVar(&cfgFilePath, "c", "", "path to file with config for server")
+		flag.Parse()
+	}
+	if err := lookFileConfig(cfgFilePath, &cfg, &keys); err != nil {
+		return nil, err
+	}
+	if err := lookEnviroment(&cfg, &keys); err != nil {
+		return nil, err
+	}
+	return &cfg, nil
 }

@@ -49,6 +49,27 @@ func ExampleNewConfig() {
 	// :8080 -r 2 -p 10
 }
 
+func ExampleConfig_Set() {
+	cfg := Config{}
+	err := cfg.Set("localhost:8080")
+	if err != nil {
+		fmt.Printf("set address error: %v", err)
+		return
+	}
+	fmt.Printf("address: %s:%d ", cfg.IP, cfg.Port)
+
+	// Output:
+	// address: localhost:8080
+}
+
+func ExampleConfig_String() {
+	cfg := Config{IP: "localhost", Port: 8080, ReportInterval: 2, RateLimit: 2}
+	fmt.Println(cfg.String())
+
+	// Output:
+	// localhost:8080 -r 0 -p 2
+}
+
 func ExampleNewAgent() {
 	cfg, err := NewConfig()
 	if err != nil {
@@ -103,4 +124,28 @@ func ExampleAgent_StopAgent() {
 
 	// Output:
 	// false
+}
+
+func ExampleAgent_IsRun() {
+	cfg, err := NewConfig()
+	if err != nil {
+		log.Fatalln(err)
+	}
+	logger, err := zap.NewDevelopment()
+	if err != nil {
+		log.Fatalln("create logger error:", err)
+	}
+	agent := NewAgent(cfg, logger)
+	go agent.StartAgent()
+	time.Sleep(time.Second)
+	// Check if agent is run
+	fmt.Println("agent is run:", agent.IsRun())
+	// Finish agent work.
+	agent.StopAgent()
+	// Check if agent is run
+	fmt.Println("agent is run:", agent.IsRun())
+
+	// Output:
+	// agent is run: true
+	// agent is run: false
 }

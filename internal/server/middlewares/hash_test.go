@@ -3,6 +3,8 @@ package middlewares
 import (
 	"net/http"
 	"testing"
+
+	"github.com/gostuding/go-metrics/internal/server/middlewares/mocks"
 )
 
 func Test_hashWriter_Write(t *testing.T) {
@@ -24,7 +26,7 @@ func Test_hashWriter_Write(t *testing.T) {
 		{
 			name: "key nil",
 			fields: fields{
-				ResponseWriter: newWMock(),
+				ResponseWriter: mocks.NewWMock(),
 				key:            nil,
 				body:           nil,
 			},
@@ -35,7 +37,7 @@ func Test_hashWriter_Write(t *testing.T) {
 		{
 			name: "key default",
 			fields: fields{
-				ResponseWriter: newWMock(),
+				ResponseWriter: mocks.NewWMock(),
 				key:            []byte("default"),
 				body:           nil,
 			},

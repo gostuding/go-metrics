@@ -1,4 +1,4 @@
-package middlewares
+package mocks
 
 import (
 	"bytes"
@@ -10,7 +10,7 @@ type rwMock struct {
 	Body []byte
 }
 
-func newWMock() *rwMock {
+func NewWMock() *rwMock {
 	return &rwMock{
 		Head: make(http.Header),
 		Body: make([]byte, 0),

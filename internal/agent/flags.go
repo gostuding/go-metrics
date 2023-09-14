@@ -15,11 +15,11 @@ import (
 
 // Default values for Config.
 const (
-	defPort           = 8080
-	defPoolInterval   = 2
-	defReportInterval = 10
-	defRateLimit      = 5
-	falseStr          = "false"
+	defPort           = 8080    // default server port
+	defPoolInterval   = 2       // default update metrics interval
+	defReportInterval = 10      // default send to server interval
+	defRateLimit      = 5       // default max gorutines to send messages
+	falseStr          = "false" // internal value
 )
 
 // Config contains agent's configuration.
@@ -29,14 +29,14 @@ type (
 		PublicKeyPath  string         `json:"crypto_key,omitempty"`      // path to public key
 		IP             string         `json:"address,omitempty"`         // server's ip address
 		gzipCompress   string         `json:"-"`                         //
-		HashKey        []byte         `json:"key,omitempty"`             // key for hashing requests body
+		HashKey        string         `json:"key,omitempty"`             // key for hashing requests body
 		RateLimit      int            `json:"rate_limit,omitempty"`      // max requests in time
 		Port           int            `json:"-"`                         // server's port
 		PollInterval   int            `json:"poll_interval,omitempty"`   // poll requests interval
 		ReportInterval int            `json:"report_interval,omitempty"` // send to server interval
 		GzipCompress   bool           `json:"gzip,omitempty"`            // flag to compress requests or not
 	}
-	// Internal struct
+	// Internal struct.
 	keysStruct struct {
 		hash  string // key for hash summ of messages
 		pPath string // public key path
@@ -144,15 +144,16 @@ func parcePublicKey(filePath string) (*rsa.PublicKey, error) {
 	return pub, nil
 }
 
-func lookFileConfig(fPath string, a *Config, keys *keysStruct) error {
+// lookFileConfig gets config values from file with path.
+func lookFileConfig(path string, a *Config, keys *keysStruct) error {
 	defer a.setDefault()
 	if val, ok := os.LookupEnv("CONFIG"); ok {
-		fPath = val
+		path = val
 	}
-	if fPath == "" {
+	if path == "" {
 		return nil
 	}
-	data, err := os.ReadFile(fPath)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return fmt.Errorf("config file read error: %w", err)
 	}
@@ -160,9 +161,6 @@ func lookFileConfig(fPath string, a *Config, keys *keysStruct) error {
 	err = json.Unmarshal(data, &c)
 	if err != nil {
 		return fmt.Errorf("config file convert error: %w", err)
-	}
-	if a.IP == "" {
-		a.Set(c.IP)
 	}
 	if a.IP == "" {
 		a.Set(c.IP)
@@ -210,7 +208,7 @@ func lookEnviroment(a *Config, keys *keysStruct) error {
 	}
 	hKey := envToString("KEY", keys.hash)
 	if keys.hash != "" {
-		a.HashKey = []byte(hKey)
+		a.HashKey = hKey
 	}
 	pKey := envToString("CRYPTO_KEY", keys.pPath)
 	if pKey != "" {

@@ -62,7 +62,7 @@ func (s *Server) RunServer() error {
 	srvChan := make(chan error, 1)
 	s.srv = http.Server{
 		Addr:    s.Config.IPAddress,
-		Handler: makeRouter(s.Storage, s.Logger, s.Config.Key, s.Config.PrivateKey),
+		Handler: makeRouter(s.Storage, s.Logger, []byte(s.Config.Key), s.Config.PrivateKey),
 	}
 	go s.startServe(srvChan)
 	s.mutex.Lock()

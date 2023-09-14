@@ -4,11 +4,12 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/gostuding/go-metrics/internal/server/middlewares/mocks"
 	"github.com/stretchr/testify/assert"
 )
 
 func Test_myLogWriter_WriteHeader(t *testing.T) {
-	mock := newWMock()
+	mock := mocks.NewWMock()
 	logWriter := NewLogWriter(mock)
 	logWriter.WriteHeader(http.StatusAlreadyReported)
 	if logWriter.Status != http.StatusAlreadyReported {
@@ -18,7 +19,7 @@ func Test_myLogWriter_WriteHeader(t *testing.T) {
 
 func Test_myLogWriter_Write(t *testing.T) {
 	b := []byte("123")
-	mock := newWMock()
+	mock := mocks.NewWMock()
 	logWriter := NewLogWriter(mock)
 	count, err := logWriter.Write(b)
 	assert.NoError(t, err, "Write error")
@@ -28,7 +29,7 @@ func Test_myLogWriter_Write(t *testing.T) {
 }
 
 func Test_myLogWriter_Header(t *testing.T) {
-	mock := newWMock()
+	mock := mocks.NewWMock()
 	logWriter := NewLogWriter(mock)
 	logWriter.Header().Add(contentType, applicationJSON)
 	if logWriter.Header().Get(contentType) != applicationJSON {

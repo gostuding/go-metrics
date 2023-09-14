@@ -8,11 +8,12 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/gostuding/go-metrics/internal/server/middlewares/mocks"
 	"go.uber.org/zap"
 )
 
 func ExampleNewLogWriter() {
-	r := newWMock()
+	r := mocks.NewWMock()
 	lw := NewLogWriter(r)
 	_, err := lw.Write([]byte("data"))
 	if err != nil {
@@ -27,7 +28,7 @@ func ExampleNewLogWriter() {
 }
 
 func ExampleNewHashWriter() {
-	r := newWMock()
+	r := mocks.NewWMock()
 	key := []byte("key")
 	w := NewHashWriter(r, key)
 	_, err := w.Write([]byte("data"))
@@ -43,7 +44,7 @@ func ExampleNewHashWriter() {
 
 func ExampleNewGzipWriter() {
 	data := []byte(strings.Repeat("data", 1000))
-	r := newWMock()
+	r := mocks.NewWMock()
 	logger, err := zap.NewDevelopment()
 	if err != nil {
 		fmt.Printf("create logger errror: %v", err)
@@ -65,7 +66,7 @@ func ExampleNewGzipWriter() {
 
 func ExampleNewGzipReader() {
 	// Create and fill mock args for example.
-	m := newWMock()
+	m := mocks.NewWMock()
 	logger, err := zap.NewDevelopment()
 	if err != nil {
 		fmt.Printf("create logger errror: %v", err)
@@ -127,7 +128,6 @@ func ExampleLoggerMiddleware() {
 		return
 	}
 	LoggerMiddleware(logger.Sugar())
-
 	// Output:
 	//
 }
