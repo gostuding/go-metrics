@@ -8,6 +8,13 @@ import (
 	"strconv"
 )
 
+const (
+	closeTimeout = 10
+	counter      = "counter"
+	gauge        = "gauge"
+	pCount       = "PollCount"
+)
+
 // MakeMetric is private func for create metrics object from id:value values.
 // It defines type of metrics from value's type (int64 or float64).
 func makeMetric(id string, value any) (*metrics, error) {
@@ -19,7 +26,7 @@ func makeMetric(id string, value any) (*metrics, error) {
 		}
 		return &metrics{
 			ID:    id,
-			MType: "counter",
+			MType: counter,
 			Delta: &val,
 		}, nil
 	case float64:
@@ -29,7 +36,7 @@ func makeMetric(id string, value any) (*metrics, error) {
 		}
 		return &metrics{
 			ID:    id,
-			MType: "gauge",
+			MType: gauge,
 			Value: &val,
 		}, nil
 	default:
@@ -69,9 +76,9 @@ func makeMap(r *runtime.MemStats, pollCount *int64) map[string]any {
 	mass["Sys"] = r.Sys
 	mass["RandomValue"] = rand.Float64()
 	if pollCount == nil {
-		mass["PollCount"] = 1
+		mass[pCount] = 1
 	} else {
-		mass["PollCount"] = *pollCount + 1
+		mass[pCount] = *pollCount + 1
 	}
 	return mass
 }
@@ -81,6 +88,7 @@ func hashToString(h hash.Hash) string {
 	return fmt.Sprintf("%x", h.Sum(nil))
 }
 
+// splitMessage byte slice to parts for RSA encription.
 func splitMessage(msg []byte, size int) [][]byte {
 	data := make([][]byte, 0)
 	end := len(msg) - size

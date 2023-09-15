@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"sync"
+	"syscall"
 	"time"
 
 	"go.uber.org/zap"
@@ -57,7 +58,10 @@ func (s *Server) RunServer() error {
 		return fmt.Errorf("server storage is nil")
 	}
 	s.Logger.Infoln("Run server at adress: ", s.Config.IPAddress)
-	ctx, cancelFunc := signal.NotifyContext(context.Background(), os.Interrupt)
+	ctx, cancelFunc := signal.NotifyContext(
+		context.Background(), os.Interrupt, os.Interrupt,
+		syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT,
+	)
 	defer cancelFunc()
 	srvChan := make(chan error, 1)
 	s.srv = http.Server{
@@ -85,7 +89,10 @@ func (s *Server) StopServer() error {
 	if !s.isRun {
 		return fmt.Errorf("the server is not running yet")
 	}
-	shtCtx, cancelFunc := context.WithTimeout(context.Background(), time.Duration(shutdownTimeout)*time.Second)
+	shtCtx, cancelFunc := context.WithTimeout(
+		context.Background(),
+		time.Duration(shutdownTimeout)*time.Second,
+	)
 	defer cancelFunc()
 	if err := s.srv.Shutdown(shtCtx); err != nil {
 		return fmt.Errorf("shutdown server erorr: %w", err)

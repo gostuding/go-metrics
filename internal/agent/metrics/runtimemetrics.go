@@ -4,6 +4,7 @@ package metrics
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/rsa"
@@ -17,6 +18,7 @@ import (
 	"os"
 	"runtime"
 	"sync"
+	"time"
 
 	"github.com/shirou/gopsutil/mem"
 	"go.uber.org/zap"
@@ -244,6 +246,31 @@ func (ms *metricsStorage) sendJSONToServer(body []byte, metric *metrics) {
 	ms.resiveChan <- resiveStruct{Err: nil, Metric: metric}
 }
 
+// Close checks if the last data were send to server. If not, sends data to server.
+func (ms *metricsStorage) Close() error {
+	close(ms.resiveChan)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(closeTimeout)*time.Second)
+	defer cancel()
+	ms.resiveChan = make(chan resiveStruct, 1)
+	closeResive := true
+	for _, m := range ms.MetricsSlice {
+		if m.MType == counter && m.ID == pCount && m.Delta != nil && *m.Delta > 0 {
+			ms.SendMetricsSlice()
+			closeResive = false
+		}
+	}
+	if closeResive {
+		close(ms.resiveChan)
+	}
+	select {
+	case r := <-ms.resiveChan:
+		return r.Err
+	case <-ctx.Done():
+		return errors.New("close timeout error")
+	}
+}
+
+// encription message.
 func encriptMessage(msg []byte, key *rsa.PublicKey) ([]byte, error) {
 	rng := rand.Reader
 	hash := sha256.New()
