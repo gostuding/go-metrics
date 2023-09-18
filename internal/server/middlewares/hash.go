@@ -4,9 +4,8 @@ import (
 	"bytes"
 	"crypto/hmac"
 	"crypto/sha256"
-	"errors"
+	"encoding/hex"
 	"fmt"
-	"hash"
 	"io"
 	"net/http"
 
@@ -34,7 +33,7 @@ func (r *hashWriter) Write(b []byte) (int, error) {
 			return 0, fmt.Errorf("write body hash summ error: %w", err)
 		}
 		r.body = data
-		r.Header().Set(hashVarName, hashToString(h))
+		r.Header().Set(hashVarName, hex.EncodeToString(h.Sum(nil)))
 	}
 	size, err := r.ResponseWriter.Write(b)
 	if err != nil {
@@ -50,8 +49,8 @@ func checkHash(data, key []byte, hash string) error {
 		if err != nil {
 			return fmt.Errorf("write hash summ error: %w", err)
 		}
-		if hash != hashToString(h) {
-			return errors.New("incorrect hash summ")
+		if hash != hex.EncodeToString(h.Sum(nil)) {
+			return fmt.Errorf("incorrect hash summ: %s", hash)
 		}
 	}
 	return nil
@@ -89,8 +88,4 @@ func HashCheckMiddleware(
 		}
 		return http.HandlerFunc(fn)
 	}
-}
-
-func hashToString(h hash.Hash) string {
-	return fmt.Sprintf("%x", h.Sum(nil))
 }

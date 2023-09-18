@@ -15,11 +15,12 @@ import (
 
 // Default values for Config.
 const (
-	defPort           = 8080    // default server port
-	defPoolInterval   = 2       // default update metrics interval
-	defReportInterval = 10      // default send to server interval
-	defRateLimit      = 5       // default max gorutines to send messages
-	falseStr          = "false" // internal value
+	defPort           = 8080      // default server port
+	defPoolInterval   = 2         // default update metrics interval
+	defReportInterval = 10        // default send to server interval
+	defRateLimit      = 5         // default max gorutines to send messages
+	defaultKey        = "default" // Key for hash
+	falseStr          = "false"   // internal value
 )
 
 // Config contains agent's configuration.
@@ -35,11 +36,6 @@ type (
 		PollInterval   int            `json:"poll_interval,omitempty"`   // poll requests interval
 		ReportInterval int            `json:"report_interval,omitempty"` // send to server interval
 		GzipCompress   bool           `json:"gzip,omitempty"`            // flag to compress requests or not
-	}
-	// Internal struct.
-	keysStruct struct {
-		hash  string // key for hash summ of messages
-		pPath string // public key path
 	}
 )
 
@@ -63,6 +59,9 @@ func (n *Config) setDefault() {
 	}
 	if n.gzipCompress != falseStr {
 		n.GzipCompress = true
+	}
+	if n.HashKey == "" {
+		n.HashKey = defaultKey
 	}
 }
 
@@ -145,7 +144,7 @@ func parcePublicKey(filePath string) (*rsa.PublicKey, error) {
 }
 
 // lookFileConfig gets config values from file with path.
-func lookFileConfig(path string, a *Config, keys *keysStruct) error {
+func lookFileConfig(path string, a *Config) error {
 	defer a.setDefault()
 	if val, ok := os.LookupEnv("CONFIG"); ok {
 		path = val
@@ -177,17 +176,17 @@ func lookFileConfig(path string, a *Config, keys *keysStruct) error {
 	if a.gzipCompress == "" {
 		a.GzipCompress = c.GzipCompress
 	}
-	if keys.hash == "" {
-		keys.hash = string(c.HashKey)
+	if a.HashKey == "" {
+		a.HashKey = c.HashKey
 	}
-	if keys.pPath == "" {
-		keys.pPath = c.PublicKeyPath
+	if a.PublicKeyPath == "" {
+		a.PublicKeyPath = c.PublicKeyPath
 	}
 	return nil
 }
 
 // lookEnviroment gets config values from Enviroment.
-func lookEnviroment(a *Config, keys *keysStruct) error {
+func lookEnviroment(a *Config) error {
 	if address, ok := os.LookupEnv("ADDRESS"); ok {
 		if err := a.Set(address); err != nil {
 			return fmt.Errorf("enviroment 'ADDRESS' value error: %w", err)
@@ -206,11 +205,8 @@ func lookEnviroment(a *Config, keys *keysStruct) error {
 	if err != nil {
 		return err
 	}
-	hKey := envToString("KEY", keys.hash)
-	if keys.hash != "" {
-		a.HashKey = hKey
-	}
-	pKey := envToString("CRYPTO_KEY", keys.pPath)
+	a.HashKey = envToString("KEY", a.HashKey)
+	pKey := envToString("CRYPTO_KEY", a.PublicKeyPath)
 	if pKey != "" {
 		a.PublicKey, err = parcePublicKey(pKey)
 		if err != nil {
@@ -231,7 +227,6 @@ func lookEnviroment(a *Config, keys *keysStruct) error {
 //	RATE_LIMIT - max requests count
 func NewConfig() (*Config, error) {
 	agentArgs := Config{}
-	keys := keysStruct{}
 	cfgPath := ""
 	if !flag.Parsed() {
 		flag.Var(&agentArgs, "a", "Net address like 'host:port'")
@@ -239,16 +234,16 @@ func NewConfig() (*Config, error) {
 		flag.IntVar(&agentArgs.ReportInterval, "r", agentArgs.ReportInterval, "Report metricks interval")
 		flag.IntVar(&agentArgs.RateLimit, "l", agentArgs.RateLimit, "Rate limit")
 		flag.StringVar(&agentArgs.gzipCompress, "gzip", agentArgs.gzipCompress, "Use gzip compress in requests")
-		flag.StringVar(&keys.hash, "k", "", "Key for HASHSUMM in SHA256")
-		flag.StringVar(&keys.pPath, "crypto-key", "", "Path to PUBLIC key file")
+		flag.StringVar(&agentArgs.HashKey, "k", "", "Key for HASHSUMM in SHA256")
+		flag.StringVar(&agentArgs.PublicKeyPath, "crypto-key", "", "Path to PUBLIC key file")
 		flag.StringVar(&cfgPath, "c", "", "Path to config file")
 		flag.StringVar(&cfgPath, "config", cfgPath, "Path to config file")
 		flag.Parse()
 	}
-	if err := lookFileConfig(cfgPath, &agentArgs, &keys); err != nil {
+	if err := lookFileConfig(cfgPath, &agentArgs); err != nil {
 		return nil, err
 	}
-	if err := lookEnviroment(&agentArgs, &keys); err != nil {
+	if err := lookEnviroment(&agentArgs); err != nil {
 		return nil, err
 	}
 	return &agentArgs, agentArgs.validate()
