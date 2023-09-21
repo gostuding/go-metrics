@@ -15,7 +15,6 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"os"
 	"runtime"
 	"sync"
 	"time"
@@ -184,7 +183,7 @@ func (ms *metricsStorage) sendJSONToServer(body []byte, metric *metrics) {
 		return
 	}
 	if ms.PublicKey != nil {
-		body, err = encriptMessage(body, ms.PublicKey)
+		body, err = encryptMessage(body, ms.PublicKey)
 		if err != nil {
 			ms.Logger.Warnf("metrics encription error: %w", err)
 			return
@@ -270,19 +269,29 @@ func (ms *metricsStorage) Close() error {
 	}
 }
 
-// encription message.
-func encriptMessage(msg []byte, key *rsa.PublicKey) ([]byte, error) {
+// encryption message.
+func encryptMessage(msg []byte, key *rsa.PublicKey) ([]byte, error) {
+	// splitMessage byte slice to parts for RSA encription.
+	mRange := func(msg []byte, size int) [][]byte {
+		data := make([][]byte, 0)
+		end := len(msg) - size
+		var i int
+		for i = 0; i < end; i += size {
+			data = append(data, msg[i:i+size])
+		}
+		data = append(data, msg[i:])
+		return data
+	}
 	rng := rand.Reader
 	hash := sha256.New()
 	size := key.Size() - 2*hash.Size() - 2 //nolint:gomnd //<-default values
 	encripted := make([]byte, 0)
-	for _, slice := range splitMessage(msg, size) {
+	for _, slice := range mRange(msg, size) {
 		data, err := rsa.EncryptOAEP(hash, rng, key, slice, []byte(""))
 		if err != nil {
 			return nil, fmt.Errorf("message encript error: %w", err)
 		}
 		encripted = append(encripted, data...)
 	}
-	fmt.Fprintln(os.Stdout, len(msg), len(encripted))
 	return encripted, nil
 }

@@ -162,7 +162,10 @@ func lookFileConfig(path string, a *Config) error {
 		return fmt.Errorf("config file convert error: %w", err)
 	}
 	if a.IP == "" {
-		a.Set(c.IP)
+		err = a.Set(c.IP)
+		if err != nil {
+			return fmt.Errorf("config file IP error: %w", err)
+		}
 	}
 	if a.PollInterval == 0 {
 		a.PollInterval = c.PollInterval
@@ -237,7 +240,7 @@ func NewConfig() (*Config, error) {
 		flag.StringVar(&agentArgs.HashKey, "k", "", "Key for HASHSUMM in SHA256")
 		flag.StringVar(&agentArgs.PublicKeyPath, "crypto-key", "", "Path to PUBLIC key file")
 		flag.StringVar(&cfgPath, "c", "", "Path to config file")
-		flag.StringVar(&cfgPath, "config", cfgPath, "Path to config file")
+		flag.StringVar(&cfgPath, "config", cfgPath, "Path to config file (the same as -c)")
 		flag.Parse()
 	}
 	if err := lookFileConfig(cfgPath, &agentArgs); err != nil {

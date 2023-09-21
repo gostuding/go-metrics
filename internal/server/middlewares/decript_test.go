@@ -25,7 +25,7 @@ func Test_decriptMessage(t *testing.T) {
 		t.Errorf("decript errror: %v", err)
 		return
 	}
-	if !reflect.DeepEqual(*decr, data) {
-		t.Errorf("decription errror. Decript value not equal to manual: %s", string(*decr))
+	if !reflect.DeepEqual(decr, data) {
+		t.Errorf("decription errror. Decript value not equal to manual: %s", string(decr))
 	}
 }

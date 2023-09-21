@@ -31,11 +31,11 @@ type (
 		PrivateKeyPath  string          `json:"crypto_key,omitempty"`     //
 		IPAddress       string          `json:"address,omitempty"`        // server addres in format 'ip:port'.
 		FileStorePath   string          `json:"store_file,omitempty"`     // file path if used memory storage type.
-		ConnectDBString string          `json:"database_dsn,omitempty"`   // dsn for database connect if used sql storage type.
+		ConnectDBString string          `json:"database_dsn,omitempty"`   // database connection string.
 		resString       string          `json:"-"`                        //
 		Key             string          `json:"key,omitempty"`            // key for requests hash check
-		StoreInterval   int             `json:"store_interval,omitempty"` // save storage interval. Used only in memory storage type.
-		Restore         bool            `json:"restore,omitempty"`        // flag to restore storage. Used only in memory type.
+		StoreInterval   int             `json:"store_interval,omitempty"` // save storage interval.
+		Restore         bool            `json:"restore,omitempty"`        // restore mem storage flag.
 	}
 	// Internal struct.
 	keysStruct struct {
@@ -160,7 +160,7 @@ func lookFileConfig(path string, cfg *Config, keys *keysStruct) error {
 		cfg.resString = falseString
 	}
 	if keys.HashKey == "" {
-		keys.HashKey = string(c.Key)
+		keys.HashKey = c.Key
 	}
 	if keys.PrivateKeyPath == "" {
 		keys.PrivateKeyPath = c.PrivateKeyPath

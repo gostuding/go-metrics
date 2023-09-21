@@ -1,7 +1,7 @@
 {
-    "address": "localhost:8090", 
+    "address": "localhost:8080", 
     "restore": true, 
-    "store_interval": 1, 
+    "store_interval": 300, 
     "store_file": "/tmp/file.db", 
     "database_dsn": "", 
     "key": "def key",

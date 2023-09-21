@@ -12,7 +12,7 @@ import (
 	"go.uber.org/zap"
 )
 
-type ErrorType int
+type ErrorType int // Type of error.
 
 const (
 	contentEncoding           = "Content-Encoding"
@@ -22,11 +22,13 @@ const (
 	textHTML                  = "text/html"
 	hashVarName               = "HashSHA256"
 	acceptEncoding            = "Accept-Encoding"
-	ReadBodyError   ErrorType = iota
-	CloseBodyError
-	GzipReaderError
+	ReadBodyError   ErrorType = iota // Read request body error type.
+	CloseBodyError                   // Close request body error type.
+	GzipReaderError                  // Read by gzip error type.
+	DecriptMsgError                  // Decript message error type.
 )
 
+// GetError accordin with ErrorType.
 func getError(t ErrorType, err error) error {
 	switch t {
 	case ReadBodyError:
@@ -35,12 +37,15 @@ func getError(t ErrorType, err error) error {
 		return fmt.Errorf("close request body error: %w", err)
 	case GzipReaderError:
 		return fmt.Errorf("gzip reader error: %w", err)
+	case DecriptMsgError:
+		return fmt.Errorf("decription message error: %w", err)
 	default:
 		return err
 	}
 }
 
-func decriptMessage(key *rsa.PrivateKey, msg []byte) (*[]byte, error) {
+// DecriptMessage internal function.
+func decriptMessage(key *rsa.PrivateKey, msg []byte) ([]byte, error) {
 	size := key.PublicKey.Size()
 	if len(msg)%size != 0 {
 		return nil, errors.New("message length error")
@@ -50,11 +55,11 @@ func decriptMessage(key *rsa.PrivateKey, msg []byte) (*[]byte, error) {
 	for i := 0; i < len(msg); i += size {
 		data, err := rsa.DecryptOAEP(hash, nil, key, msg[i:i+size], []byte(""))
 		if err != nil {
-			return nil, fmt.Errorf("decription message error: %w", err)
+			return nil, getError(DecriptMsgError, err)
 		}
 		dectipted = append(dectipted, data...)
 	}
-	return &dectipted, nil
+	return dectipted, nil
 }
 
 // DecriptMiddleware decripts messages from clients.
@@ -80,7 +85,7 @@ func DecriptMiddleware(
 					logger.Warnf("decript error: %w", err)
 					return
 				}
-				r.Body = io.NopCloser(bytes.NewReader(*body))
+				r.Body = io.NopCloser(bytes.NewReader(body))
 			}
 			next.ServeHTTP(w, r)
 		}

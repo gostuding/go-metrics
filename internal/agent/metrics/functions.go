@@ -87,15 +87,3 @@ func makeMap(r *runtime.MemStats, pollCount *int64) map[string]any {
 func hashToString(h hash.Hash) string {
 	return fmt.Sprintf("%x", h.Sum(nil))
 }
-
-// splitMessage byte slice to parts for RSA encription.
-func splitMessage(msg []byte, size int) [][]byte {
-	data := make([][]byte, 0)
-	end := len(msg) - size
-	var i int64
-	for i := 0; i < end; i += size {
-		data = append(data, msg[i:i+size])
-	}
-	data = append(data, msg[i:])
-	return data
-}
