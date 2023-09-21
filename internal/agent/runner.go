@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/signal"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/gostuding/go-metrics/internal/agent/metrics"
@@ -26,12 +27,14 @@ type (
 		UpdateMetrics()
 		UpdateAditionalMetrics()
 		SendMetricsSlice()
+		Close() error
 	}
 )
 
 // NewAgent creates new Agent object.
 func NewAgent(cfg *Config, logger *zap.Logger) *Agent {
-	s := metrics.NewMemoryStorage(logger, cfg.IP, cfg.Key, cfg.Port, cfg.GzipCompress, cfg.RateLimit)
+	s := metrics.NewMemoryStorage(cfg.PublicKey, logger, cfg.IP, []byte(cfg.HashKey),
+		cfg.Port, cfg.GzipCompress, cfg.RateLimit)
 	return &Agent{Storage: s, logger: logger, cfg: cfg}
 }
 
@@ -44,7 +47,7 @@ func (a *Agent) StartAgent() {
 	}
 	a.isRun = true
 	a.stopChan = make(chan os.Signal, 1)
-	signal.Notify(a.stopChan, os.Interrupt)
+	signal.Notify(a.stopChan, os.Interrupt, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
 	a.mutex.Unlock()
 	a.logger.Debug("Start agent")
 	pollTicker := time.NewTicker(time.Duration(a.cfg.PollInterval) * time.Second)
@@ -59,6 +62,7 @@ func (a *Agent) StartAgent() {
 		case <-reportTicker.C:
 			a.Storage.SendMetricsSlice()
 		case <-a.stopChan:
+			a.StopAgent()
 			a.logger.Debug("Agent work finished")
 			return
 		}
@@ -72,6 +76,9 @@ func (a *Agent) StopAgent() {
 	defer a.mutex.Unlock()
 	if !a.isRun {
 		return
+	}
+	if err := a.Storage.Close(); err != nil {
+		a.logger.Sugar().Warnf("close storage error: %v", err)
 	}
 	a.isRun = false
 	close(a.stopChan)

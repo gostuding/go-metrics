@@ -1,26 +1,42 @@
 package server
 
 import (
+	"crypto/rsa"
 	"io"
 	"net/http"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"go.uber.org/zap"
+
+	"github.com/gostuding/go-metrics/internal/server/middlewares"
 )
 
 const (
 	writeErrorString = "write data to client error: %w"
 	mTypeString      = "mType"
 	mNameString      = "mName"
+
+	contentEncoding = "Content-Encoding"
+	contentType     = "Content-Type"
+	gzipString      = "gzip"
+	applicationJSON = "application/json"
+	textHTML        = "text/html"
+	hashVarName     = "HashSHA256"
 )
 
 // private func. Create posible hendlers for server.
-func makeRouter(storage Storage, logger *zap.SugaredLogger, key []byte) http.Handler {
+func makeRouter(storage Storage, logger *zap.SugaredLogger, hashKey []byte, pk *rsa.PrivateKey) http.Handler {
 	router := chi.NewRouter()
 
-	router.Use(middleware.RealIP, hashCheckMiddleware(key, logger), gzipMiddleware(logger),
-		loggerMiddleware(logger), middleware.Recoverer)
+	router.Use(
+		middleware.RealIP,
+		middlewares.HashCheckMiddleware(hashKey, logger),
+		middlewares.GzipMiddleware(logger),
+		middlewares.DecriptMiddleware(pk, logger),
+		middlewares.LoggerMiddleware(logger),
+		middleware.Recoverer,
+	)
 
 	router.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		body, err := GetAllMetrics(r.Context(), storage)

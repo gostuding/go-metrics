@@ -8,16 +8,12 @@ import (
 	"github.com/gostuding/go-metrics/internal/server/storage"
 )
 
-var (
-	defIPAddress = ":8080"
-)
-
 func ExampleNewServer() {
 	logger, err := NewLogger()
 	if err != nil {
 		log.Fatalf("logger create error: %v", err)
 	}
-	cfg := &Config{IPAddress: defIPAddress, StoreInterval: saveInterval}
+	cfg := &Config{IPAddress: defaultAddress, StoreInterval: saveInterval}
 	storage, err := storage.NewMemStorage(restoreStorage, defFileName, saveInterval)
 	if err != nil {
 		logger.Warnf("storage create error: %w", err)
@@ -86,7 +82,7 @@ func ExampleServer_RunServer() {
 
 func ExampleServer_StopServer() {
 	// Create server.
-	srv, err := createMemServer(defIPAddress)
+	srv, err := createMemServer(defaultAddress)
 	if err != nil {
 		fmt.Printf("create server error: %v", err)
 		return
