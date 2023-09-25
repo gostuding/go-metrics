@@ -33,7 +33,8 @@ type (
 		FileStorePath   string          `json:"store_file,omitempty"`     // file path if used memory storage type.
 		ConnectDBString string          `json:"database_dsn,omitempty"`   // database connection string.
 		resString       string          `json:"-"`                        //
-		Key             string          `json:"key,omitempty"`            // key for requests hash check
+		Key             string          `json:"key,omitempty"`            // key for requests hash check.
+		TrustedSubnet   string          `json:"trusted_subnet"`           // trusted subnet for agents
 		StoreInterval   int             `json:"store_interval,omitempty"` // save storage interval.
 		Restore         bool            `json:"restore,omitempty"`        // restore mem storage flag.
 	}
@@ -44,6 +45,7 @@ type (
 	}
 )
 
+// SetDefault values for Config.
 func (c *Config) setDefault() {
 	if c.IPAddress == "" {
 		c.IPAddress = defaultAddress
@@ -123,6 +125,7 @@ func lookEnviroment(cfg *Config, keys *keysStruct) error {
 		}
 		cfg.PrivateKey = key
 	}
+	cfg.TrustedSubnet = stringEnvCheck(cfg.TrustedSubnet, "TRUSTED_SUBNET")
 	return nil
 }
 
@@ -156,6 +159,9 @@ func lookFileConfig(path string, cfg *Config, keys *keysStruct) error {
 	if cfg.FileStorePath == "" {
 		cfg.FileStorePath = c.FileStorePath
 	}
+	if cfg.TrustedSubnet == "" {
+		cfg.TrustedSubnet = c.TrustedSubnet
+	}
 	if cfg.resString == "" && !c.Restore {
 		cfg.resString = falseString
 	}
@@ -175,11 +181,12 @@ func NewConfig() (*Config, error) {
 	keys := keysStruct{}
 	var cfgFilePath string
 	if !flag.Parsed() {
-		flag.StringVar(&cfg.IPAddress, "a", cfg.IPAddress, "address and port to run server like address:port")
-		flag.IntVar(&cfg.StoreInterval, "i", cfg.StoreInterval, "store interval in seconds")
-		flag.StringVar(&cfg.FileStorePath, "f", cfg.FileStorePath, "file path for save the storage")
+		flag.StringVar(&cfg.IPAddress, "a", "", "address and port to run server like address:port")
+		flag.IntVar(&cfg.StoreInterval, "i", 0, "store interval in seconds")
+		flag.StringVar(&cfg.FileStorePath, "f", "", "file path for save the storage")
 		flag.StringVar(&cfg.resString, "r", "", "restore storage on start server (true or false)")
-		flag.StringVar(&cfg.ConnectDBString, "d", cfg.ConnectDBString, "database connect string")
+		flag.StringVar(&cfg.ConnectDBString, "d", "", "database connect string")
+		flag.StringVar(&cfg.TrustedSubnet, "t", "", "trusted subnet")
 		flag.StringVar(&keys.HashKey, "k", "", "Key for SHA256 checks")
 		flag.StringVar(&keys.PrivateKeyPath, "crypto-key", "", "path to file with RSA private key")
 		flag.StringVar(&cfgFilePath, "c", "", "path to file with config for server")

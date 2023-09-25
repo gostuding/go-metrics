@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -57,6 +58,15 @@ func (s *Server) RunServer() error {
 	if s.Storage == nil {
 		return fmt.Errorf("server storage is nil")
 	}
+	var subnet *net.IPNet
+	if s.Config.TrustedSubnet != "" {
+		_, mask, err := net.ParseCIDR(s.Config.TrustedSubnet)
+		if err != nil {
+			return fmt.Errorf("parse subnet error: %w", err)
+		}
+		subnet = mask
+	}
+
 	s.Logger.Infoln("Run server at adress: ", s.Config.IPAddress)
 	ctx, cancelFunc := signal.NotifyContext(
 		context.Background(), os.Interrupt, os.Interrupt,
@@ -66,7 +76,7 @@ func (s *Server) RunServer() error {
 	srvChan := make(chan error, 1)
 	s.srv = http.Server{
 		Addr:    s.Config.IPAddress,
-		Handler: makeRouter(s.Storage, s.Logger, []byte(s.Config.Key), s.Config.PrivateKey),
+		Handler: makeRouter(s.Storage, s.Logger, []byte(s.Config.Key), s.Config.PrivateKey, subnet),
 	}
 	go s.startServe(srvChan)
 	s.mutex.Lock()

@@ -33,6 +33,7 @@ type (
 	metricsStorage struct {
 		URL          string             // URL for requests send to server
 		MetricsSlice map[string]metrics // metrics storage
+		localAddress *net.IP            // Local IP addres
 		PublicKey    *rsa.PublicKey     // encription messages key
 		Logger       *zap.SugaredLogger // logger
 		resiveChan   chan resiveStruct  // chan for read requests results
@@ -76,6 +77,7 @@ func NewMemoryStorage(
 	port int,
 	compress bool,
 	rateLimit int,
+	localIP *net.IP,
 ) *metricsStorage {
 	mS := metricsStorage{
 		MetricsSlice: make(map[string]metrics),
@@ -86,6 +88,7 @@ func NewMemoryStorage(
 		URL:          fmt.Sprintf("http://%s/updates/", net.JoinHostPort(ip, fmt.Sprint(port))),
 		resiveChan:   make(chan resiveStruct, rateLimit),
 		requestChan:  make(chan struct{}, rateLimit),
+		localAddress: localIP,
 	}
 
 	go func() {
@@ -205,6 +208,7 @@ func (ms *metricsStorage) sendJSONToServer(body []byte, metric *metrics) {
 		body = b.Bytes()
 		req.Header.Add("Content-Encoding", "gzip")
 	}
+	req.Header.Add("X-Real-IP", ms.localAddress.String())
 	req.Body = io.NopCloser(bytes.NewReader(body))
 	if ms.Key != nil {
 		h := hmac.New(sha256.New, ms.Key)

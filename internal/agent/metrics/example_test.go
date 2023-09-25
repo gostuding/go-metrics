@@ -3,6 +3,7 @@ package metrics
 import (
 	"fmt"
 	"log"
+	"net"
 
 	"go.uber.org/zap"
 )
@@ -20,7 +21,8 @@ func Example() {
 	if err != nil {
 		log.Fatalln("create logger error:", err)
 	}
-	storage := NewMemoryStorage(nil, logger, ip, key, port, compress, rateLimit)
+	localAddress := net.IP("127.0.0.1")
+	storage := NewMemoryStorage(nil, logger, ip, key, port, compress, rateLimit, &localAddress)
 	// Collect metrics.
 	storage.UpdateMetrics()
 	storage.UpdateAditionalMetrics()

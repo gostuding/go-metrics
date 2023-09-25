@@ -29,6 +29,7 @@ type (
 		PublicKey      *rsa.PublicKey `json:"-"`                         // public key for messages encryption
 		PublicKeyPath  string         `json:"crypto_key,omitempty"`      // path to public key
 		IP             string         `json:"address,omitempty"`         // server's ip address
+		LocalAddress   *net.IP        `json:"-"`                         // agent's local ip address
 		gzipCompress   string         `json:"-"`                         //
 		HashKey        string         `json:"key,omitempty"`             // key for hashing requests body
 		RateLimit      int            `json:"rate_limit,omitempty"`      // max requests in time
@@ -219,6 +220,20 @@ func lookEnviroment(a *Config) error {
 	return nil
 }
 
+// GetLocalIP is internal function.
+func getLocalIP() (*net.IP, error) {
+	conn, err := net.Dial("udp", "8.8.8.8:80")
+	if err != nil {
+		return nil, fmt.Errorf("get local address error: %w", err)
+	}
+	defer conn.Close() //nolint:errcheck //<-senselessly
+	localAddress, ok := conn.LocalAddr().(*net.UDPAddr)
+	if !ok {
+		return nil, errors.New("can't get local address")
+	}
+	return &localAddress.IP, nil
+}
+
 // NewConfig return's configuration object for agent.
 // The list of parameters are taken from startup variables and environment variables.
 //
@@ -230,6 +245,11 @@ func lookEnviroment(a *Config) error {
 //	RATE_LIMIT - max requests count
 func NewConfig() (*Config, error) {
 	agentArgs := Config{}
+	l, err := getLocalIP()
+	if err != nil {
+		return nil, err
+	}
+	agentArgs.LocalAddress = l
 	cfgPath := ""
 	if !flag.Parsed() {
 		flag.Var(&agentArgs, "a", "Net address like 'host:port'")
