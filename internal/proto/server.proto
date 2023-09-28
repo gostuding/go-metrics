@@ -56,3 +56,15 @@ service Users {
   rpc GetUser(GetUserRequest) returns (GetUserResponse);
   rpc DelUser(DelUserRequest) returns (DelUserResponse);
 } 
+
+message MetricsRequest{
+  bytes metrics = 1;
+}
+
+message MetricsResponse{
+  string error = 1;
+}
+
+service Metrics{
+  rpc AddMetrics(MetricsRequest) returns (MetricsResponse);
+}

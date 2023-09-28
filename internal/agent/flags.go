@@ -37,6 +37,7 @@ type (
 		PollInterval   int            `json:"poll_interval,omitempty"`   // poll requests interval
 		ReportInterval int            `json:"report_interval,omitempty"` // send to server interval
 		GzipCompress   bool           `json:"gzip,omitempty"`            // flag to compress requests or not
+		SendByRPC      bool           `json:"-"`                         // flag for RPC send using
 	}
 )
 
@@ -261,6 +262,7 @@ func NewConfig() (*Config, error) {
 		flag.StringVar(&agentArgs.PublicKeyPath, "crypto-key", "", "Path to PUBLIC key file")
 		flag.StringVar(&cfgPath, "c", "", "Path to config file")
 		flag.StringVar(&cfgPath, "config", cfgPath, "Path to config file (the same as -c)")
+		flag.BoolVar(&agentArgs.SendByRPC, "rpc", agentArgs.SendByRPC, "Use RPC for send data to server. Sets only by this arg")
 		flag.Parse()
 	}
 	if err := lookFileConfig(cfgPath, &agentArgs); err != nil {

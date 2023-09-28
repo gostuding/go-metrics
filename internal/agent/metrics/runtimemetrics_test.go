@@ -62,7 +62,7 @@ func Test_makeMetric(t *testing.T) {
 func Test_metricsStorage_addMetric(t *testing.T) {
 	gaugeValue := float64(10)
 	counterValue := int64(10)
-	ms := NewMemoryStorage(nil, &zap.Logger{}, "", []byte(""), 0, false, 1, nil)
+	ms := NewMemoryStorage(nil, &zap.Logger{}, "", []byte(""), 0, false, 1, nil, false)
 	type args struct {
 		name  string
 		value any
@@ -96,7 +96,7 @@ func Test_metricsStorage_addMetric(t *testing.T) {
 }
 
 func Test_metricsStorage_UpdateMetrics(t *testing.T) {
-	ms := NewMemoryStorage(nil, &zap.Logger{}, "", []byte(""), 0, false, 1, nil)
+	ms := NewMemoryStorage(nil, &zap.Logger{}, "", []byte(""), 0, false, 1, nil, false)
 	ms.UpdateMetrics()
 	pollCount := ms.MetricsSlice["PollCount"].Delta
 	ms.UpdateMetrics()

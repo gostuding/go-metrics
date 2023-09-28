@@ -37,6 +37,7 @@ type (
 		TrustedSubnet   string          `json:"trusted_subnet"`           // trusted subnet for agents
 		StoreInterval   int             `json:"store_interval,omitempty"` // save storage interval.
 		Restore         bool            `json:"restore,omitempty"`        // restore mem storage flag.
+		SendByRPC       bool            `json:"-"`                        //
 	}
 	// Internal struct.
 	keysStruct struct {
@@ -190,6 +191,7 @@ func NewConfig() (*Config, error) {
 		flag.StringVar(&keys.HashKey, "k", "", "Key for SHA256 checks")
 		flag.StringVar(&keys.PrivateKeyPath, "crypto-key", "", "path to file with RSA private key")
 		flag.StringVar(&cfgFilePath, "c", "", "path to file with config for server")
+		flag.BoolVar(&cfg.SendByRPC, "rpc", cfg.SendByRPC, "Use RPC for get data from agents. Sets only by this arg")
 		flag.Parse()
 	}
 	if err := lookFileConfig(cfgFilePath, &cfg, &keys); err != nil {

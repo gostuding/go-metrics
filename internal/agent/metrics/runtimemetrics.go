@@ -19,8 +19,12 @@ import (
 	"sync"
 	"time"
 
+	pb "github.com/gostuding/go-metrics/internal/proto"
+
 	"github.com/shirou/gopsutil/mem"
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 // Const values.
@@ -42,6 +46,7 @@ type (
 		mx           sync.RWMutex       // mutex
 		GzipCompress bool               // flag to use gzip compress
 		Supplier     runtime.MemStats   // metrics data supplier
+		SendByRPC    bool               // flag for send by gRPC instead of HTTP
 	}
 
 	// Metrics is one metric struct.
@@ -78,19 +83,26 @@ func NewMemoryStorage(
 	compress bool,
 	rateLimit int,
 	localIP *net.IP,
+	sendRPC bool,
 ) *metricsStorage {
+	var address string
+	if sendRPC {
+		address = fmt.Sprintf("%s:%d", ip, port)
+	} else {
+		address = fmt.Sprintf("http://%s/updates/", net.JoinHostPort(ip, fmt.Sprint(port)))
+	}
 	mS := metricsStorage{
 		MetricsSlice: make(map[string]metrics),
 		Logger:       logger.Sugar(),
 		PublicKey:    pk,
 		GzipCompress: compress,
 		Key:          key,
-		URL:          fmt.Sprintf("http://%s/updates/", net.JoinHostPort(ip, fmt.Sprint(port))),
+		URL:          address,
 		resiveChan:   make(chan resiveStruct, rateLimit),
 		requestChan:  make(chan struct{}, rateLimit),
 		localAddress: localIP,
+		SendByRPC:    sendRPC,
 	}
-
 	go func() {
 		for item := range mS.resiveChan {
 			if item.Err != nil {
@@ -179,12 +191,7 @@ func (ms *metricsStorage) sendJSONToServer(body []byte, metric *metrics) {
 	defer func() {
 		<-ms.requestChan
 	}()
-	client := http.Client{}
-	req, err := http.NewRequest(http.MethodPost, ms.URL, nil)
-	if err != nil {
-		ms.resiveChan <- resiveStruct{Err: fmt.Errorf("request create error: %w", err), Metric: metric}
-		return
-	}
+	var err error
 	if ms.PublicKey != nil {
 		body, err = encryptMessage(body, ms.PublicKey)
 		if err != nil {
@@ -195,7 +202,7 @@ func (ms *metricsStorage) sendJSONToServer(body []byte, metric *metrics) {
 	if ms.GzipCompress {
 		var b bytes.Buffer
 		gz := gzip.NewWriter(&b)
-		_, err = gz.Write(body)
+		_, err := gz.Write(body)
 		if err != nil {
 			ms.resiveChan <- resiveStruct{Err: fmt.Errorf("compress error: %w", err), Metric: metric}
 			return
@@ -206,47 +213,79 @@ func (ms *metricsStorage) sendJSONToServer(body []byte, metric *metrics) {
 			return
 		}
 		body = b.Bytes()
+	}
+	if ms.SendByRPC {
+		err = ms.sendByRPC(body)
+	} else {
+		err = ms.sendByHTTP(body)
+	}
+	if err != nil {
+		ms.resiveChan <- resiveStruct{Err: err, Metric: metric}
+		return
+	}
+	ms.resiveChan <- resiveStruct{Err: nil, Metric: metric}
+}
+
+func (ms *metricsStorage) sendByHTTP(body []byte) error {
+	client := http.Client{}
+	req, err := http.NewRequest(http.MethodPost, ms.URL, nil)
+	if err != nil {
+		return fmt.Errorf("request create error: %w", err)
+	}
+	if ms.GzipCompress {
 		req.Header.Add("Content-Encoding", "gzip")
 	}
 	req.Header.Add("X-Real-IP", ms.localAddress.String())
 	req.Body = io.NopCloser(bytes.NewReader(body))
+
 	if ms.Key != nil {
 		h := hmac.New(sha256.New, ms.Key)
 		_, err = h.Write(body)
 		if err != nil {
-			ms.resiveChan <- resiveStruct{Err: fmt.Errorf("write hash summ error: '%w'", err), Metric: metric}
-			return
+			return fmt.Errorf("write hash summ error: '%w'", err)
 		}
 		req.Header.Add(hashVarName, hashToString(h))
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		ms.resiveChan <- resiveStruct{Err: fmt.Errorf("send error: '%w'", err), Metric: metric}
-		return
+		return fmt.Errorf("send error: '%w'", err)
 	}
 	defer resp.Body.Close() //nolint:errcheck // <- senselessly
 	if resp.StatusCode != http.StatusOK {
-		ms.resiveChan <- resiveStruct{Err: fmt.Errorf("statusCode error: %d", resp.StatusCode), Metric: metric}
-		return
+		return fmt.Errorf("statusCode error: %d", resp.StatusCode)
 	}
 	if ms.Key != nil {
 		data, err := io.ReadAll(resp.Body)
 		if err != nil {
-			ms.resiveChan <- resiveStruct{Err: fmt.Errorf("responce body read error: %w", err), Metric: metric}
-			return
+			return fmt.Errorf("responce body read error: %w", err)
 		}
 		hash := hmac.New(sha256.New, ms.Key)
 		_, err = hash.Write(data)
 		if err != nil {
-			ms.resiveChan <- resiveStruct{Err: fmt.Errorf("responce read hash summ error: '%w'", err), Metric: metric}
-			return
+			return fmt.Errorf("responce read hash summ error: '%w'", err)
 		}
 		if resp.Header.Get(hashVarName) != hashToString(hash) {
-			ms.resiveChan <- resiveStruct{Err: errors.New("check responce hash summ error"), Metric: metric}
-			return
+			return errors.New("check responce hash summ error")
 		}
 	}
-	ms.resiveChan <- resiveStruct{Err: nil, Metric: metric}
+	return nil
+}
+
+func (ms *metricsStorage) sendByRPC(body []byte) error {
+	conn, err := grpc.Dial(ms.URL, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return fmt.Errorf("dial RPC error: %w", err)
+	}
+	defer conn.Close()
+	c := pb.NewMetricsClient(conn)
+	resp, err := c.AddMetrics(context.Background(), &pb.MetricsRequest{Metrics: body})
+	if err != nil {
+		return fmt.Errorf("send by RPC error: %w", err)
+	}
+	if resp.Error != "" {
+		return fmt.Errorf("server response error: %s", resp.Error)
+	}
+	return nil
 }
 
 // Close checks if the last data were send to server. If not, sends data to server.

@@ -12,6 +12,9 @@ import (
 	"syscall"
 	"time"
 
+	pb "github.com/gostuding/go-metrics/internal/proto"
+	"google.golang.org/grpc"
+
 	"go.uber.org/zap"
 )
 
@@ -42,21 +45,28 @@ func NewServer(config *Config, logger *zap.SugaredLogger, storage Storage) *Serv
 	return &Server{Config: config, Logger: logger, Storage: storage}
 }
 
+func checkConfig(r bool, c *Config, l *zap.SugaredLogger, s Storage) error {
+	if r {
+		return fmt.Errorf("server already run")
+	}
+	if c == nil {
+		return fmt.Errorf("server options is nil")
+	}
+	if l == nil {
+		return fmt.Errorf("server logger is nil")
+	}
+	if s == nil {
+		return fmt.Errorf("server storage is nil")
+	}
+	return nil
+}
+
 // RunServer func run server. If the storage type is memory,
 // runs too gorutines for save storage data by interval and
 // save storage before finish work.
 func (s *Server) RunServer() error {
-	if s.isRun {
-		return fmt.Errorf("server already run")
-	}
-	if s.Config == nil {
-		return fmt.Errorf("server options is nil")
-	}
-	if s.Logger == nil {
-		return fmt.Errorf("server logger is nil")
-	}
-	if s.Storage == nil {
-		return fmt.Errorf("server storage is nil")
+	if err := checkConfig(s.isRun, s.Config, s.Logger, s.Storage); err != nil {
+		return err
 	}
 	var subnet *net.IPNet
 	if s.Config.TrustedSubnet != "" {
@@ -69,7 +79,7 @@ func (s *Server) RunServer() error {
 
 	s.Logger.Infoln("Run server at adress: ", s.Config.IPAddress)
 	ctx, cancelFunc := signal.NotifyContext(
-		context.Background(), os.Interrupt, os.Interrupt,
+		context.Background(), os.Interrupt,
 		syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT,
 	)
 	defer cancelFunc()
@@ -159,4 +169,64 @@ func saveStorageInterval(
 			}
 		}
 	}
+}
+
+type RPCServer struct {
+	pb.UnimplementedMetricsServer
+	Config  *Config            // server's options
+	Storage Storage            // Storage interface
+	Logger  *zap.SugaredLogger // server's logger
+	isRun   bool               // flag to check is server run
+}
+
+func (s *RPCServer) AddMetrics(ctx context.Context, in *pb.MetricsRequest) (*pb.MetricsResponse, error) {
+	var response pb.MetricsResponse
+	s.Logger.Debugln("Update metrics bytes")
+	_, err := bytesErrorRepeater(ctx, s.Storage.UpdateJSONSlice, in.Metrics)
+	if err != nil {
+		s.Logger.Debugln("Update metrics error", err)
+		response.Error = fmt.Sprintf("update metrics list error: %v", err)
+	}
+	return &response, nil
+}
+
+func NewRPCServer(config *Config, logger *zap.SugaredLogger, storage Storage) *RPCServer {
+	return &RPCServer{
+		Config:  config,
+		Logger:  logger,
+		Storage: storage,
+	}
+}
+
+func (s *RPCServer) RunServer() error {
+	if err := checkConfig(s.isRun, s.Config, s.Logger, s.Storage); err != nil {
+		return err
+	}
+	listen, err := net.Listen("tcp", s.Config.IPAddress)
+	if err != nil {
+		return fmt.Errorf("start RPC server error: %w", err)
+	}
+	srv := grpc.NewServer()
+	pb.RegisterMetricsServer(srv, s)
+
+	ctx, cancelFunc := signal.NotifyContext(
+		context.Background(), os.Interrupt,
+		syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT,
+	)
+	defer cancelFunc()
+	if s.Config.ConnectDBString == "" {
+		go saveStorageInterval(ctx, s.Config.StoreInterval, s.Storage, s.Logger)
+	}
+	s.Logger.Debugln("Сервер gRPC начал работу")
+	s.isRun = true
+	if err := srv.Serve(listen); err != nil {
+		s.isRun = false
+		return fmt.Errorf("server RPC error: %w", err)
+	}
+	return nil
+}
+
+func (s *RPCServer) StopServer() error {
+	// TODO пока что, хз как его останавливать
+	return nil
 }

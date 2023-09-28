@@ -22,7 +22,8 @@ func Example() {
 		log.Fatalln("create logger error:", err)
 	}
 	localAddress := net.IP("127.0.0.1")
-	storage := NewMemoryStorage(nil, logger, ip, key, port, compress, rateLimit, &localAddress)
+	storage := NewMemoryStorage(nil, logger, ip, key, port, compress,
+		rateLimit, &localAddress, false)
 	// Collect metrics.
 	storage.UpdateMetrics()
 	storage.UpdateAditionalMetrics()

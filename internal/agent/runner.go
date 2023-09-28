@@ -34,7 +34,7 @@ type (
 // NewAgent creates new Agent object.
 func NewAgent(cfg *Config, logger *zap.Logger) *Agent {
 	s := metrics.NewMemoryStorage(cfg.PublicKey, logger, cfg.IP, []byte(cfg.HashKey),
-		cfg.Port, cfg.GzipCompress, cfg.RateLimit, cfg.LocalAddress)
+		cfg.Port, cfg.GzipCompress, cfg.RateLimit, cfg.LocalAddress, cfg.SendByRPC)
 	return &Agent{Storage: s, logger: logger, cfg: cfg}
 }
 
