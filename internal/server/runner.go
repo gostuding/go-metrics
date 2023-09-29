@@ -13,6 +13,7 @@ import (
 	"time"
 
 	pb "github.com/gostuding/go-metrics/internal/proto"
+	"github.com/gostuding/go-metrics/internal/server/interseptors"
 	"google.golang.org/grpc"
 
 	"go.uber.org/zap"
@@ -88,10 +89,10 @@ func (s *Server) RunServer() error {
 		Addr:    s.Config.IPAddress,
 		Handler: makeRouter(s.Storage, s.Logger, []byte(s.Config.Key), s.Config.PrivateKey, subnet),
 	}
-	go s.startServe(srvChan)
 	s.mutex.Lock()
 	s.isRun = true
 	s.mutex.Unlock()
+	go s.startServe(srvChan)
 	go func() {
 		<-ctx.Done()
 		if err := s.StopServer(); err != nil {
@@ -177,11 +178,13 @@ type RPCServer struct {
 	Storage Storage            // Storage interface
 	Logger  *zap.SugaredLogger // server's logger
 	isRun   bool               // flag to check is server run
+	srv     *grpc.Server       //
 }
 
 func (s *RPCServer) AddMetrics(ctx context.Context, in *pb.MetricsRequest) (*pb.MetricsResponse, error) {
 	var response pb.MetricsResponse
 	s.Logger.Debugln("Update metrics bytes")
+
 	_, err := bytesErrorRepeater(ctx, s.Storage.UpdateJSONSlice, in.Metrics)
 	if err != nil {
 		s.Logger.Debugln("Update metrics error", err)
@@ -206,8 +209,12 @@ func (s *RPCServer) RunServer() error {
 	if err != nil {
 		return fmt.Errorf("start RPC server error: %w", err)
 	}
-	srv := grpc.NewServer()
-	pb.RegisterMetricsServer(srv, s)
+	s.srv = grpc.NewServer(
+		grpc.ChainUnaryInterceptor(
+			interseptors.GzipInterceptor,
+			interseptors.DecriptInterceptor(s.Config.PrivateKey),
+		))
+	pb.RegisterMetricsServer(s.srv, s)
 
 	ctx, cancelFunc := signal.NotifyContext(
 		context.Background(), os.Interrupt,
@@ -219,7 +226,13 @@ func (s *RPCServer) RunServer() error {
 	}
 	s.Logger.Debugln("Сервер gRPC начал работу")
 	s.isRun = true
-	if err := srv.Serve(listen); err != nil {
+	go func() {
+		<-ctx.Done()
+		if err := s.StopServer(); err != nil {
+			s.Logger.Warnf("stop server error: %w", err)
+		}
+	}()
+	if err := s.srv.Serve(listen); err != nil {
 		s.isRun = false
 		return fmt.Errorf("server RPC error: %w", err)
 	}
@@ -227,6 +240,9 @@ func (s *RPCServer) RunServer() error {
 }
 
 func (s *RPCServer) StopServer() error {
-	// TODO пока что, хз как его останавливать
+	if !s.isRun {
+		return fmt.Errorf("server not running yet")
+	}
+	s.srv.Stop()
 	return nil
 }

@@ -25,6 +25,7 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
 )
 
 // Const values.
@@ -103,6 +104,7 @@ func NewMemoryStorage(
 		localAddress: localIP,
 		SendByRPC:    sendRPC,
 	}
+
 	go func() {
 		for item := range mS.resiveChan {
 			if item.Err != nil {
@@ -191,6 +193,7 @@ func (ms *metricsStorage) sendJSONToServer(body []byte, metric *metrics) {
 	defer func() {
 		<-ms.requestChan
 	}()
+
 	var err error
 	if ms.PublicKey != nil {
 		body, err = encryptMessage(body, ms.PublicKey)
@@ -278,7 +281,16 @@ func (ms *metricsStorage) sendByRPC(body []byte) error {
 	}
 	defer conn.Close()
 	c := pb.NewMetricsClient(conn)
-	resp, err := c.AddMetrics(context.Background(), &pb.MetricsRequest{Metrics: body})
+	data := make(map[string]string)
+	if ms.GzipCompress {
+		data["gzip"] = ""
+	}
+	if ms.PublicKey != nil {
+		data["rsa"] = ""
+	}
+	md := metadata.New(data)
+	ctx := metadata.NewOutgoingContext(context.Background(), md)
+	resp, err := c.AddMetrics(ctx, &pb.MetricsRequest{Metrics: body})
 	if err != nil {
 		return fmt.Errorf("send by RPC error: %w", err)
 	}
