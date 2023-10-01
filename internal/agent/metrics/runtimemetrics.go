@@ -30,7 +30,8 @@ import (
 
 // Const values.
 const (
-	hashVarName = "HashSHA256" // Header name for hash check.
+	hashVarName     = "HashSHA256"                  // Header name for hash check.
+	hashErrorString = "write hash summ error: '%w'" //
 )
 
 type (
@@ -46,8 +47,8 @@ type (
 		Key          []byte             // check hash key
 		mx           sync.RWMutex       // mutex
 		GzipCompress bool               // flag to use gzip compress
-		Supplier     runtime.MemStats   // metrics data supplier
 		SendByRPC    bool               // flag for send by gRPC instead of HTTP
+		Supplier     runtime.MemStats   // metrics data supplier
 	}
 
 	// Metrics is one metric struct.
@@ -245,7 +246,7 @@ func (ms *metricsStorage) sendByHTTP(body []byte) error {
 		h := hmac.New(sha256.New, ms.Key)
 		_, err = h.Write(body)
 		if err != nil {
-			return fmt.Errorf("write hash summ error: '%w'", err)
+			return fmt.Errorf(hashErrorString, err)
 		}
 		req.Header.Add(hashVarName, hashToString(h))
 	}
@@ -279,14 +280,19 @@ func (ms *metricsStorage) sendByRPC(body []byte) error {
 	if err != nil {
 		return fmt.Errorf("dial RPC error: %w", err)
 	}
-	defer conn.Close()
+	defer conn.Close() //nolint:errcheck //<-senselessly
 	c := pb.NewMetricsClient(conn)
 	data := make(map[string]string)
 	if ms.GzipCompress {
 		data["gzip"] = ""
 	}
-	if ms.PublicKey != nil {
-		data["rsa"] = ""
+	if ms.Key != nil {
+		h := hmac.New(sha256.New, ms.Key)
+		_, err = h.Write(body)
+		if err != nil {
+			return fmt.Errorf(hashErrorString, err)
+		}
+		data[hashVarName] = hashToString(h)
 	}
 	md := metadata.New(data)
 	ctx := metadata.NewOutgoingContext(context.Background(), md)

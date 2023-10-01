@@ -10,8 +10,12 @@ import (
 	pb "github.com/gostuding/go-metrics/internal/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+)
+
+const (
+	decErrorString  = "decript error: %v"
+	notABytesString = "req is not bytes"
 )
 
 func decript(key *rsa.PrivateKey, msg []byte) ([]byte, error) {
@@ -24,7 +28,7 @@ func decript(key *rsa.PrivateKey, msg []byte) ([]byte, error) {
 	for i := 0; i < len(msg); i += size {
 		data, err := rsa.DecryptOAEP(hash, nil, key, msg[i:i+size], []byte(""))
 		if err != nil {
-			return nil, status.Error(codes.Internal, fmt.Sprintf("decript error: %v", err))
+			return nil, status.Error(codes.Internal, fmt.Sprintf(decErrorString, err)) //nolint:wrapcheck //<-
 		}
 		dectipted = append(dectipted, data...)
 	}
@@ -32,21 +36,23 @@ func decript(key *rsa.PrivateKey, msg []byte) ([]byte, error) {
 }
 
 func DecriptInterceptor(key *rsa.PrivateKey) grpc.UnaryServerInterceptor {
-	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-		if md, ok := metadata.FromIncomingContext(ctx); ok {
-			values := md.Get("rsa")
-			if len(values) == 0 {
-				return handler(ctx, req)
-			}
+	return func(
+		ctx context.Context,
+		req interface{},
+		info *grpc.UnaryServerInfo,
+		handler grpc.UnaryHandler,
+	) (interface{}, error) {
+		if key == nil {
+			return handler(ctx, req)
 		}
 		var err error
 		data, ok := req.(*pb.MetricsRequest)
 		if !ok {
-			return nil, status.Error(codes.FailedPrecondition, "req is not bytes")
+			return nil, status.Error(codes.FailedPrecondition, notABytesString) //nolint:wrapcheck //<-
 		}
 		data.Metrics, err = decript(key, data.Metrics)
 		if err != nil {
-			return nil, status.Error(codes.FailedPrecondition, fmt.Sprintf("decript error: %v", err))
+			return nil, status.Error(codes.FailedPrecondition, fmt.Sprintf(decErrorString, err)) //nolint:wrapcheck //<-
 		}
 		return handler(ctx, data)
 	}

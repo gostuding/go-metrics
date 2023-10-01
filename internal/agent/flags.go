@@ -262,7 +262,8 @@ func NewConfig() (*Config, error) {
 		flag.StringVar(&agentArgs.PublicKeyPath, "crypto-key", "", "Path to PUBLIC key file")
 		flag.StringVar(&cfgPath, "c", "", "Path to config file")
 		flag.StringVar(&cfgPath, "config", cfgPath, "Path to config file (the same as -c)")
-		flag.BoolVar(&agentArgs.SendByRPC, "rpc", agentArgs.SendByRPC, "Use RPC for send data to server. Sets only by this arg")
+		flag.BoolVar(&agentArgs.SendByRPC, "rpc", agentArgs.SendByRPC,
+			"Use RPC for send data to server. Sets only by this arg")
 		flag.Parse()
 	}
 	if err := lookFileConfig(cfgPath, &agentArgs); err != nil {

@@ -28,15 +28,15 @@ func GzipInterceptor(
 	}
 	data, ok := req.(*pb.MetricsRequest)
 	if !ok {
-		return nil, status.Error(codes.FailedPrecondition, "req is not bytes")
+		return nil, status.Error(codes.Canceled, notABytesString) //nolint:wrapcheck //<-
 	}
 	reader, err := gzip.NewReader(bytes.NewReader(data.Metrics))
 	if err != nil {
-		return nil, status.Error(codes.FailedPrecondition, fmt.Sprintf("new gzip reader create error: %v", err))
+		return nil, status.Error(codes.Internal, fmt.Sprintf("new gzip reader create error: %v", err)) //nolint:wrapcheck //<-
 	}
 	data.Metrics, err = io.ReadAll(reader)
 	if err != nil {
-		return nil, status.Error(codes.FailedPrecondition, fmt.Sprintf("read error: %v", err))
+		return nil, status.Error(codes.Internal, fmt.Sprintf("read error: %v", err)) //nolint:wrapcheck //<-
 	}
 	return handler(ctx, data)
 }

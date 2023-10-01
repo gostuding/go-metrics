@@ -20,7 +20,10 @@ import (
 )
 
 const (
-	shutdownTimeout = 10 // timeout to stop server
+	shutdownTimeout        = 10                       // timeout to stop server
+	stopServerString       = "stop server error: %w"  // internal value
+	stopStorageErrorString = "stop storage error: %w" //
+	storageFinishedString  = "Storage finished"
 )
 
 // Server is struct for object.
@@ -96,7 +99,7 @@ func (s *Server) RunServer() error {
 	go func() {
 		<-ctx.Done()
 		if err := s.StopServer(); err != nil {
-			s.Logger.Warnf("stop server error: %w", err)
+			s.Logger.Warnf(stopServerString, err)
 		}
 	}()
 	if s.Config.ConnectDBString == "" {
@@ -128,9 +131,9 @@ func (s *Server) StopServer() error {
 func (s *Server) startServe(srvChan chan error) {
 	err := s.srv.ListenAndServe()
 	if serr := s.Storage.Stop(); serr != nil {
-		s.Logger.Warnf("stop storage error: %w", serr)
+		s.Logger.Warnf(stopStorageErrorString, serr)
 	} else {
-		s.Logger.Debugln("Storage finished")
+		s.Logger.Debugln(storageFinishedString)
 	}
 	if errors.Is(err, http.ErrServerClosed) {
 		srvChan <- nil
@@ -177,8 +180,8 @@ type RPCServer struct {
 	Config  *Config            // server's options
 	Storage Storage            // Storage interface
 	Logger  *zap.SugaredLogger // server's logger
-	isRun   bool               // flag to check is server run
 	srv     *grpc.Server       //
+	isRun   bool               // flag to check is server run
 }
 
 func (s *RPCServer) AddMetrics(ctx context.Context, in *pb.MetricsRequest) (*pb.MetricsResponse, error) {
@@ -211,8 +214,10 @@ func (s *RPCServer) RunServer() error {
 	}
 	s.srv = grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
+			interseptors.HashInterceptor([]byte(s.Config.Key)),
 			interseptors.GzipInterceptor,
 			interseptors.DecriptInterceptor(s.Config.PrivateKey),
+			interseptors.LogInterceptor(s.Logger),
 		))
 	pb.RegisterMetricsServer(s.srv, s)
 
@@ -224,12 +229,12 @@ func (s *RPCServer) RunServer() error {
 	if s.Config.ConnectDBString == "" {
 		go saveStorageInterval(ctx, s.Config.StoreInterval, s.Storage, s.Logger)
 	}
-	s.Logger.Debugln("Сервер gRPC начал работу")
+	s.Logger.Debugln("Server gRPC run at", s.Config.IPAddress)
 	s.isRun = true
 	go func() {
 		<-ctx.Done()
 		if err := s.StopServer(); err != nil {
-			s.Logger.Warnf("stop server error: %w", err)
+			s.Logger.Warnf(stopServerString, err)
 		}
 	}()
 	if err := s.srv.Serve(listen); err != nil {
@@ -242,6 +247,11 @@ func (s *RPCServer) RunServer() error {
 func (s *RPCServer) StopServer() error {
 	if !s.isRun {
 		return fmt.Errorf("server not running yet")
+	}
+	if serr := s.Storage.Stop(); serr != nil {
+		s.Logger.Warnf(stopStorageErrorString, serr)
+	} else {
+		s.Logger.Debugln(storageFinishedString)
 	}
 	s.srv.Stop()
 	return nil
