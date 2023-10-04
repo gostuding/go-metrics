@@ -1,6 +1,7 @@
 package middlewares
 
 import (
+	"fmt"
 	"net"
 	"net/http"
 
@@ -11,6 +12,27 @@ const (
 	ipHeaderName = "X-Real-IP"
 )
 
+// CheckSubnet checks IP address.
+func checkSubnet(subnet *net.IPNet, r *http.Request) error {
+	if subnet == nil {
+		return nil
+	}
+	var ip net.IP
+	if r.Header.Get(ipHeaderName) == "" {
+		host, _, err := net.SplitHostPort(r.RemoteAddr)
+		if err != nil {
+			return fmt.Errorf("subnet checker ip ('%s') parse error: %w", r.RemoteAddr, err)
+		}
+		ip = net.ParseIP(host)
+	} else {
+		ip = net.ParseIP(r.Header.Get(ipHeaderName))
+	}
+	if !subnet.Contains(ip) {
+		return fmt.Errorf("subnet checker error: ip ('%s') request rejected", ip)
+	}
+	return nil
+}
+
 // SubNetCheckMiddleware checks request IP in Header "X-Real-IP".
 func SubNetCheckMiddleware(
 	subnet *net.IPNet,
@@ -18,26 +40,12 @@ func SubNetCheckMiddleware(
 ) func(h http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
-			if subnet != nil {
-				var ip net.IP
-				if r.Header.Get(ipHeaderName) == "" {
-					host, _, err := net.SplitHostPort(r.RemoteAddr)
-					if err != nil {
-						w.WriteHeader(http.StatusInternalServerError)
-						logger.Warnf("subnet checker ip ('%s') parse error: %v", r.RemoteAddr, err)
-						return
-					}
-					ip = net.ParseIP(host)
-				} else {
-					ip = net.ParseIP(r.Header.Get(ipHeaderName))
-				}
-				if !subnet.Contains(ip) {
-					w.WriteHeader(http.StatusForbidden)
-					logger.Infof("subnet checker error: ip ('%s') request rejected", ip)
-					return
-				}
+			if err := checkSubnet(subnet, r); err != nil {
+				w.WriteHeader(http.StatusForbidden)
+				logger.Warnln(err.Error())
+			} else {
+				next.ServeHTTP(w, r)
 			}
-			next.ServeHTTP(w, r)
 		}
 		return http.HandlerFunc(fn)
 	}

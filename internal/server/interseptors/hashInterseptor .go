@@ -5,7 +5,6 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
-	"fmt"
 
 	pb "github.com/gostuding/go-metrics/internal/proto"
 	"google.golang.org/grpc"
@@ -23,10 +22,10 @@ func checkHash(data, key []byte, hash string) error {
 		h := hmac.New(sha256.New, key)
 		_, err := h.Write(data)
 		if err != nil {
-			return fmt.Errorf("write hash summ error: %w", err)
+			return makeError(WriteError, err)
 		}
 		if hash != hex.EncodeToString(h.Sum(nil)) {
-			return fmt.Errorf("incorrect hash summ: %s", hash)
+			return makeError(HashIncorrectError, hash)
 		}
 	}
 	return nil
@@ -53,7 +52,7 @@ func HashInterceptor(key []byte) grpc.UnaryServerInterceptor {
 		var err error
 		data, ok := req.(*pb.MetricsRequest)
 		if !ok {
-			return nil, status.Error(codes.Canceled, notABytesString) //nolint:wrapcheck //<-
+			return nil, status.Error(codes.Canceled, makeError(NotByteError, nil).Error()) //nolint:wrapcheck //<-
 		}
 		err = checkHash(data.Metrics, key, values[0])
 		if err != nil {
