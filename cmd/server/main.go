@@ -16,6 +16,11 @@ var (
 	buildCommit  = "N/A"
 )
 
+type Server interface {
+	RunServer() error
+	StopServer() error
+}
+
 func run(logger *zap.SugaredLogger) error {
 	var strg server.Storage
 	var strErr error
@@ -32,7 +37,12 @@ func run(logger *zap.SugaredLogger) error {
 	if strErr != nil {
 		return fmt.Errorf("storage error: %w", strErr)
 	}
-	srv := server.NewServer(cfg, logger, strg)
+	var srv Server
+	if cfg.SendByRPC {
+		srv = server.NewRPCServer(cfg, logger, strg)
+	} else {
+		srv = server.NewServer(cfg, logger, strg)
+	}
 	return srv.RunServer() //nolint:wrapcheck //<-senselessly
 }
 

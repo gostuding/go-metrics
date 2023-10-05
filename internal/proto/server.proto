@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "github.com/gostuding/go-metrics/internal/proto";
+
+message MetricsRequest{
+  bytes metrics = 1;
+}
+
+message MetricsResponse{
+  string error = 1;
+}
+
+service Metrics{
+  rpc AddMetrics(MetricsRequest) returns (MetricsResponse);
+}

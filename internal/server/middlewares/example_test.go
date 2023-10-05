@@ -5,6 +5,7 @@ import (
 	"crypto/rsa"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"strings"
 
@@ -147,4 +148,22 @@ func ExampleDecriptMiddleware() {
 
 	// Output:
 	//
+}
+
+func ExampleSubNetCheckMiddleware() {
+	logger, err := zap.NewDevelopment()
+	if err != nil {
+		fmt.Printf("create logger errror: %v", err)
+		return
+	}
+	_, net, err := net.ParseCIDR("127.0.0.1/24")
+	if err != nil {
+		fmt.Printf("parce ip error: %v", err)
+		return
+	}
+	SubNetCheckMiddleware(net, logger.Sugar())
+	fmt.Printf("subnet string: %s", net.String())
+
+	// Output:
+	// subnet string: 127.0.0.0/24
 }

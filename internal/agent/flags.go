@@ -29,6 +29,7 @@ type (
 		PublicKey      *rsa.PublicKey `json:"-"`                         // public key for messages encryption
 		PublicKeyPath  string         `json:"crypto_key,omitempty"`      // path to public key
 		IP             string         `json:"address,omitempty"`         // server's ip address
+		LocalAddress   *net.IP        `json:"-"`                         // agent's local ip address
 		gzipCompress   string         `json:"-"`                         //
 		HashKey        string         `json:"key,omitempty"`             // key for hashing requests body
 		RateLimit      int            `json:"rate_limit,omitempty"`      // max requests in time
@@ -36,6 +37,7 @@ type (
 		PollInterval   int            `json:"poll_interval,omitempty"`   // poll requests interval
 		ReportInterval int            `json:"report_interval,omitempty"` // send to server interval
 		GzipCompress   bool           `json:"gzip,omitempty"`            // flag to compress requests or not
+		SendByRPC      bool           `json:"-"`                         // flag for RPC send using
 	}
 )
 
@@ -219,6 +221,20 @@ func lookEnviroment(a *Config) error {
 	return nil
 }
 
+// GetLocalIP is internal function.
+func getLocalIP() (*net.IP, error) {
+	conn, err := net.Dial("udp", "8.8.8.8:80")
+	if err != nil {
+		return nil, fmt.Errorf("get local address error: %w", err)
+	}
+	defer conn.Close() //nolint:errcheck //<-senselessly
+	localAddress, ok := conn.LocalAddr().(*net.UDPAddr)
+	if !ok {
+		return nil, errors.New("can't get local address")
+	}
+	return &localAddress.IP, nil
+}
+
 // NewConfig return's configuration object for agent.
 // The list of parameters are taken from startup variables and environment variables.
 //
@@ -230,6 +246,11 @@ func lookEnviroment(a *Config) error {
 //	RATE_LIMIT - max requests count
 func NewConfig() (*Config, error) {
 	agentArgs := Config{}
+	l, err := getLocalIP()
+	if err != nil {
+		return nil, err
+	}
+	agentArgs.LocalAddress = l
 	cfgPath := ""
 	if !flag.Parsed() {
 		flag.Var(&agentArgs, "a", "Net address like 'host:port'")
@@ -241,6 +262,8 @@ func NewConfig() (*Config, error) {
 		flag.StringVar(&agentArgs.PublicKeyPath, "crypto-key", "", "Path to PUBLIC key file")
 		flag.StringVar(&cfgPath, "c", "", "Path to config file")
 		flag.StringVar(&cfgPath, "config", cfgPath, "Path to config file (the same as -c)")
+		flag.BoolVar(&agentArgs.SendByRPC, "rpc", agentArgs.SendByRPC,
+			"Use RPC for send data to server. Sets only by this arg")
 		flag.Parse()
 	}
 	if err := lookFileConfig(cfgPath, &agentArgs); err != nil {

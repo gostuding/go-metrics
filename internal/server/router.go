@@ -3,6 +3,7 @@ package server
 import (
 	"crypto/rsa"
 	"io"
+	"net"
 	"net/http"
 
 	"github.com/go-chi/chi"
@@ -12,6 +13,7 @@ import (
 	"github.com/gostuding/go-metrics/internal/server/middlewares"
 )
 
+// Internal constants.
 const (
 	writeErrorString = "write data to client error: %w"
 	mTypeString      = "mType"
@@ -26,11 +28,17 @@ const (
 )
 
 // private func. Create posible hendlers for server.
-func makeRouter(storage Storage, logger *zap.SugaredLogger, hashKey []byte, pk *rsa.PrivateKey) http.Handler {
+func makeRouter(
+	storage Storage,
+	logger *zap.SugaredLogger,
+	hashKey []byte,
+	pk *rsa.PrivateKey,
+	subnet *net.IPNet,
+) http.Handler {
 	router := chi.NewRouter()
-
 	router.Use(
 		middleware.RealIP,
+		middlewares.SubNetCheckMiddleware(subnet, logger),
 		middlewares.HashCheckMiddleware(hashKey, logger),
 		middlewares.GzipMiddleware(logger),
 		middlewares.DecriptMiddleware(pk, logger),

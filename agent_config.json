@@ -1,5 +1,5 @@
 {
-    "address": "localhost:8080", 
+    "address": "localhost:3200", 
     "report_interval": 2, 
     "poll_interval": 10, 
     "key": "def key",
